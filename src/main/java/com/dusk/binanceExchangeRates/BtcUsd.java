@@ -1,3 +1,4 @@
+/*
 package com.dusk.binanceExchangeRates;
 
 import lombok.Data;
@@ -11,3 +12,4 @@ public class BtcUsd extends BinanceRate{
         super(id, symbol, eventType, eventTime, timestamp, ticks);
     }
 }
+*/

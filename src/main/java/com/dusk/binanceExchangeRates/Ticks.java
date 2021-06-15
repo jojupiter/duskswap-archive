@@ -1,3 +1,4 @@
+/*
 package com.dusk.binanceExchangeRates;
 
 import lombok.AllArgsConstructor;
@@ -22,3 +23,4 @@ public class Ticks {
     private String quoteBuyVolume;
 
 }
+*/

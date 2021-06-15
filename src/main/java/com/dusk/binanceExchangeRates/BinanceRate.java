@@ -1,3 +1,4 @@
+/*
 package com.dusk.binanceExchangeRates;
 
 import lombok.AllArgsConstructor;
@@ -20,3 +21,4 @@ public class BinanceRate {
     protected Ticks ticks;
 
 }
+*/
