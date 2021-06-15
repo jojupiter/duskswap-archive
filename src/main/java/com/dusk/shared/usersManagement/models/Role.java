@@ -1,15 +1,12 @@
 package com.dusk.shared.usersManagement.models;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.dusk.shared.commons.models.Auditable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import java.util.Date;
 
 
 @Entity
@@ -17,7 +14,7 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Role {
+public class Role extends Auditable<String> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,15 +22,5 @@ public class Role {
     @Column(name = "name")
     @NotBlank
     private String name;
-
-    @Column(name = "created_date")
-    @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    @NotNull
-    @CreatedDate
-    private Date createdDate;
-
-    @Column(name = "last_update")
-    @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    private Date lastUpdate;
 
 }

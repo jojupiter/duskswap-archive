@@ -13,6 +13,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>duskswap</name>
 	<description>A cryptocurrency and currency exchange</description>
+	<packaging>war</packaging>
 	<properties>
 		<java.version>1.8</java.version>
 	</properties>
@@ -105,6 +106,11 @@
 			<version>2.0.1.Final</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -122,6 +128,9 @@
 				</configuration>
 			</plugin>
 		</plugins>
+
+		<finalName>${artifactId}</finalName>
+
 	</build>
 
 </project>

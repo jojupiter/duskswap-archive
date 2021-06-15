@@ -2,32 +2,42 @@ package com.dusk.duskswap.account.models;
 
 import com.dusk.shared.commons.models.Auditable;
 import com.dusk.shared.commons.models.Currency;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Table(name = "amount_currency")
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class AmountCurrency extends Auditable<String> { // Entity association from exchange and currency
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private AmountCurrencyKey id;
 
     @ManyToOne
-    @JoinColumn(name = "student_id", referencedColumnName = "id")
+    @MapsId("exchange_account_id")
+    @JoinColumn(name = "exchange_account_id")
     private ExchangeAccount exchangeAccount;
 
     @ManyToOne
-    @JoinColumn(name = "currency_id", referencedColumnName = "id")
+    @MapsId("currency_id")
+    @JoinColumn(name = "currency_id")
     private Currency currency;
 
     @Column(name = "amount")
-    private Double amount;
+    private String amount;
+
+    @Override
+    public String toString() {
+        return "AmountCurrency{" +
+                "id=" + id +
+                ", exchangeAccountId=" + exchangeAccount.getId() +
+                ", currency=" + currency +
+                ", amount='" + amount + '\'' +
+                '}';
+    }
 
 }

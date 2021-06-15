@@ -36,7 +36,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping(value = "/update", produces = "application/json")
     public ResponseEntity<User> updateUser(@PathVariable("token") String token, @Valid @RequestBody User newUser) {
-        String email = jwtUtils.getUserNameFromJwtToken(token);
+        String email = jwtUtils.getEmailFromJwtToken(token);
         return userService.updateUser(email, newUser);
     }
 
@@ -44,7 +44,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping(value = "/suspend", produces = "application/json")
     public ResponseEntity<User> suspendUser(@RequestParam(name = "token") String token) {
-        String email = jwtUtils.getUserNameFromJwtToken(token);
+        String email = jwtUtils.getEmailFromJwtToken(token);
         return userService.suspendUser(email);
     }
 
@@ -90,7 +90,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping(value = "/token", produces = "application/json")
     public User getUser(@RequestParam(name = "token") String token) {
-        String email = jwtUtils.getUserNameFromJwtToken(token);
+        String email = jwtUtils.getEmailFromJwtToken(token);
         return userService.getUserByEmail(email).get();
     }
 
@@ -104,7 +104,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping("/enterprises/update/token")
     public ResponseEntity<Enterprise> updateEnterprise(@RequestParam(name = "token") String token, @Valid @RequestBody Enterprise newEnterprise) {
-        String email = jwtUtils.getUserNameFromJwtToken(token);
+        String email = jwtUtils.getEmailFromJwtToken(token);
         return userService.updateEnterprise(email, newEnterprise);
     }
 
@@ -123,7 +123,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping(value = "/enterprises/token", produces = "application/json")
     public ResponseEntity<Enterprise> getEnterpriseByOwner(@RequestParam(name = "token") String token) {
-        String email = jwtUtils.getUserNameFromJwtToken(token);
+        String email = jwtUtils.getEmailFromJwtToken(token);
         return userService.getEnterpriseByOwnerEmail(email);
     }
 

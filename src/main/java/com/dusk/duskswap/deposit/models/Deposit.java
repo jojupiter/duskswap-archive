@@ -27,7 +27,10 @@ public class Deposit extends Auditable<String> {
     private String fromAddress;
 
     @Column(name = "amount")
-    private Double amount;
+    private String amount;
+
+    @Column(name = "invoice_id")
+    private String invoiceId;
 
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")
@@ -45,8 +48,8 @@ public class Deposit extends Auditable<String> {
     @JoinColumn(name = "transaction_option_id", referencedColumnName = "id")
     private TransactionOption transactionOption;
 
-    @ManyToOne
+    /*@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exchange_rate_id", referencedColumnName = "id")
-    private ExchangeRate exchangeRate;
+    private ExchangeRate exchangeRate;*/
 
 }

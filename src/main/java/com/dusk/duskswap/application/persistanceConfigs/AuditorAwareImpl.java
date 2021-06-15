@@ -1,5 +1,6 @@
 package com.dusk.duskswap.application.persistanceConfigs;
 
+import com.dusk.shared.usersManagement.models.UserDetailsImpl;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,7 +18,7 @@ public class AuditorAwareImpl implements AuditorAware<String> {
         if (authentication instanceof AnonymousAuthenticationToken) {
             return Optional.of("APPLICATION_DEFAULT_USER");
         }
-        String username = ((UserDetails)authentication.getPrincipal()).getUsername();
+        String username = ((UserDetailsImpl)authentication.getPrincipal()).getId().toString();//.getUsername();
         return Optional.of(username);
     }
 }

@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DepositDto {
 
-    private String fromAddress;
-    private Double amount;
-    private String currency;
+    private String amount;
+    private Long currencyId;
     private String jwtToken;
+    private Long transactionOptId;
 
 }

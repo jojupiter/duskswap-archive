@@ -1,5 +1,6 @@
 package com.dusk.shared.usersManagement.models;
 
+import com.dusk.shared.commons.models.Auditable;
 import com.dusk.shared.commons.models.Level;
 import com.dusk.shared.commons.models.Status;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -24,7 +25,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+public class User extends Auditable<String> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -52,22 +53,11 @@ public class User {
     @Column(name = "lastname")
     private String lastName;
 
-    @Column(name = "created_date")
-    @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    @NotNull
-    @CreatedDate
-    private Date createdDate;
-
     @Column(name = "last_login")
     @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
     private Date lastLogin;
 
-    @Column(name = "last_update")
-    @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    @LastModifiedDate
-    private Date lastUpdate;
-
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "person_role",
             joinColumns = @JoinColumn(name = "person_id"),

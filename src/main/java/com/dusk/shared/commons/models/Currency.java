@@ -11,7 +11,7 @@ import javax.persistence.*;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Currency {
+public class Currency extends Auditable<String>{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,4 +22,8 @@ public class Currency {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "is_supported")
+    private Boolean isSupported;
+
 }
+

@@ -240,7 +240,7 @@ public class UserServiceImpl implements UserService {
     public ResponseEntity<Role> updateRole(Long id, Role role) {
         if(id == null || role == null)
             return ResponseEntity.badRequest().body(null);
-        role.setLastUpdate(new Date());
+
         role.setId(id);
         return ResponseEntity.ok(roleRepository.save(role));
     }

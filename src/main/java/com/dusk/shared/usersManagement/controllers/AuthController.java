@@ -177,8 +177,6 @@ public class AuthController {
             user.setRoles(userRoles);
         }
 
-
-        user.setCreatedDate(new Date());
         User addedUser = userService.addUser(user);
 
         // after creating the user, create the corresponding enterprise
