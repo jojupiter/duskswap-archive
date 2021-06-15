@@ -1,3 +1,4 @@
+/*
 package com.dusk.duskswap.commons.repositories;
 
 import com.dusk.binanceExchangeRates.BtcUsd;
@@ -21,3 +22,4 @@ public class BinanceRateRepositoryImpl implements BinanceRateRepository {
         return btcUsds;
     }
 }
+*/
