@@ -21,4 +21,7 @@ public class TransactionOption extends Auditable<String> {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "is_supported")
+    private Boolean isSupported;
+
 }

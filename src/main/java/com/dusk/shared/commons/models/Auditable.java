@@ -24,23 +24,23 @@ public class Auditable<U>
 {
     @CreatedBy
     @Column(name = "created_by")
-    @JsonProperty("created_by")
+    @JsonProperty(value = "created_by", access = JsonProperty.Access.WRITE_ONLY)
     private U createdBy;
 
     @CreatedDate
     @Column(name = "created_date")
     @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    @JsonProperty("created_date")
+    @JsonProperty(value = "created_date", access = JsonProperty.Access.WRITE_ONLY)
     private Date createdDate;
 
     @LastModifiedBy
     @Column(name = "updated_by")
-    @JsonProperty("updated_by")
+    @JsonProperty(value = "updated_by", access = JsonProperty.Access.WRITE_ONLY)
     private U updatedBy;
 
     @LastModifiedDate
     @Column(name = "last_update")
     @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    @JsonProperty("last_update")
+    @JsonProperty(value = "last_update", access = JsonProperty.Access.WRITE_ONLY)
     private Date lastUpdate;
 }

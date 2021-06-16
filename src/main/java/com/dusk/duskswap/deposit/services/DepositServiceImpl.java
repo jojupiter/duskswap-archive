@@ -3,7 +3,7 @@ package com.dusk.duskswap.deposit.services;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
-import com.dusk.duskswap.commons.miscellaneous.Utilities;
+import com.dusk.duskswap.commons.miscellaneous.Misc;
 import com.dusk.duskswap.commons.models.Checkout;
 import com.dusk.duskswap.commons.models.Invoice;
 import com.dusk.duskswap.commons.models.TransactionOption;
@@ -103,6 +103,18 @@ public class DepositServiceImpl implements DepositService {
         if(dto == null)
             return ResponseEntity.badRequest().body(null);
 
+        // First we check if the user exists and has already an exchange account
+        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(dto.getJwtToken()));
+        if(!user.isPresent()) {
+            logger.error("USER NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        if(!exchangeAccount.isPresent()) {
+            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
         // First we create an invoice for the deposit
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
@@ -126,23 +138,13 @@ public class DepositServiceImpl implements DepositService {
         Optional<Status> status = statusRepository.findByName("TRANSACTION_CRYPTO_New");
         if(!status.isPresent()) {
             logger.error("STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>("STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java", HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(dto.getJwtToken()));
-        if(!user.isPresent()) {
-            logger.error("USER NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>("USER NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java", HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
-        if(!exchangeAccount.isPresent()) {
-            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java", HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             logger.error("TRANSACTION OPT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>("TRANSACTION OPT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java", HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         Deposit deposit = new Deposit();
@@ -161,7 +163,7 @@ public class DepositServiceImpl implements DepositService {
         // finally return the source code of the invoice
         String invoicePageSource = "";
         try {
-            invoicePageSource = Utilities.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
+            invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
         }
         catch (IOException e) {
             e.printStackTrace();

@@ -8,7 +8,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.zip.GZIPInputStream;
 
-public class Utilities {
+public class Misc {
 
     public static String getWebPabeSource(String sURL) throws IOException {
         URL url = new URL(sURL);
