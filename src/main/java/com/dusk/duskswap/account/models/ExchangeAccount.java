@@ -1,8 +1,7 @@
 package com.dusk.duskswap.account.models;
 
-import com.dusk.shared.commons.models.Auditable;
-import com.dusk.shared.commons.models.Currency;
-import com.dusk.shared.usersManagement.models.User;
+import com.dusk.duskswap.commons.models.Auditable;
+import com.dusk.duskswap.usersManagement.models.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;

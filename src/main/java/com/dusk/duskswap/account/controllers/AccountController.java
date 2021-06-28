@@ -26,7 +26,7 @@ public class AccountController {
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    @PostMapping("/")
+    @GetMapping("/")
     public ResponseEntity<ExchangeAccount> getExchangeAccount(@RequestParam("token") String token) {
         String email = jwtUtils.getEmailFromJwtToken(token);
         return accountService.getExchangeAccount(email);

@@ -1,10 +1,10 @@
 package com.dusk.duskswap.withdrawal.models;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.commons.models.ExchangeRate;
+import com.dusk.duskswap.commons.models.Conversion;
 import com.dusk.duskswap.commons.models.TransactionOption;
-import com.dusk.shared.commons.models.Currency;
-import com.dusk.shared.commons.models.Status;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Status;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,6 +46,6 @@ public class Withdrawal {
 
     @ManyToOne
     @JoinColumn(name = "exchange_rate_id", referencedColumnName = "id")
-    private ExchangeRate exchangeRate;
+    private Conversion conversion;
 
 }

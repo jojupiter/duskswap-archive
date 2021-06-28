@@ -1,6 +1,6 @@
 package com.dusk.duskswap.application.securityConfigs;
 
-import com.dusk.shared.usersManagement.models.UserDetailsImpl;
+import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
 import io.jsonwebtoken.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

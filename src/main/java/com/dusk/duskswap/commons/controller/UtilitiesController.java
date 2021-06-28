@@ -2,7 +2,7 @@ package com.dusk.duskswap.commons.controller;
 
 import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.services.UtilitiesService;
-import com.dusk.shared.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Currency;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;

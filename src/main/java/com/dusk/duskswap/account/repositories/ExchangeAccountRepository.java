@@ -1,7 +1,7 @@
 package com.dusk.duskswap.account.repositories;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.shared.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.models.User;
 import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;

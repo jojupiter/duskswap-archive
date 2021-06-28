@@ -1,0 +1,229 @@
+package com.dusk.duskswap.withdrawal.services;
+
+import com.dusk.binanceExchangeRates.factories.BinanceRateFactory;
+import com.dusk.binanceExchangeRates.models.BinanceRate;
+import com.dusk.binanceExchangeRates.repositories.BinanceRateRepository;
+import com.dusk.duskswap.account.models.AmountCurrency;
+import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
+import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.application.securityConfigs.JwtUtils;
+import com.dusk.duskswap.commons.models.Conversion;
+import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
+import com.dusk.duskswap.withdrawal.entityDto.SellDto;
+import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
+import com.dusk.duskswap.withdrawal.models.Sell;
+import com.dusk.duskswap.withdrawal.repositories.SellRepository;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Status;
+import com.dusk.duskswap.commons.repositories.CurrencyRepository;
+import com.dusk.duskswap.commons.repositories.StatusRepository;
+import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class SellServiceImpl implements SellService {
+
+    @Autowired
+    private SellRepository sellRepository;
+    @Autowired
+    private BinanceRateRepository binanceRateRepository;
+    @Autowired
+    private BinanceRateFactory binanceRateFactory;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private ExchangeAccountRepository exchangeAccountRepository;
+    @Autowired
+    private StatusRepository statusRepository;
+    @Autowired
+    private CurrencyRepository currencyRepository;
+    @Autowired
+    private TransactionOptionRepository transactionOptionRepository;
+    @Autowired
+    private JwtUtils jwtUtils;
+    @Autowired
+    private AccountService accountService;
+    private Logger logger = LoggerFactory.getLogger(SellServiceImpl.class);
+
+    @Override
+    public ResponseEntity<List<Sell>> getAllSales(String userEmail) {
+        // input checking
+        if(userEmail == null || (userEmail != null && userEmail.isEmpty()))
+            return ResponseEntity.badRequest().body(null);
+
+        Optional<User> user = userRepository.findByEmail(userEmail);
+        if(!user.isPresent()) {
+            logger.error("USER NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        if(!exchangeAccount.isPresent()) {
+            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        return ResponseEntity.ok(sellRepository.findByExchangeAccount(exchangeAccount.get()));
+    }
+
+    @Override
+    public ResponseEntity<List<Sell>> getAllSales() {
+        return ResponseEntity.ok(sellRepository.findAll());
+    }
+
+    @Override
+    public ResponseEntity<SellPriceDto> calculateSale(SellDto sellDto) {
+        // input checking
+        if(sellDto == null)
+            return ResponseEntity.badRequest().body(null);
+
+        // After checking the input, we then verify if info provided are correct
+        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
+        if(!user.isPresent()) {
+            logger.error("USER NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        if(!exchangeAccount.isPresent()) {
+            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Optional<Currency> currency = currencyRepository.findById(sellDto.getFromCurrencyId());
+        if(!currency.isPresent()) {
+            logger.error("CURRENCY ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // then, we get the session close price of the crypto
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getName()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        if(currencyBinanceClassName == null)
+        {
+            logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> calculateSale :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
+
+        // now, we proceed to price calculations (when selling, the price is calculated in USDT. USDT is the default currency in our system (stablecoin))
+        double cryptoAmount = Double.parseDouble(sellDto.getAmount()); // conversion of crypto currency amount in double
+        double cryptoClosePrice = Double.parseDouble(rate.getTicks().getClose()); // crypto close price
+        // TODO: Add duskswap fees
+        String sellPrice = calculatePrice(cryptoAmount, cryptoClosePrice);
+
+        SellPriceDto sellPriceDto = new SellPriceDto();
+        sellPriceDto.setAmount(sellDto.getAmount());
+        sellPriceDto.setFromCurrency(currency.get().getIso());
+        sellPriceDto.setUsdPrice(sellPrice);
+
+        return ResponseEntity.ok(sellPriceDto);
+    }
+
+
+    @Override
+    @Transactional
+    public Sell createSale(SellDto sellDto) {
+        // input checking
+        if(sellDto == null)
+            return null;
+
+        // we get necessary elements from sellDto to create a sale
+        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
+        if(!user.isPresent()) {
+            logger.error("USER NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        if(!exchangeAccount.isPresent()) {
+            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        Optional<Currency> fromCurrency = currencyRepository.findById(sellDto.getFromCurrencyId());
+        if(!fromCurrency.isPresent()) {
+            logger.error("CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+
+        Optional<Currency> toCurrency = sellDto.getToCurrencyId() == null ? currencyRepository.findByIso("USD") :
+                                                                            currencyRepository.findById(sellDto.getToCurrencyId());
+
+        Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(sellDto.getTransactionOptId());
+        if(!transactionOption.isPresent()) {
+            logger.error("TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+        }
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getName()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        if(currencyBinanceClassName == null)
+        {
+            logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
+
+        Sell sell = new Sell();
+        sell.setAmount(sellDto.getAmount());
+        sell.setTel(sellDto.getTel());
+        sell.setCurrency(fromCurrency.get());
+        sell.setTransactionOption(transactionOption.get());
+        sell.setExchangeAccount(exchangeAccount.get());
+
+        Conversion conversion = new Conversion();
+        double cryptoAmount = Double.parseDouble(sellDto.getAmount()); // conversion of crypto currency amount in double
+        double cryptoClosePrice = Double.parseDouble(rate.getTicks().getClose()); // crypto close price
+        // TODO: Add duskswap fees
+        String sellPrice = calculatePrice(cryptoAmount, cryptoClosePrice);
+        conversion.setDuskPrice(sellPrice); // TODO: Replace sellPrice by the price of crypto currency that we had fixed in duskswap
+        conversion.setFromCurrency(fromCurrency.get().getIso());
+        conversion.setMarketPrice(rate.getTicks().getClose());
+        conversion.setToCurrency(toCurrency.get().getIso());
+
+        sell.setConversion(conversion);
+
+        return sellRepository.save(sell);
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<Boolean> confirmSale(Long sellId) {
+        // input checking
+        if(sellId == null)
+            return ResponseEntity.badRequest().body(false);
+
+        // here we get the corresponding sell
+        Optional<Sell> sell = sellRepository.findById(sellId);
+
+        if(!sell.isPresent())
+            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // After that, we check if the status is already CONFIRMED. If it is, we do nothing
+        if(sell.get().getStatus() != null && sell.get().getStatus().getName().equals("TRANSACTION_CONFIRMED"))
+            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // if the status is not CONFIRMED, then we make a normal update of the status
+        Optional<Status> status = statusRepository.findByName("TRANSACTION_CONFIRMED");
+        if(!status.isPresent())
+            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+        sell.get().setStatus(status.get());
+
+        Sell savedSell = sellRepository.save(sell.get());
+
+        // once saved, we debit the account
+        accountService.debitAccount(sell.get().getExchangeAccount(),
+                                    sell.get().getCurrency(),
+                                    sell.get().getAmount());
+
+        return ResponseEntity.ok(true);
+    }
+
+    private String calculatePrice(double cryptoAmount, double cryptoCloseAmount) {
+        return Double.toString(cryptoAmount * cryptoCloseAmount);
+    }
+}

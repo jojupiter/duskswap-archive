@@ -1,5 +1,6 @@
 package com.dusk.duskswap.application.persistanceConfigs;
 
+import com.dusk.binanceExchangeRates.factories.BinanceRateFactory;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
@@ -12,8 +13,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 @Configuration
 public class MongoConfig {
 
-    @Value("${spring.data.mongodb.database}")
-    private String databaseName;
+    //@Value("${spring.data.mongodb.database}")
+    private String databaseName = "binance";
 
 
     @Bean
@@ -29,6 +30,11 @@ public class MongoConfig {
     @Bean
     public MongoTemplate mongoTemplate() throws Exception {
         return new MongoTemplate(mongo(), databaseName);
+    }
+
+    @Bean
+    public BinanceRateFactory binanceRateFactory() {
+        return new BinanceRateFactory();
     }
 
 }

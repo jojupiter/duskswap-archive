@@ -2,17 +2,17 @@ package com.dusk.duskswap.account.services;
 
 import com.dusk.duskswap.account.models.AmountCurrency;
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.shared.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Currency;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
-import java.util.Set;
 
 public interface AccountService {
 
     ResponseEntity<ExchangeAccount> createExchangeAccount(String userEmail);
 
     ResponseEntity<ExchangeAccount> getExchangeAccount(String userEmail);
+    ExchangeAccount getExchangeAccountByEmail(String userEmail);
     ResponseEntity<List<ExchangeAccount>> getAllExchangeAccounts();
     ExchangeAccount getAccountById(Long accountId);
 

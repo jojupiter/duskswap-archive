@@ -1,11 +1,10 @@
 package com.dusk.duskswap.application.persistanceConfigs;
 
-import com.dusk.shared.usersManagement.models.UserDetailsImpl;
+import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Optional;
 

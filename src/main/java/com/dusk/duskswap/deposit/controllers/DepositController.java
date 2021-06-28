@@ -8,7 +8,7 @@ import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.services.DepositService;
-import com.dusk.shared.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Currency;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

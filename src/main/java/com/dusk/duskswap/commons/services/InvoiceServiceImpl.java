@@ -1,8 +1,8 @@
 package com.dusk.duskswap.commons.services;
 
 import com.dusk.duskswap.commons.models.Invoice;
-import com.dusk.shared.commons.models.Currency;
-import com.dusk.shared.commons.repositories.CurrencyRepository;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

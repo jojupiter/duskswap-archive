@@ -1,6 +1,9 @@
 package com.dusk.duskswap.withdrawal.services;
 
+import com.dusk.duskswap.withdrawal.entityDto.SellDto;
+import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalDto;
+import com.dusk.duskswap.withdrawal.models.Sell;
 import com.dusk.duskswap.withdrawal.models.Withdrawal;
 import org.springframework.http.ResponseEntity;
 
@@ -10,7 +13,6 @@ public interface WithdrawalService {
 
     ResponseEntity<List<Withdrawal>> getAllUserWithdrawals(String userEmail);
     ResponseEntity<List<Withdrawal>> getAllWithdrawals();
-
     ResponseEntity<Withdrawal> createWithdrawal(WithdrawalDto wdto);
     Withdrawal updateWithdrawalStatus(Long withdrawalId, String statusString);
 

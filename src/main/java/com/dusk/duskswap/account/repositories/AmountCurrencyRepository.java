@@ -1,11 +1,8 @@
 package com.dusk.duskswap.account.repositories;
 
 import com.dusk.duskswap.account.models.AmountCurrency;
-import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.shared.commons.models.Currency;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
 import java.util.Optional;

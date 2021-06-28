@@ -1,7 +1,7 @@
 package com.dusk.duskswap.commons.services;
 
 import com.dusk.duskswap.commons.models.TransactionOption;
-import com.dusk.shared.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Currency;
 
 import java.util.List;
 

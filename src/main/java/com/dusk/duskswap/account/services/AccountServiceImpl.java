@@ -5,10 +5,10 @@ import com.dusk.duskswap.account.models.AmountCurrencyKey;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
-import com.dusk.shared.commons.repositories.CurrencyRepository;
-import com.dusk.shared.commons.models.Currency;
-import com.dusk.shared.usersManagement.models.User;
-import com.dusk.shared.usersManagement.repositories.UserRepository;
+import com.dusk.duskswap.commons.repositories.CurrencyRepository;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -96,6 +96,20 @@ public class AccountServiceImpl implements AccountService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
 
          return ResponseEntity.ok(exchangeAccountRepository.findByUser(user.get()).get());
+    }
+
+    @Override
+    public ExchangeAccount getExchangeAccountByEmail(String userEmail) {
+        // input checking
+        if((userEmail!= null && userEmail.isEmpty()) || userEmail == null)
+            return null;
+
+        // we find the corresponding user here
+        Optional<User> user = userRepository.findByEmail(userEmail);
+        if(!user.isPresent())
+            return null;
+
+        return exchangeAccountRepository.findByUser(user.get()).get();
     }
 
     @Override

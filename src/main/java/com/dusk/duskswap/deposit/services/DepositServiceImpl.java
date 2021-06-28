@@ -12,12 +12,12 @@ import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.repositories.DepositRepository;
-import com.dusk.shared.commons.models.Currency;
-import com.dusk.shared.commons.models.Status;
-import com.dusk.shared.commons.repositories.CurrencyRepository;
-import com.dusk.shared.commons.repositories.StatusRepository;
-import com.dusk.shared.usersManagement.models.User;
-import com.dusk.shared.usersManagement.repositories.UserRepository;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Status;
+import com.dusk.duskswap.commons.repositories.CurrencyRepository;
+import com.dusk.duskswap.commons.repositories.StatusRepository;
+import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,6 +93,8 @@ public class DepositServiceImpl implements DepositService {
 
     @Override
     public Deposit getDepositByInvoiceId(String invoiceId) {
+        if(invoiceId == null)
+            return null;
         return depositRepository.findByInvoiceId(invoiceId).get();
     }
 
@@ -100,7 +102,16 @@ public class DepositServiceImpl implements DepositService {
     @Override
     public ResponseEntity<String> createCryptoDeposit(DepositDto dto) {
         // input checking
-        if(dto == null)
+        if(dto == null ||
+                (dto != null &&
+                        (
+                                dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
+                                dto.getJwtToken() == null || (dto.getJwtToken() != null && dto.getJwtToken().isEmpty()) ||
+                                dto.getCurrencyId() == null ||
+                                dto.getTransactionOptId() == null
+                         )
+                 )
+        )
             return ResponseEntity.badRequest().body(null);
 
         // First we check if the user exists and has already an exchange account
@@ -115,7 +126,7 @@ public class DepositServiceImpl implements DepositService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // First we create an invoice for the deposit
+        //then, we create an invoice for the deposit
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
             logger.error("CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");

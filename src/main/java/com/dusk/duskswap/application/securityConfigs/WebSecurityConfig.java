@@ -1,6 +1,6 @@
 package com.dusk.duskswap.application.securityConfigs;
 
-import com.dusk.shared.usersManagement.services.UserDetailsServiceImpl;
+import com.dusk.duskswap.usersManagement.services.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

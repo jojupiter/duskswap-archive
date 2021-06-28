@@ -1,6 +1,5 @@
 package com.dusk.duskswap.commons.models;
 
-import com.dusk.shared.commons.models.Auditable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +19,9 @@ public class TransactionOption extends Auditable<String> {
 
     @Column(name = "name")
     private String name;
+
+    @Column(name = "purpose")
+    private String purpose;
 
     @Column(name = "is_supported")
     private Boolean isSupported;

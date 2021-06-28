@@ -1,7 +1,7 @@
 package com.dusk.duskswap.account.models;
 
-import com.dusk.shared.commons.models.Auditable;
-import com.dusk.shared.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Auditable;
+import com.dusk.duskswap.commons.models.Currency;
 import lombok.*;
 
 import javax.persistence.*;

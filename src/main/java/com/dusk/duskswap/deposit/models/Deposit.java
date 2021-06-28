@@ -1,11 +1,10 @@
 package com.dusk.duskswap.deposit.models;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.commons.models.ExchangeRate;
 import com.dusk.duskswap.commons.models.TransactionOption;
-import com.dusk.shared.commons.models.Auditable;
-import com.dusk.shared.commons.models.Currency;
-import com.dusk.shared.commons.models.Status;
+import com.dusk.duskswap.commons.models.Auditable;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Status;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -50,6 +49,6 @@ public class Deposit extends Auditable<String> {
 
     /*@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exchange_rate_id", referencedColumnName = "id")
-    private ExchangeRate exchangeRate;*/
+    private Conversion conversion;*/
 
 }
