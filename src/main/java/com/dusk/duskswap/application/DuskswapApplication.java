@@ -16,14 +16,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EntityScan(basePackages = {"com.dusk.duskswap.*", "com.dusk.shared.*", "com.dusk.binanceExchangeRates.*"})
 @EnableScheduling
 @PropertySource("classpath:application.properties")
-public class DuskswapApplication extends SpringBootServletInitializer {
+public class DuskswapApplication /*extends SpringBootServletInitializer*/ {
 
 	public static void main(String[] args) {
 		SpringApplication.run(DuskswapApplication.class, args);
 	}
 
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+	/*protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
 		return builder.sources(DuskswapApplication.class);
-	}
+	}*/
 
 }
