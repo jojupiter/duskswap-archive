@@ -196,6 +196,9 @@ public class SellServiceImpl implements SellService {
         sell.setTransactionOption(transactionOption.get());
         sell.setExchangeAccount(exchangeAccount.get());
 
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_IN_CONFIRMATION);
+        sell.setStatus(status.get());
+
         Conversion conversion = new Conversion();
         double cryptoAmount = Double.parseDouble(sellDto.getAmount()); // conversion of crypto currency amount in double
         double cryptoClosePrice = Double.parseDouble(rate.getTicks().getClose()); // crypto close price
