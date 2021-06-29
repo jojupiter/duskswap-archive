@@ -3,6 +3,7 @@ package com.dusk.duskswap.usersManagement.controllers;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.FieldValidation;
 import com.dusk.duskswap.commons.models.JwtResponse;
 import com.dusk.duskswap.commons.models.VerificationCode;
@@ -54,7 +55,6 @@ public class AuthController {
                                               @RequestParam(name = "password") String password) {
 
         // Inputs verification
-        System.out.println("Email>>>> " + email + "  password>>>>> " + password + "  code >>>> " + code);
         if(
                 (email.isEmpty() || email == null) ||
                 (password.isEmpty() || password == null) ||
@@ -77,8 +77,8 @@ public class AuthController {
         }
 
         // First we need to verify if the supplied code is correct and valid
-        if(!verificationCodeService.isCodeCorrect(email, code, "SIGN_IN") &&
-           !verificationCodeService.isCodeStillValid(email, code, "SIGN_IN"))
+        if(!verificationCodeService.isCodeCorrect(email, code, DefaultProperties.VERIFICATION_SIGNIN_PURPOSE) &&
+           !verificationCodeService.isCodeStillValid(email, code,DefaultProperties.VERIFICATION_SIGNIN_PURPOSE))
             return ResponseEntity
                     .badRequest()
                     .body("The verification code is not correct/valid");
@@ -145,8 +145,8 @@ public class AuthController {
         }
 
         // Check if verification code is correct and valid
-        if(!verificationCodeService.isCodeCorrect(signupRequest.getEmail(), code, "SIGN_UP") &&
-            !verificationCodeService.isCodeStillValid(signupRequest.getEmail(), code, "SIGN_UP"))
+        if(!verificationCodeService.isCodeCorrect(signupRequest.getEmail(), code, DefaultProperties.VERIFICATION_SIGNUP_PURPOSE) &&
+            !verificationCodeService.isCodeStillValid(signupRequest.getEmail(), code, DefaultProperties.VERIFICATION_SIGNUP_PURPOSE))
             return ResponseEntity
                     .badRequest()
                     .body("The verification code is not correct/valid");

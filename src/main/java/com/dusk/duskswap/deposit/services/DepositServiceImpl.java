@@ -143,7 +143,7 @@ public class DepositServiceImpl implements DepositService {
         ResponseEntity<Invoice> invoiceResponse = invoiceService.createInvoice(invoice);
 
         if(invoiceResponse.getStatusCode() != HttpStatus.OK)
-            return new ResponseEntity<>("Invoice status bad >>>>>>>>> " + invoiceResponse.getStatusCode(), invoiceResponse.getStatusCode());
+            return new ResponseEntity<>(null, invoiceResponse.getStatusCode());
 
         // creation of the deposit object to be saved
         Optional<Status> status = statusRepository.findByName("TRANSACTION_CRYPTO_New");

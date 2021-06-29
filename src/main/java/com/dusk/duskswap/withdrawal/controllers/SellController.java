@@ -1,14 +1,10 @@
 package com.dusk.duskswap.withdrawal.controllers;
 
-import com.dusk.duskswap.account.models.AmountCurrency;
-import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
-import com.dusk.duskswap.withdrawal.entityDto.SellConfirmationDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
 import com.dusk.duskswap.withdrawal.models.Sell;
@@ -33,8 +29,6 @@ public class SellController {
     private EmailService emailService;
     @Autowired
     private VerificationCodeService verificationCodeService;
-    @Autowired
-    private AccountService accountService;
     @Autowired
     private JwtUtils jwtUtils;
 
@@ -82,7 +76,7 @@ public class SellController {
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @PostMapping(value = "/ask-confirmation", produces = "application/json")
+    @PostMapping(value = "/confirm", produces = "application/json")
     public ResponseEntity<Boolean> confirmSell(@RequestParam(value = "sellId") Long sellId) {
         return sellService.confirmSale(sellId);
     }

@@ -1,5 +1,6 @@
 package com.dusk.duskswap.usersManagement.services;
 
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Status;
 import com.dusk.duskswap.commons.repositories.StatusRepository;
 import com.dusk.duskswap.usersManagement.models.Enterprise;
@@ -107,7 +108,7 @@ public class UserServiceImpl implements UserService {
     public User addUser(User user) {
         if(user == null)
             return null;
-        Optional<Status> status = statusRepository.findByName("USER_ACTIVATED");
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_USER_ACTIVATED);
         if(status.isPresent())
             user.setStatus(status.get());
         return userRepository.save(user);
@@ -149,7 +150,7 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.badRequest().body(null);
         Optional<User> user = userRepository.findByEmail(email);
         if(user.isPresent()) {
-            Optional<Status> status = statusRepository.findByName("USER_SELF_SUSPENDED");
+            Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_USER_SELF_SUSPENDED);
             if(status.isPresent()) {
                 user.get().setStatus(status.get());
                 userRepository.save(user.get());
@@ -164,21 +165,21 @@ public class UserServiceImpl implements UserService {
     public ResponseEntity<User> adminSuspendUser(Long id) {
         if(id == null)
             return ResponseEntity.badRequest().body(null);
-        return changeUserStatus(id, "USER_SUSPENDED_BY_SUPERADMIN");
+        return changeUserStatus(id, DefaultProperties.STATUS_USER_SUSPENDED_BY_SUPERADMIN);
     }
 
     @Override
     public ResponseEntity<User> activateUser(Long id) {
         if(id == null)
             return ResponseEntity.badRequest().body(null);
-        return changeUserStatus(id, "USER_ACTIVATED");
+        return changeUserStatus(id, DefaultProperties.STATUS_USER_ACTIVATED);
     }
 
     @Override
     public ResponseEntity<User> disableUser(Long id) {
         if(id == null)
             return ResponseEntity.badRequest().body(null);
-        return changeUserStatus(id, "USER_DISABLED");
+        return changeUserStatus(id, DefaultProperties.STATUS_USER_DISABLED);
     }
 
     private ResponseEntity<User> changeUserStatus(Long id, String newStatus) {
@@ -194,8 +195,8 @@ public class UserServiceImpl implements UserService {
         if(user.get().getStatus() != null) {
             Optional<Status> status = statusRepository.findById(user.get().getStatus().getId());
             if(status.isPresent()) {
-                if(     status.get().getName().equals("USER_SUSPENDED_BY_SUPERADMIN") ||
-                        status.get().getName().equals("USER_SELF_SUSPENDED")
+                if(     status.get().getName().equals(DefaultProperties.STATUS_USER_SUSPENDED_BY_SUPERADMIN) ||
+                        status.get().getName().equals(DefaultProperties.STATUS_USER_SELF_SUSPENDED)
                 )
                     return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
             }

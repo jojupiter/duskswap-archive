@@ -12,7 +12,6 @@ public interface AccountService {
     ResponseEntity<ExchangeAccount> createExchangeAccount(String userEmail);
 
     ResponseEntity<ExchangeAccount> getExchangeAccount(String userEmail);
-    ExchangeAccount getExchangeAccountByEmail(String userEmail);
     ResponseEntity<List<ExchangeAccount>> getAllExchangeAccounts();
     ExchangeAccount getAccountById(Long accountId);
 

@@ -1,5 +1,6 @@
 package com.dusk.duskswap.commons.services;
 
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.repositories.VerificationCodeRepository;
@@ -42,7 +43,6 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
             return null;
 
         VerificationCode verificationCode = null;
-        String purpose = "SIGN_IN";
         // First we get the corresponding user
         Optional<User> user = userRepository.existsByEmail(emailOrUsername) ?
                             userRepository.findByEmail(emailOrUsername) : userRepository.findByUsername(emailOrUsername);
@@ -50,7 +50,8 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
             return null;
 
         // Next, we check if there already exists a valid code
-        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(user.get().getEmail(), purpose);
+        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(user.get().getEmail(),
+                                                                                                              DefaultProperties.VERIFICATION_SIGNIN_PURPOSE);
         if(lastSignInCode.isPresent()) {
             if(Utilities.testVerificationCodeValidity(lastSignInCode.get()))
                 return lastSignInCode.get();
@@ -59,7 +60,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
         // if no valid code found, just create one
         verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());
-        verificationCode.setPurpose(purpose);
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_SIGNIN_PURPOSE);
         verificationCode.setUserEmail(user.get().getEmail());
         Date validityDate = new Date();
         validityDate.setTime(validityDate.getTime() + signinValidPeriodInDays * 24 * 3600 * 1000);
@@ -75,10 +76,10 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
         if(email == null || (email != null && email.isEmpty()))
             return null;
         VerificationCode verificationCode = null;
-        String purpose = "SIGN_UP";
 
         // Next, we check if there already exists a valid code
-        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(email, purpose);
+        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(email,
+                                                                                                              DefaultProperties.VERIFICATION_SIGNUP_PURPOSE);
 
         if(lastSignInCode.isPresent()) {
             if(Utilities.testVerificationCodeValidity(lastSignInCode.get()))
@@ -88,7 +89,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
         // if no valid code found, just create one
         verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());
-        verificationCode.setPurpose(purpose);
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_SIGNUP_PURPOSE);
         verificationCode.setUserEmail(email);
         Date validityDate = new Date();
         validityDate.setTime(validityDate.getTime() + signupValidPeriodInDays * 24 * 3600 * 1000);
@@ -102,10 +103,10 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
         if(email == null || (email != null && email.isEmpty()))
             return null;
         VerificationCode verificationCode = null;
-        String purpose = "WITHDRAWAL_SELL";
 
         // Next, we check if there already exists a valid code
-        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(email, purpose);
+        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(email,
+                                                                                                              DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
         if(lastSignInCode.isPresent()) {
             if(Utilities.testVerificationCodeValidity(lastSignInCode.get()))
@@ -115,7 +116,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
         // if no valid code found, just create one
         verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());
-        verificationCode.setPurpose(purpose);
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
         verificationCode.setUserEmail(email);
         Date validityDate = new Date();
         validityDate.setTime(validityDate.getTime() + withdrawalTime * 60 * 1000);

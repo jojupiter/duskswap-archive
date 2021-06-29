@@ -5,11 +5,14 @@ import com.dusk.binanceExchangeRates.models.BinanceRate;
 import com.dusk.binanceExchangeRates.repositories.BinanceRateRepository;
 import com.dusk.duskswap.account.models.AmountCurrency;
 import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Conversion;
 import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.repositories.ConversionRepository;
 import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
@@ -51,6 +54,10 @@ public class SellServiceImpl implements SellService {
     private CurrencyRepository currencyRepository;
     @Autowired
     private TransactionOptionRepository transactionOptionRepository;
+    @Autowired
+    private ConversionRepository conversionRepository;
+    @Autowired
+    private AmountCurrencyRepository amountCurrencyRepository;
     @Autowired
     private JwtUtils jwtUtils;
     @Autowired
@@ -105,8 +112,21 @@ public class SellServiceImpl implements SellService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        // Here we check if the amount to be sold is less than the current balance
+        Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(exchangeAccount.get().getId(), currency.get().getId());
+        if(!amountCurrency.isPresent()) {
+            logger.error("AMOUNT CURRENCY NOT PRESENT FOR THE ACCOUNT > "+exchangeAccount.get().getId()+
+                    "< FOR CURRENCY >"+ currency.get().getIso() +"< >>>>>>>> calculateSale :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(Double.parseDouble(sellDto.getAmount()) > Double.parseDouble(amountCurrency.get().getAmount())) {
+            logger.error("SUPPLIED AMOUNT OF CURRENCY HIGHER THAN AVAILABLE AMOUNT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
         // then, we get the session close price of the crypto
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getName()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(currencyBinanceClassName == null)
         {
             logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> calculateSale :: SellServiceImpl.java");
@@ -149,7 +169,7 @@ public class SellServiceImpl implements SellService {
         }
         Optional<Currency> fromCurrency = currencyRepository.findById(sellDto.getFromCurrencyId());
         if(!fromCurrency.isPresent()) {
-            logger.error("CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
 
@@ -160,7 +180,8 @@ public class SellServiceImpl implements SellService {
         if(!transactionOption.isPresent()) {
             logger.error("TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
         }
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getName()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+
         if(currencyBinanceClassName == null)
         {
             logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
@@ -185,6 +206,8 @@ public class SellServiceImpl implements SellService {
         conversion.setMarketPrice(rate.getTicks().getClose());
         conversion.setToCurrency(toCurrency.get().getIso());
 
+        conversionRepository.save(conversion);
+
         sell.setConversion(conversion);
 
         return sellRepository.save(sell);
@@ -204,11 +227,11 @@ public class SellServiceImpl implements SellService {
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
 
         // After that, we check if the status is already CONFIRMED. If it is, we do nothing
-        if(sell.get().getStatus() != null && sell.get().getStatus().getName().equals("TRANSACTION_CONFIRMED"))
+        if(sell.get().getStatus() != null && sell.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED))
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
 
         // if the status is not CONFIRMED, then we make a normal update of the status
-        Optional<Status> status = statusRepository.findByName("TRANSACTION_CONFIRMED");
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent())
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         sell.get().setStatus(status.get());
