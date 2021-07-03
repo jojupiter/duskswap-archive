@@ -31,7 +31,7 @@ public class Misc {
             sb.append(inputLine);
         in.close();
 
-        return sb.toString();
+        return sb.toString().split("btcDue")[0]; // TODO: Change the output according to currency
     }
 
 }

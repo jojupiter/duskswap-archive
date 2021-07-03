@@ -3,6 +3,7 @@ package com.dusk.duskswap.deposit.services;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Misc;
 import com.dusk.duskswap.commons.models.Checkout;
 import com.dusk.duskswap.commons.models.Invoice;
@@ -10,6 +11,8 @@ import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
 import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
+import com.dusk.duskswap.deposit.entityDto.DepositPage;
+import com.dusk.duskswap.deposit.entityDto.DepositResponseDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.repositories.DepositRepository;
 import com.dusk.duskswap.commons.models.Currency;
@@ -21,6 +24,10 @@ import com.dusk.duskswap.usersManagement.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -54,12 +61,14 @@ public class DepositServiceImpl implements DepositService {
     private Logger logger = LoggerFactory.getLogger(DepositServiceImpl.class);
 
     @Override
-    public ResponseEntity<List<Deposit>> getAllUserDeposits(String userToken) {
+    public ResponseEntity<DepositPage> getAllUserDeposits(String userToken, Integer currentPage, Integer pageSize) {
         // input checking
         if(userToken == null || (userToken != null && userToken.isEmpty())) {
             logger.error("INPUT INCORRECT (null or empty) >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
         String userEmail = jwtUtils.getEmailFromJwtToken(userToken);
 
@@ -67,7 +76,6 @@ public class DepositServiceImpl implements DepositService {
             logger.error("INPUT INCORRECT (null or empty), Can't get email from token >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
-
 
         // getting the corresponding user and verify if exists
         Optional<User> user = userRepository.findByEmail(userEmail);
@@ -83,12 +91,41 @@ public class DepositServiceImpl implements DepositService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        return ResponseEntity.ok(depositRepository.findByExchangeAccount(exchangeAccount.get()));
+        Pageable pageable = PageRequest.of(currentPage, pageSize, Sort.by("createdDate").descending());
+        Page<Deposit> deposits = depositRepository.findByExchangeAccount(exchangeAccount.get(), pageable);
+
+        if(deposits.hasContent()) {
+
+            DepositPage depositPage = new DepositPage();
+            depositPage.setCurrentPage(deposits.getNumber());
+            depositPage.setTotalItems(deposits.getTotalElements());
+            depositPage.setTotalNumberPages(deposits.getTotalPages());
+            depositPage.setDeposits(deposits.getContent());
+
+            return ResponseEntity.ok(depositPage);
+        }
+
+        return ResponseEntity.ok(null);
     }
 
     @Override
-    public ResponseEntity<List<Deposit>> getAllUserDeposits() {
-        return ResponseEntity.ok(depositRepository.findAll());
+    public ResponseEntity<DepositPage> getAllUserDeposits(Integer currentPage, Integer pageSize) {
+
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
+
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
+        Page<Deposit> deposits = depositRepository.findAll(pageable);
+        if(deposits.hasContent()) {
+            DepositPage depositPage = new DepositPage();
+            depositPage.setCurrentPage(deposits.getNumber());
+            depositPage.setTotalItems(depositPage.getTotalItems());
+            depositPage.setTotalNumberPages(depositPage.getTotalNumberPages());
+            depositPage.setDeposits(deposits.getContent());
+
+            return ResponseEntity.ok(depositPage);
+        }
+        return ResponseEntity.ok(null);
     }
 
     @Override
@@ -100,7 +137,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
-    public ResponseEntity<String> createCryptoDeposit(DepositDto dto) {
+    public ResponseEntity<DepositResponseDto> createCryptoDeposit(DepositDto dto) {
         // input checking
         if(dto == null ||
                 (dto != null &&
@@ -146,7 +183,7 @@ public class DepositServiceImpl implements DepositService {
             return new ResponseEntity<>(null, invoiceResponse.getStatusCode());
 
         // creation of the deposit object to be saved
-        Optional<Status> status = statusRepository.findByName("TRANSACTION_CRYPTO_New");
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_NEW);
         if(!status.isPresent()) {
             logger.error("STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -166,21 +203,24 @@ public class DepositServiceImpl implements DepositService {
         deposit.setTransactionOption(transactionOption.get());
         deposit.setInvoiceId(invoiceResponse.getBody().getId());
 
-        depositRepository.save(deposit);
+        Deposit savedDeposit = depositRepository.save(deposit);
 
         // after that, we increment the exchange account
         // TODO: CHECK THE LIMIT OF TRANSACTION BASED ON USER'S LEVEL
 
         // finally return the source code of the invoice
+        DepositResponseDto responseDto = new DepositResponseDto();
+        responseDto.setDepositId(savedDeposit.getId());
         String invoicePageSource = "";
         try {
             invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
+            responseDto.setInvoiceSourceCode(invoicePageSource);
         }
         catch (IOException e) {
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        return ResponseEntity.ok(invoicePageSource);
+        return ResponseEntity.ok(responseDto);
     }
 
     @Override
@@ -208,4 +248,25 @@ public class DepositServiceImpl implements DepositService {
         return depositRepository.save(deposit.get());
     }
 
+    @Override
+    public ResponseEntity<Boolean> updateDestinationAddress(Long depositId, String toAddress) {
+        // input checking
+        if(depositId == null || toAddress == null || (toAddress != null && toAddress.isEmpty())) {
+            logger.error("INPUT NULL OR EMPTY >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java ====== " +
+                    "depositId = " + depositId + ", toAddress = " + toAddress);
+            return ResponseEntity.badRequest().body(false);
+        }
+
+        Optional<Deposit> deposit = depositRepository.findById(depositId);
+        if(!deposit.isPresent()) {
+            logger.error("DEPOSIT NOT PRESENT >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java");
+            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        deposit.get().setToAddress(toAddress);
+
+        depositRepository.save(deposit.get());
+
+        return ResponseEntity.ok(true);
+    }
 }

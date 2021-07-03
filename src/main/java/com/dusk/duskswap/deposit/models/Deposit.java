@@ -22,8 +22,8 @@ public class Deposit extends Auditable<String> {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "from_address")
-    private String fromAddress;
+    @Column(name = "to_address")
+    private String toAddress;
 
     @Column(name = "amount")
     private String amount;
@@ -46,9 +46,5 @@ public class Deposit extends Auditable<String> {
     @ManyToOne
     @JoinColumn(name = "transaction_option_id", referencedColumnName = "id")
     private TransactionOption transactionOption;
-
-    /*@ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exchange_rate_id", referencedColumnName = "id")
-    private Conversion conversion;*/
 
 }

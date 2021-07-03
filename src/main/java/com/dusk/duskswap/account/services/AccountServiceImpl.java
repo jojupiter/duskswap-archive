@@ -10,6 +10,9 @@ import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
+import com.dusk.duskswap.withdrawal.services.SellServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,7 @@ public class AccountServiceImpl implements AccountService {
     private UserRepository userRepository;
     @Autowired
     private CurrencyRepository currencyRepository;
+    private Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     @Override
     public ResponseEntity<ExchangeAccount> createExchangeAccount(String userEmail) {
@@ -104,6 +108,20 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public ExchangeAccount getAccountByUserEmail(String userEmail) {
+        // input checking
+        if((userEmail!= null && userEmail.isEmpty()) || userEmail == null)
+            return null;
+
+        // we find the corresponding user here
+        Optional<User> user = userRepository.findByEmail(userEmail);
+        if(!user.isPresent())
+            return null;
+
+        return exchangeAccountRepository.findByUser(user.get()).get();
+    }
+
+    @Override
     public ResponseEntity<List<ExchangeAccount>> getAllExchangeAccounts() {
         return ResponseEntity.ok(exchangeAccountRepository.findAll());
     }
@@ -115,46 +133,68 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public List<AmountCurrency> fundAccount(ExchangeAccount account, Currency currency, String amount) {
+    public AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount) {
         // inputs checking
         if(amount == null || currency == null || account == null)
             return null;
 
-        account.getAmountCurrencies().forEach(
-                amountCurrency -> {
+        Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currency.getId());
+        if(!amountCurrency.isPresent())
+            return null;
 
-                    if(amountCurrency.getCurrency().getId().equals(currency.getId())) {
-                        Double currentAmount = Double.parseDouble(amountCurrency.getAmount());
-                        Double addAmount = Double.parseDouble(amount);
+        Double currentAmount = Double.parseDouble(amountCurrency.get().getAmount());
+        Double amountToAdd = Double.parseDouble(amount);
 
-                        Double newAmount = currentAmount + addAmount;
-                        amountCurrency.setAmount(Double.toString(newAmount));
-                    }
-                }
-        );
+        if(amountToAdd < 0) // we can't add a negative amount
+            return null;
 
-        return amountCurrencyRepository.saveAll(account.getAmountCurrencies());
+        amountCurrency.get().setAmount(Double.toString(currentAmount + amountToAdd));
+
+        return amountCurrencyRepository.save(amountCurrency.get());
     }
 
     @Override
     @Transactional
-    public List<AmountCurrency> debitAccount(ExchangeAccount account, Currency currency, String amount) {
+    public AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount) {
+        // input checking
         if(amount == null || currency == null || account == null)
             return null;
 
-        account.getAmountCurrencies().forEach(
-                amountCurrency -> {
+        Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currency.getId());
+        if(!amountCurrency.isPresent())
+            return null;
 
-                    if(amountCurrency.getCurrency().getId().equals(currency.getId())) {
-                        Double currentAmount = Double.parseDouble(amountCurrency.getAmount());
-                        Double substractAmount = Double.parseDouble(amount);
+        Double currentAmount = Double.parseDouble(amountCurrency.get().getAmount());
+        Double amountToRemove = Double.parseDouble(amount);
 
-                        Double newAmount = currentAmount - substractAmount;
-                        amountCurrency.setAmount(Double.toString(newAmount));
-                    }
-                }
-        );
+        if(amountToRemove < 0 || amountToRemove > currentAmount)
+            return null;
 
-        return amountCurrencyRepository.saveAll(account.getAmountCurrencies());
+        amountCurrency.get().setAmount(Double.toString(currentAmount - amountToRemove));
+
+        return amountCurrencyRepository.save(amountCurrency.get());
     }
+
+    @Override
+    public boolean isBalanceSufficient(ExchangeAccount account, Long currencyId, String amount) {
+        // input checking
+        if(account == null || currencyId == null || amount == null || (amount != null && amount.isEmpty()))
+        {
+            logger.error("WRONG INPUT >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java  ========== Account = " + account +
+                    ", currencyId = " + currencyId + ", amount = " + amount);
+            return false;
+        }
+
+        Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currencyId);
+        if(!amountCurrency.isPresent()) {
+            logger.error("AMOUNT CURRENCY NOT PRESENT >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java");
+            return false;
+        }
+
+        if(Double.parseDouble(amount) >= 0 && Double.parseDouble(amountCurrency.get().getAmount()) > Double.parseDouble(amount))
+            return true;
+
+        return false;
+    }
+
 }

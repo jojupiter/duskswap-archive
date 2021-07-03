@@ -19,8 +19,6 @@ public class VerificationCode extends Auditable<String>{
     private Long id;
     @Column(name = "code")
     private Integer code;
-    @Column(name = "valid_until")
-    private Date validUntil;
     @Column(name = "purpose")
     private String purpose;
     @Column(name = "user_email")

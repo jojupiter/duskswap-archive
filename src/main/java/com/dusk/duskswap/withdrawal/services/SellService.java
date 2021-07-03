@@ -13,6 +13,6 @@ public interface SellService {
     ResponseEntity<List<Sell>> getAllSales();
     ResponseEntity<SellPriceDto> calculateSale(SellDto sellDto);
     Sell createSale(SellDto sellDto); // return sell id
-    ResponseEntity<Boolean> confirmSale(Long sellId);
+    //ResponseEntity<Boolean> confirmSale(Long sellId);
 
 }

@@ -6,12 +6,12 @@ import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.repositories.VerificationCodeRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -19,52 +19,43 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private VerificationCodeRepository verificationCodeRepository;
-
-    @Value("${signup.code.validity.inDays}")
-    private int signupValidPeriodInDays;
-
-    @Value("${signin.code.validity.inDays}")
-    private int signinValidPeriodInDays;
-
-    @Value("${withdrawal.code.validity.inMinutes}")
-    private int withdrawalTime;
+    private Logger logger = LoggerFactory.getLogger(VerificationCodeServiceImpl.class);
 
     @Override
     public VerificationCode createSigninCode(String emailOrUsername) {
         // input checking
-        if(emailOrUsername == null || (emailOrUsername != null && emailOrUsername.isEmpty()))
+        if(emailOrUsername == null || (emailOrUsername != null && emailOrUsername.isEmpty())) {
+            logger.error("EMAIL EMPTY OR NULL >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java ==== email = " + emailOrUsername);
             return null;
+        }
         // then check if user exists
         boolean doesUserExist = userRepository.existsByEmail(emailOrUsername) || userRepository.existsByUsername(emailOrUsername);
-        if(!doesUserExist)
+        if(!doesUserExist) {
+            logger.error("USER DOESN'T EXISTS >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java");
             return null;
+        }
 
-        VerificationCode verificationCode = null;
         // First we get the corresponding user
         Optional<User> user = userRepository.existsByEmail(emailOrUsername) ?
                             userRepository.findByEmail(emailOrUsername) : userRepository.findByUsername(emailOrUsername);
-        if(!user.isPresent())
+        if(!user.isPresent()) {
+            logger.error("USER DOESN'T EXISTS (result null) >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java");
             return null;
-
-        // Next, we check if there already exists a valid code
-        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(user.get().getEmail(),
-                                                                                                              DefaultProperties.VERIFICATION_SIGNIN_PURPOSE);
-        if(lastSignInCode.isPresent()) {
-            if(Utilities.testVerificationCodeValidity(lastSignInCode.get()))
-                return lastSignInCode.get();
         }
 
-        // if no valid code found, just create one
-        verificationCode = new VerificationCode();
+        // then we create/update the code.
+        Optional<VerificationCode> currentVerificationCode = verificationCodeRepository.findByUserEmailAndPurpose(emailOrUsername, DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE);
+
+        if(currentVerificationCode.isPresent()) {
+            currentVerificationCode.get().setCode(Utilities.generateVerificationCode());
+            verificationCodeRepository.save(currentVerificationCode.get());
+        }
+        VerificationCode verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());
-        verificationCode.setPurpose(DefaultProperties.VERIFICATION_SIGNIN_PURPOSE);
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE);
         verificationCode.setUserEmail(user.get().getEmail());
-        Date validityDate = new Date();
-        validityDate.setTime(validityDate.getTime() + signinValidPeriodInDays * 24 * 3600 * 1000);
-        verificationCode.setValidUntil(validityDate);
 
         return verificationCodeRepository.save(verificationCode);
 
@@ -73,54 +64,39 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
     @Override
     public VerificationCode createSignupCode(String email) {
 
-        if(email == null || (email != null && email.isEmpty()))
+        if(email == null || (email != null && email.isEmpty())) {
+            logger.error("INPUT NULL >>>>>>>> createSignUpCode :: VerificationCodeServiceImpl.java ==== email = " + email);
             return null;
+        }
         VerificationCode verificationCode = null;
 
-        // Next, we check if there already exists a valid code
-        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(email,
-                                                                                                              DefaultProperties.VERIFICATION_SIGNUP_PURPOSE);
-
-        if(lastSignInCode.isPresent()) {
-            if(Utilities.testVerificationCodeValidity(lastSignInCode.get()))
-                return lastSignInCode.get();
-        }
-
-        // if no valid code found, just create one
+        // then we create/update the code.
         verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());
-        verificationCode.setPurpose(DefaultProperties.VERIFICATION_SIGNUP_PURPOSE);
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE);
         verificationCode.setUserEmail(email);
-        Date validityDate = new Date();
-        validityDate.setTime(validityDate.getTime() + signupValidPeriodInDays * 24 * 3600 * 1000);
-        verificationCode.setValidUntil(validityDate);
 
         return verificationCodeRepository.save(verificationCode);
     }
 
     @Override
     public VerificationCode createWithdrawalCode(String email) {
-        if(email == null || (email != null && email.isEmpty()))
+        if(email == null || (email != null && email.isEmpty())) {
+            logger.error("EMAIL EMPTY OR NULL >>>>>>>> createWithdrawalCode :: VerificationCodeServiceImpl.java ==== email = " + email);
             return null;
-        VerificationCode verificationCode = null;
-
-        // Next, we check if there already exists a valid code
-        Optional<VerificationCode> lastSignInCode = verificationCodeRepository.findLastCreatedCodeByUserEmail(email,
-                                                                                                              DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
-
-        if(lastSignInCode.isPresent()) {
-            if(Utilities.testVerificationCodeValidity(lastSignInCode.get()))
-                return lastSignInCode.get();
         }
 
-        // if no valid code found, just create one
-        verificationCode = new VerificationCode();
+        // then we create/update the code.
+        Optional<VerificationCode> currentVerificationCode = verificationCodeRepository.findByUserEmailAndPurpose(email, DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
+
+        if(currentVerificationCode.isPresent()) {
+            currentVerificationCode.get().setCode(Utilities.generateVerificationCode());
+            return verificationCodeRepository.save(currentVerificationCode.get());
+        }
+        VerificationCode verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());
         verificationCode.setPurpose(DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
         verificationCode.setUserEmail(email);
-        Date validityDate = new Date();
-        validityDate.setTime(validityDate.getTime() + withdrawalTime * 60 * 1000);
-        verificationCode.setValidUntil(validityDate);
 
         return verificationCodeRepository.save(verificationCode);
     }
@@ -131,21 +107,37 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
                 email == null || (email != null && email.isEmpty()) ||
                 code == null ||
                 purpose == null || (purpose != null && purpose.isEmpty())
-        )
+        ) {
+            logger.error("INPUT NULL OR EMPTY >>>>>>>> createWithdrawalCode :: VerificationCodeServiceImpl.java ===== " +
+                    "email = " + email + ", code = " + code + ", purpose = " + purpose);
             return null;
+        }
         return verificationCodeRepository.existsByUserEmailAndCodeAndPurpose(email, code, purpose);
     }
 
     @Override
-    public Boolean isCodeStillValid(String email, Integer code, String purpose) {
-        if(code == null)
-            return null;
-        if(!verificationCodeRepository.existsByUserEmailAndCodeAndPurpose(email, code, purpose))
+    public Boolean updateCode(String email, String purpose) {
+        // input checking
+        if(
+                email == null || (email != null && email.isEmpty()) ||
+                purpose == null || (purpose != null && purpose.isEmpty())
+        ) {
+            logger.error("INPUT NULL OR EMPTY >>>>>>>> updateCode :: VerificationCodeServiceImpl.java ===== " +
+                    "email = " + email + ", purpose = " + purpose);
             return false;
-        List<VerificationCode> verificationCodes = verificationCodeRepository.findByCode(code);
-        for (VerificationCode verificationCode : verificationCodes)
-            if(Utilities.testVerificationCodeValidity(verificationCode))
-                return true;
-        return false;
+        }
+
+        Optional<VerificationCode> code = verificationCodeRepository.findByUserEmailAndPurpose(email, purpose);
+        if(!code.isPresent()) {
+            logger.error("OLD CODE NOT FOUND >>>>>>>> updateCode :: VerificationCodeServiceImpl.java");
+            return false;
+        }
+
+        code.get().setCode(Utilities.generateVerificationCode());
+
+        verificationCodeRepository.save(code.get());
+
+        return true;
     }
+
 }

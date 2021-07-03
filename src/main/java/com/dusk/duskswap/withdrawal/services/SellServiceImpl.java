@@ -12,16 +12,13 @@ import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Conversion;
 import com.dusk.duskswap.commons.models.TransactionOption;
-import com.dusk.duskswap.commons.repositories.ConversionRepository;
-import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
+import com.dusk.duskswap.commons.repositories.*;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
 import com.dusk.duskswap.withdrawal.models.Sell;
 import com.dusk.duskswap.withdrawal.repositories.SellRepository;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Status;
-import com.dusk.duskswap.commons.repositories.CurrencyRepository;
-import com.dusk.duskswap.commons.repositories.StatusRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
 import org.slf4j.Logger;
@@ -58,6 +55,8 @@ public class SellServiceImpl implements SellService {
     private ConversionRepository conversionRepository;
     @Autowired
     private AmountCurrencyRepository amountCurrencyRepository;
+    //@Autowired
+    //private VerificationCodeRepository verificationCodeRepository;
     @Autowired
     private JwtUtils jwtUtils;
     @Autowired
@@ -152,16 +151,17 @@ public class SellServiceImpl implements SellService {
     @Override
     @Transactional
     public Sell createSale(SellDto sellDto) {
-        // input checking
+        // =========> input checking
         if(sellDto == null)
             return null;
 
-        // we get necessary elements from sellDto to create a sale
+        // =========> we get necessary elements from sellDto to create a sale
         Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
         if(!user.isPresent()) {
             logger.error("USER NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
+
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
         if(!exchangeAccount.isPresent()) {
             logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
@@ -187,6 +187,8 @@ public class SellServiceImpl implements SellService {
             logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
+
+        // =========> Then, we create a sale and persist it to database
         BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
 
         Sell sell = new Sell();
@@ -196,7 +198,11 @@ public class SellServiceImpl implements SellService {
         sell.setTransactionOption(transactionOption.get());
         sell.setExchangeAccount(exchangeAccount.get());
 
-        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_IN_CONFIRMATION);
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
+        if(!status.isPresent()) {
+            logger.error("STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
         sell.setStatus(status.get());
 
         Conversion conversion = new Conversion();
@@ -208,15 +214,21 @@ public class SellServiceImpl implements SellService {
         conversion.setFromCurrency(fromCurrency.get().getIso());
         conversion.setMarketPrice(rate.getTicks().getClose());
         conversion.setToCurrency(toCurrency.get().getIso());
-
         conversionRepository.save(conversion);
-
         sell.setConversion(conversion);
 
-        return sellRepository.save(sell);
+        Sell savedSell = sellRepository.save(sell);
+
+        // ==========> finally, we debit the account
+        accountService.debitAccount(exchangeAccount.get(),
+                fromCurrency.get(),
+                sellDto.getAmount());
+
+        return savedSell;
     }
 
-    @Override
+
+    /*@Override
     @Transactional
     public ResponseEntity<Boolean> confirmSale(Long sellId) {
         // input checking
@@ -247,7 +259,7 @@ public class SellServiceImpl implements SellService {
                                     sell.get().getAmount());
 
         return ResponseEntity.ok(true);
-    }
+    }*/
 
     private String calculatePrice(double cryptoAmount, double cryptoCloseAmount) {
         return Double.toString(cryptoAmount * cryptoCloseAmount);

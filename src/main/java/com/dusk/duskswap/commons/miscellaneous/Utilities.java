@@ -12,8 +12,5 @@ public class Utilities {
         return new Random().nextInt(900000) + 100000;
     }
 
-    public static boolean testVerificationCodeValidity(VerificationCode code) {
-        return code.getValidUntil().after(new Date());
-    }
 
 }

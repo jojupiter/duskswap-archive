@@ -11,7 +11,7 @@ public class WithdrawalDto {
 
     private String toAddress;
     private Double amount;
-    private String currency;
+    private String currencyIso;
     private String jwtToken;
 
 }

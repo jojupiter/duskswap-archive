@@ -2,10 +2,13 @@ package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Invoice;
 import com.dusk.duskswap.commons.models.WebhookEvent;
 import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
+import com.dusk.duskswap.deposit.entityDto.DepositPage;
+import com.dusk.duskswap.deposit.entityDto.DepositResponseDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.services.DepositService;
 import com.dusk.duskswap.commons.models.Currency;
@@ -30,21 +33,31 @@ public class DepositController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/all", produces = "application/json", params = {"token"})
-    public ResponseEntity<List<Deposit>> getAllUserDeposits(@RequestParam(name = "token") String token) {
-        return depositService.getAllUserDeposits(token);
+    public ResponseEntity<DepositPage> getAllUserDeposits(@RequestParam(name = "token") String token,
+                                                          @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                                          @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+        return depositService.getAllUserDeposits(token, currentPage, pageSize);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
-    public ResponseEntity<List<Deposit>> getAllDeposits() {
-        return depositService.getAllUserDeposits();
+    public ResponseEntity<DepositPage> getAllDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                                        @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+        return depositService.getAllUserDeposits(currentPage, pageSize);
     }
 
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<String> createDeposit(@RequestBody DepositDto dto) {
+    public ResponseEntity<DepositResponseDto> createDeposit(@RequestBody DepositDto dto) {
         return depositService.createCryptoDeposit(dto);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PutMapping(value = "/update-address", produces = "application/json")
+    public ResponseEntity<Boolean> updateDepositDestinationAddress(@RequestParam(name = "depositId") Long depositId,
+                                                                   @RequestParam(name = "toAddress") String toAddress) {
+        return depositService.updateDestinationAddress(depositId, toAddress);
     }
 
     @PutMapping(value = "/update-status", produces = "application/json")
@@ -63,8 +76,8 @@ public class DepositController {
 
         // We update the deposit status if it has changed
         Deposit deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
-        if(deposit != null && deposit.getStatus().getName().equals("TRANSACTION_CRYPTO_" + invoice.getStatus())) {
-            depositService.updateDepositStatus(deposit.getId(), "TRANSACTION_CRYPTO_" + invoice.getStatus());
+        if(deposit != null && deposit.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus())) {
+            depositService.updateDepositStatus(deposit.getId(), DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
         }
         if(deposit == null)
             return;

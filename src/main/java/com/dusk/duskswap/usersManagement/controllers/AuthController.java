@@ -60,7 +60,7 @@ public class AuthController {
                 (password.isEmpty() || password == null) ||
                 code == null
         )
-            return null;
+            return ResponseEntity.badRequest().body(null);
 
         HashMap<String, String> emailValidity = fieldValidation.isEmailValid(email);
         if(!Boolean.parseBoolean(emailValidity.get("isEmailValid"))) {
@@ -77,8 +77,7 @@ public class AuthController {
         }
 
         // First we need to verify if the supplied code is correct and valid
-        if(!verificationCodeService.isCodeCorrect(email, code, DefaultProperties.VERIFICATION_SIGNIN_PURPOSE) &&
-           !verificationCodeService.isCodeStillValid(email, code,DefaultProperties.VERIFICATION_SIGNIN_PURPOSE))
+        if(!verificationCodeService.isCodeCorrect(email, code, DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE))
             return ResponseEntity
                     .badRequest()
                     .body("The verification code is not correct/valid");
@@ -115,8 +114,8 @@ public class AuthController {
                                             @Valid @RequestBody SignupRequest signupRequest
                                           ) {
         // Input verification
-        /*if(signupRequest == null || code == null)
-            return null;*/
+        if(signupRequest == null || code == null)
+            return ResponseEntity.badRequest().body(null);
 
         if (userService.existsByUsername(signupRequest.getEmail())) {
             return ResponseEntity
@@ -145,8 +144,7 @@ public class AuthController {
         }
 
         // Check if verification code is correct and valid
-        if(!verificationCodeService.isCodeCorrect(signupRequest.getEmail(), code, DefaultProperties.VERIFICATION_SIGNUP_PURPOSE) &&
-            !verificationCodeService.isCodeStillValid(signupRequest.getEmail(), code, DefaultProperties.VERIFICATION_SIGNUP_PURPOSE))
+        if(!verificationCodeService.isCodeCorrect(signupRequest.getEmail(), code, DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE))
             return ResponseEntity
                     .badRequest()
                     .body("The verification code is not correct/valid");

@@ -11,6 +11,7 @@ public class SellDto {
     private Long fromCurrencyId;
     private String amount;
     private String jwtToken;
+    private Integer code;
     private String tel;
     private Long transactionOptId;
     private Long toCurrencyId;
