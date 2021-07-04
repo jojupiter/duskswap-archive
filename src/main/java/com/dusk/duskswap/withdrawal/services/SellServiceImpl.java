@@ -29,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,12 +72,12 @@ public class SellServiceImpl implements SellService {
 
         Optional<User> user = userRepository.findByEmail(userEmail);
         if(!user.isPresent()) {
-            logger.error("USER NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
         if(!exchangeAccount.isPresent()) {
-            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -97,30 +98,30 @@ public class SellServiceImpl implements SellService {
         // After checking the input, we then verify if info provided are correct
         Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
         if(!user.isPresent()) {
-            logger.error("USER NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
         if(!exchangeAccount.isPresent()) {
-            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         Optional<Currency> currency = currencyRepository.findById(sellDto.getFromCurrencyId());
         if(!currency.isPresent()) {
-            logger.error("CURRENCY ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // Here we check if the amount to be sold is less than the current balance
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(exchangeAccount.get().getId(), currency.get().getId());
         if(!amountCurrency.isPresent()) {
-            logger.error("AMOUNT CURRENCY NOT PRESENT FOR THE ACCOUNT > "+exchangeAccount.get().getId()+
+            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT FOR THE ACCOUNT > "+exchangeAccount.get().getId()+
                     "< FOR CURRENCY >"+ currency.get().getIso() +"< >>>>>>>> calculateSale :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         if(Double.parseDouble(sellDto.getAmount()) > Double.parseDouble(amountCurrency.get().getAmount())) {
-            logger.error("SUPPLIED AMOUNT OF CURRENCY HIGHER THAN AVAILABLE AMOUNT >>>>>>>> calculateSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => SUPPLIED AMOUNT OF CURRENCY HIGHER THAN AVAILABLE AMOUNT >>>>>>>> calculateSale :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -128,7 +129,7 @@ public class SellServiceImpl implements SellService {
         Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(currencyBinanceClassName == null)
         {
-            logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> calculateSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> calculateSale :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
@@ -158,18 +159,18 @@ public class SellServiceImpl implements SellService {
         // =========> we get necessary elements from sellDto to create a sale
         Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
         if(!user.isPresent()) {
-            logger.error("USER NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
 
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
         if(!exchangeAccount.isPresent()) {
-            logger.error("EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
         Optional<Currency> fromCurrency = currencyRepository.findById(sellDto.getFromCurrencyId());
         if(!fromCurrency.isPresent()) {
-            logger.error("CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
 
@@ -178,13 +179,13 @@ public class SellServiceImpl implements SellService {
 
         Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(sellDto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
-            logger.error("TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
         }
         Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
 
         if(currencyBinanceClassName == null)
         {
-            logger.error("CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
 
@@ -200,7 +201,7 @@ public class SellServiceImpl implements SellService {
 
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
-            logger.error("STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
+            logger.error("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
         sell.setStatus(status.get());
@@ -226,40 +227,6 @@ public class SellServiceImpl implements SellService {
 
         return savedSell;
     }
-
-
-    /*@Override
-    @Transactional
-    public ResponseEntity<Boolean> confirmSale(Long sellId) {
-        // input checking
-        if(sellId == null)
-            return ResponseEntity.badRequest().body(false);
-
-        // here we get the corresponding sell
-        Optional<Sell> sell = sellRepository.findById(sellId);
-
-        if(!sell.isPresent())
-            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
-
-        // After that, we check if the status is already CONFIRMED. If it is, we do nothing
-        if(sell.get().getStatus() != null && sell.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED))
-            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
-
-        // if the status is not CONFIRMED, then we make a normal update of the status
-        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
-        if(!status.isPresent())
-            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
-        sell.get().setStatus(status.get());
-
-        Sell savedSell = sellRepository.save(sell.get());
-
-        // once saved, we debit the account
-        accountService.debitAccount(sell.get().getExchangeAccount(),
-                                    sell.get().getCurrency(),
-                                    sell.get().getAmount());
-
-        return ResponseEntity.ok(true);
-    }*/
 
     private String calculatePrice(double cryptoAmount, double cryptoCloseAmount) {
         return Double.toString(cryptoAmount * cryptoCloseAmount);

@@ -12,6 +12,8 @@ import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
 import com.dusk.duskswap.withdrawal.models.Sell;
 import com.dusk.duskswap.withdrawal.services.SellService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -36,6 +39,7 @@ public class SellController {
     private VerificationCodeService verificationCodeService;
     @Autowired
     private JwtUtils jwtUtils;
+    private Logger logger = LoggerFactory.getLogger(SellController.class);
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/price")
@@ -53,8 +57,10 @@ public class SellController {
            (sellDto != null &&
                    (sellDto.getJwtToken() == null || (sellDto.getJwtToken() != null && sellDto.getJwtToken().isEmpty()))
            )
-        )
+        ) {
+            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> askCode :: SellController.java");
             return ResponseEntity.badRequest().body(false);
+        }
 
         // user email extraction from jwt token
         String userEmail = jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken());
@@ -70,6 +76,7 @@ public class SellController {
         if(!verificationCodeService.isCodeCorrect(userEmail, sellDto.getCode(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE))
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
 
+        // next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(userEmail, DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
         // then we create the sale
@@ -88,8 +95,10 @@ public class SellController {
             return ResponseEntity.badRequest().body(false);
 
         VerificationCode code = verificationCodeService.createWithdrawalCode(userEmail);
-        if(code == null)
+        if(code == null) {
+            logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: SellController.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         Email email = new Email();
         email.setMessage(Integer.toString(code.getCode()));

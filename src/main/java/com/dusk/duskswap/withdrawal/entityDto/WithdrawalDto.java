@@ -10,8 +10,9 @@ import lombok.NoArgsConstructor;
 public class WithdrawalDto {
 
     private String toAddress;
-    private Double amount;
-    private String currencyIso;
-    private String jwtToken;
+    private String amount;
+    private Long currencyId;
+    //private String jwtToken;
+    private Integer code;
 
 }
