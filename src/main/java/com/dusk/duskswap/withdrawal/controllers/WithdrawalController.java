@@ -11,7 +11,6 @@ import com.dusk.duskswap.withdrawal.entityDto.WithdrawalDto;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalPage;
 import com.dusk.duskswap.withdrawal.models.Withdrawal;
 import com.dusk.duskswap.withdrawal.services.WithdrawalService;
-import com.dusk.duskswap.withdrawal.services.WithdrawalServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +26,7 @@ import java.util.Optional;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping("/withdrawal")
+@RequestMapping("/withdrawals")
 public class WithdrawalController {
 
     @Autowired
@@ -47,7 +46,7 @@ public class WithdrawalController {
         return withdrawalService.getAllWithdrawals(currentPage, pageSize);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                             @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
@@ -73,7 +72,7 @@ public class WithdrawalController {
         // if email is not null, then we create the verification code
         VerificationCode code = verificationCodeService.createWithdrawalCode(user.get().getEmail());
         if(code == null) {
-            logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: SellController.java");
+            logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: WithdrawalController.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -91,10 +90,11 @@ public class WithdrawalController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/confirm", produces = "application/json")
-    public ResponseEntity<Boolean> confirm(WithdrawalDto dto) {
+    public ResponseEntity<Boolean> confirm(@RequestBody WithdrawalDto dto) {
         // input checking
-        if(dto == null || (dto != null && (dto.getCode() == null))) {
-            logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> confirm :: SellController.java");
+        if(dto == null || (dto != null && dto.getCode() == null)) {
+            System.out.println("DTO GET CODE>>>>>"  + dto.getCode());
+            logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> confirm :: WithdrawalController.java");
             return ResponseEntity.badRequest().body(false);
         }
         // then we get the current authenticated user
@@ -115,15 +115,18 @@ public class WithdrawalController {
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
-        verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
-
         // then we create the withdrawal
         Withdrawal withdrawal = withdrawalService.createWithdrawal(dto, user.get());
         if(withdrawal == null) {
             logger.error("[" + new Date() + "] => WITHDRAWAL NULL >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+
+        // next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
+        verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
+
+        // then we debit the account
+        accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), withdrawal.getAmount());
 
         return ResponseEntity.ok(true);
 

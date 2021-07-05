@@ -33,12 +33,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class WithdrawalServiceImpl implements WithdrawalService {
 
     @Autowired
@@ -83,7 +85,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         }
 
         // if account exists, we get the request's results
-        Pageable pageable = PageRequest.of(currentPage, pageSize, Sort.by("createdDate").descending());
+        Pageable pageable = PageRequest.of(currentPage, pageSize/*, Sort.by("createdDate").descending()*/);
         Page<Withdrawal> withdrawals = withdrawalRepository.findByExchangeAccount(exchangeAccount.get(), pageable);
 
         if(withdrawals.hasContent()) {
@@ -105,7 +107,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         if(currentPage == null) currentPage = 0;
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
-        Pageable pageable = PageRequest.of(currentPage, pageSize, Sort.by("createdDate").descending());
+        Pageable pageable = PageRequest.of(currentPage, pageSize/*, Sort.by("createdDate").descending()*/);
         Page<Withdrawal> withdrawals = withdrawalRepository.findAll(pageable);
 
         if(withdrawals.hasContent()) {
@@ -128,7 +130,10 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         if(wdto == null ||
                 (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()) )
                 )
-        ) return null;
+        ) {
+            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto);
+            return null;
+        }
 
         // we then get exchange account
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
@@ -171,7 +176,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             return null;
         }
-        withdrawal.setMarketPrice(rate.getTicks().getClose());
+        if(rate != null)
+            withdrawal.setMarketPrice(rate.getTicks().getClose());
 
         return withdrawalRepository.save(withdrawal);
     }
