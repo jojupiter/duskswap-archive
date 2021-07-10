@@ -20,6 +20,9 @@ public class TransactionOption extends Auditable<String> {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "iso")
+    private String iso;
+
     @Column(name = "purpose")
     private String purpose;
 

@@ -50,7 +50,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
 
         if(currentVerificationCode.isPresent()) {
             currentVerificationCode.get().setCode(Utilities.generateVerificationCode());
-            verificationCodeRepository.save(currentVerificationCode.get());
+            return verificationCodeRepository.save(currentVerificationCode.get());
         }
         VerificationCode verificationCode = new VerificationCode();
         verificationCode.setCode(Utilities.generateVerificationCode());

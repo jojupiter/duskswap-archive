@@ -30,7 +30,10 @@ public class DefaultProperties {
     public static final String VERIFICATION_WITHDRAWAL_SELL_PURPOSE = "WITHDRAWAL_SELL";
     public static final String VERIFICATION_SIGN_IN_UP_PURPOSE = "SIGN_IN_UP";
 
-    // =========== pages =====================
+    // =========== pages ========================
     public static final int DEFAULT_PAGE_SIZE = 10;
+
+    // ========== notifications =================
+    private static final String buyNotificationUrlOM = "";
 
 }

@@ -51,8 +51,8 @@ public class DepositServiceImpl implements DepositService {
     private StatusRepository statusRepository;
     @Autowired
     private CurrencyRepository currencyRepository;
-    @Autowired
-    private TransactionOptionRepository transactionOptionRepository;
+    //@Autowired
+    //private TransactionOptionRepository transactionOptionRepository;
     @Autowired
     private InvoiceService invoiceService;
 
@@ -144,8 +144,8 @@ public class DepositServiceImpl implements DepositService {
                         (
                                 dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
                                 dto.getJwtToken() == null || (dto.getJwtToken() != null && dto.getJwtToken().isEmpty()) ||
-                                dto.getCurrencyId() == null ||
-                                dto.getTransactionOptId() == null
+                                dto.getCurrencyId() == null //||
+                                //dto.getTransactionOptId() == null
                          )
                  )
         )
@@ -171,7 +171,7 @@ public class DepositServiceImpl implements DepositService {
         }
 
         Invoice invoice = new Invoice();
-        invoice.setAmount(dto.getAmount().toString());
+        invoice.setAmount(dto.getAmount());
         invoice.setCurrency(currency.get().getIso());
         Checkout checkout = new Checkout();
         List<String> paymentMethods = new ArrayList<>();
@@ -189,18 +189,18 @@ public class DepositServiceImpl implements DepositService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
+        /*Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             logger.error("TRANSACTION OPT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
+        }*/
 
         Deposit deposit = new Deposit();
         deposit.setStatus(status.get());
         deposit.setAmount(dto.getAmount());
         deposit.setExchangeAccount(exchangeAccount.get());
         deposit.setCurrency(currency.get());
-        deposit.setTransactionOption(transactionOption.get());
+        //deposit.setTransactionOption(transactionOption.get());
         deposit.setInvoiceId(invoiceResponse.getBody().getId());
 
         Deposit savedDeposit = depositRepository.save(deposit);

@@ -1,50 +1,49 @@
-package com.dusk.duskswap.withdrawal.models;
+package com.dusk.duskswap.deposit.models;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.commons.models.Conversion;
-import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.models.Auditable;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Status;
+import com.dusk.duskswap.commons.models.TransactionOption;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
-@Table(name = "withdrawal")
+@Table(name = "buy")
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Withdrawal {
-
+public class Buy extends Auditable<String> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "client_address")
-    private String clientAddress;
-
     @Column(name = "amount")
     private String amount;
 
-    @Column(name = "market_price_usd")
-    private String marketPriceUsd;
+    @Column(name = "pay_token")
+    private String payToken;
 
-    @Column(name = "dusk_fees")
-    private String duskFees;
+    @Column(name = "notif_token")
+    private String notifToken;
 
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")
     private Status status;
 
     @ManyToOne
-    @JoinColumn(name = "currency_id", referencedColumnName = "id")
-    private Currency currency;
-
-    @ManyToOne
     @JoinColumn(name = "exchange_account_id", referencedColumnName = "id")
     private ExchangeAccount exchangeAccount;
 
+    @ManyToOne
+    @JoinColumn(name = "to_currency_id", referencedColumnName = "id")
+    private Currency toCurrency;
+
+    @ManyToOne
+    @JoinColumn(name = "transaction_option_id", referencedColumnName = "id")
+    private TransactionOption transactionOption;
 
 }

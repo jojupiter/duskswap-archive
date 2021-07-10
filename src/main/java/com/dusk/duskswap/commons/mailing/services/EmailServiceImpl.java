@@ -74,5 +74,6 @@ public class EmailServiceImpl implements EmailService {
         email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
         email.setMessageFooter("Pour confirmer la vente/retrait , veuillez copier et collez ce code  dans le champ requis du formulaire de connexion.");
 
+        sendEmail(email);
     }
 }

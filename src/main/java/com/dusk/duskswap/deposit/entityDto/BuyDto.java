@@ -4,14 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DepositDto {
-
+@Data
+public class BuyDto {
     private String amount;
-    private Long currencyId;
-    private String jwtToken;
-    //private Long transactionOptId;
-
+    private Long toCurrencyId;
+    private Long transactionOptId;
 }
