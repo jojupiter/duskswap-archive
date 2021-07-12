@@ -1,6 +1,8 @@
 package com.dusk.duskswap.commons.services;
 
+import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.repositories.LevelRepository;
 import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
@@ -25,6 +27,8 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     private TransactionOptionRepository transactionOptionRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private LevelRepository levelRepository;
 
     @Override
     public List<Currency> getAllCurrencies() {
@@ -52,4 +56,8 @@ public class UtilitiesServiceImpl implements UtilitiesService {
         return userRepository.findById(userId);
     }
 
+    @Override
+    public List<Level> getAllLevels() {
+        return levelRepository.findAll();
+    }
 }

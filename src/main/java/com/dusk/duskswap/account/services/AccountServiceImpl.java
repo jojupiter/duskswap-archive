@@ -59,12 +59,12 @@ public class AccountServiceImpl implements AccountService {
         exchangeAccount.setUser(user.get());
 
         List<String> currencyStrings = new ArrayList<>();
-        currencyStrings.add("USD");
+        /*currencyStrings.add("USD");
         currencyStrings.add("BTC");
         currencyStrings.add("ETH");
-        currencyStrings.add("LTC");
+        currencyStrings.add("LTC");*/
 
-        List<Currency> currencies = currencyRepository.findByIsoIn(currencyStrings);
+        List<Currency> currencies = currencyRepository.findByIsSupported(true);//currencyRepository.findByIsoIn(currencyStrings);
 
         // we save exchange account here
         ExchangeAccount newExchangeAccount = exchangeAccountRepository.save(exchangeAccount);

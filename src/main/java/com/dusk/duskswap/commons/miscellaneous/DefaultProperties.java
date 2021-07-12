@@ -34,6 +34,9 @@ public class DefaultProperties {
     public static final int DEFAULT_PAGE_SIZE = 10;
 
     // ========== notifications =================
-    private static final String buyNotificationUrlOM = "";
+    private static final String BUY_NOTIFICATION_URL_OM = "";
 
+    // ============ pricing ==================
+    public static final String PRICING_TYPE_FIX = "fix";
+    public static final String PRICING_TYPE_PERCENTAGE = "percentage";
 }

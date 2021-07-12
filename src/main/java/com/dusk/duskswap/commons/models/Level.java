@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "city")
+@Table(name = "level")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
