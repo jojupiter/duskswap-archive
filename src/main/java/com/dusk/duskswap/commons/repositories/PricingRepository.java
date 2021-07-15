@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PricingRepository extends JpaRepository<Pricing, Long> {
 
@@ -16,5 +17,9 @@ public interface PricingRepository extends JpaRepository<Pricing, Long> {
     List<Pricing> findByLevel(Level level);
 
     List<Pricing> findByCurrency(Currency currency);
+
+    Optional<Pricing> findByLevelAndCurrency(Level level, Currency currency);
+
+    Boolean existsByLevelAndCurrency(Level level, Currency currency);
 
 }

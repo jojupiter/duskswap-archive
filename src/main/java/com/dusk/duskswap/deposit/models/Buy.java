@@ -21,8 +21,20 @@ public class Buy extends Auditable<String> {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "amount")
-    private String amount;
+    @Column(name = "total_amount")
+    private String totalAmount; // total amount of money the user enters in FIAT
+
+    @Column(name = "dusk_fees")
+    private String duskFees; // duskswap fees in FIAT
+
+    @Column(name = "amount_crypto")
+    private String amountCrypto; // the amount of crypto that will be allocated to the user once the buy is confirmed
+
+    @Column(name = "dusk_fees_crypto")
+    private String duskFeesCrypto; // duskswap fees in CRYPTO
+
+    @Column(name = "api_fees")
+    private String apiFees; // OM, MOMO, or even banking API if we have in FIAT
 
     @Column(name = "pay_token")
     private String payToken;

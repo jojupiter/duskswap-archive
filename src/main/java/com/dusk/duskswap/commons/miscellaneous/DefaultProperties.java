@@ -39,4 +39,8 @@ public class DefaultProperties {
     // ============ pricing ==================
     public static final String PRICING_TYPE_FIX = "fix";
     public static final String PRICING_TYPE_PERCENTAGE = "percentage";
+    public static final String PRICING_EURO_DEFAULT_VALUE_IN_XAF = "656";
+
+    // =========== currency =====================
+    public static final String CURRENCY_EUR_ISO = "EUR";
 }

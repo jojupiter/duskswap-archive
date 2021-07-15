@@ -1,6 +1,7 @@
 package com.dusk.duskswap.commons.services;
 
 import com.dusk.duskswap.commons.entityDto.PricingDto;
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.Pricing;
@@ -48,10 +49,33 @@ public class PricingServiceImpl implements PricingService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        // next we check if a pricing with the same user's level and currency exists. If yes, then we don't create it anymore
+        if(pricingRepository.existsByLevelAndCurrency(level.get(), currency.get())) {
+            logger.info("[" + new Date() + "] => PRICING ALREADY EXISTS >>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // next we check the type
+        if(dto.getType() == null || (dto.getType() != null && dto.getType().isEmpty()))
+            dto.setType(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
+
+        if(dto.getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+            if(
+                    Double.parseDouble(dto.getBuyFees()) > 1.0 || Double.parseDouble(dto.getBuyFees()) < 0.0 ||
+                    Double.parseDouble(dto.getSellFees()) > 1.0 || Double.parseDouble(dto.getSellFees()) < 0.0 ||
+                    Double.parseDouble(dto.getExchangeFees()) > 1.0 || Double.parseDouble(dto.getExchangeFees()) < 0.0
+            ) {
+                logger.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] >>>>>>>> createPricing :: PricingServiceImpl.java");
+                return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+
+        }
+
         // then we create properly the pricing
         Pricing pricing = new Pricing();
         pricing.setLevel(level.get());
         pricing.setCurrency(currency.get());
+        pricing.setType(dto.getType());
         pricing.setBuyFees(dto.getBuyFees());
         pricing.setBuyMax(dto.getBuyMax());
         pricing.setBuyMin(dto.getBuyMin());
@@ -66,6 +90,13 @@ public class PricingServiceImpl implements PricingService {
         pricing.setExchangeFees(dto.getExchangeFees());
         pricing.setExchangeMin(dto.getExchangeMin());
         pricing.setExchangeMax(dto.getExchangeMax());
+
+        // here we check the positivity of numbers
+        if(checkPositivity(pricing)) {
+            logger.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> createPricing :: PricingServiceImpl.java " +
+                    " ===== pricing = " + pricing);
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         return ResponseEntity.ok(pricingRepository.save(pricing));
     }
@@ -95,6 +126,16 @@ public class PricingServiceImpl implements PricingService {
             logger.error("[" + new Date() + "] => CANNOT CHANGE CURRENCY ID >>>>>>>> updatePricing :: PricingServiceImpl.java ");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+
+        // here we check the positivity of numbers
+        if(checkPositivity(pricing.get())) {
+            logger.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> updatePricing :: PricingServiceImpl.java " +
+                    " ===== pricing = " + pricing.get());
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(dto.getType() != null && !dto.getType().equals(pricing.get().getType()))
+            pricing.get().setType(dto.getType());
 
         if(dto.getBuyFees() != null && !dto.getBuyFees().equals(pricing.get().getBuyFees()))
             pricing.get().setBuyFees(dto.getBuyFees());
@@ -172,4 +213,16 @@ public class PricingServiceImpl implements PricingService {
     public ResponseEntity<List<Pricing>> getAllPricing() {
         return ResponseEntity.ok(pricingRepository.findAllGroupByLevel());
     }
+
+
+    private Boolean checkPositivity(Pricing pricing) {
+        return Double.parseDouble(pricing.getBuyFees()) >= 0 && Double.parseDouble(pricing.getBuyMin()) >= 0 &&
+               Double.parseDouble(pricing.getBuyMax()) >= 0 && Double.parseDouble(pricing.getDepositMin()) >= 0 &&
+               Double.parseDouble(pricing.getDepositMax()) >= 0 && Double.parseDouble(pricing.getWithdrawalFees()) >= 0 &&
+               Double.parseDouble(pricing.getWithdrawalMax()) >= 0 && Double.parseDouble(pricing.getWithdrawalMin()) >= 0 &&
+               Double.parseDouble(pricing.getSellMax()) >= 0 && Double.parseDouble(pricing.getSellFees()) >= 0 &&
+               Double.parseDouble(pricing.getSellMin()) >= 0 && Double.parseDouble(pricing.getExchangeFees()) >= 0 &&
+               Double.parseDouble(pricing.getExchangeMax()) >= 0 && Double.parseDouble(pricing.getExchangeMin()) >= 0;
+    }
+
 }
