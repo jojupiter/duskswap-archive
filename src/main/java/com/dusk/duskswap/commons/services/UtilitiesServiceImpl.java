@@ -1,5 +1,6 @@
 package com.dusk.duskswap.commons.services;
 
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.repositories.LevelRepository;
@@ -38,6 +39,11 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     @Override
     public List<Currency> getAllSupportedCurrencies() {
         return currencyRepository.findByIsSupported(true);
+    }
+
+    @Override
+    public List<Currency> getAllSupportedCryptoCurrencies() {
+        return currencyRepository.findByTypeAndIsSupported(DefaultProperties.CURRENCY_TYPE_CRYPTO, true);
     }
 
     @Override

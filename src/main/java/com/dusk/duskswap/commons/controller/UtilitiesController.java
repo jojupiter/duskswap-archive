@@ -33,6 +33,12 @@ public class UtilitiesController {
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @GetMapping("/supported-cryptos")
+    public List<Currency> getAllSupportedCryptoCurrencies() {
+        return utilitiesService.getAllSupportedCryptoCurrencies();
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/supported-transaction-opts")
     public List<TransactionOption> getAllSupportedTransactionOptions() {
         return utilitiesService.getAllSupportedTransactionOptions();

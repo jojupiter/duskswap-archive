@@ -22,6 +22,9 @@ public class Currency extends Auditable<String>{
     @Column(name = "name")
     private String name;
 
+    @Column(name = "type")
+    private String type;
+
     @Column(name = "is_supported")
     private Boolean isSupported;
 

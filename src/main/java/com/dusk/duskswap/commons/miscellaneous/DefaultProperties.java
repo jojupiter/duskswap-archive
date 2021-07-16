@@ -43,4 +43,7 @@ public class DefaultProperties {
 
     // =========== currency =====================
     public static final String CURRENCY_EUR_ISO = "EUR";
+    public static final String CURRENCY_TYPE_CRYPTO = "CRYPTO";
+    public static final String CURRENCY_TYPE_FIAT = "FIAT";
+
 }

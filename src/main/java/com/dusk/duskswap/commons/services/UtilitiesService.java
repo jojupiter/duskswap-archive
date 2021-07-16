@@ -12,6 +12,7 @@ public interface UtilitiesService {
 
     List<Currency> getAllCurrencies();
     List<Currency> getAllSupportedCurrencies();
+    List<Currency> getAllSupportedCryptoCurrencies();
     List<TransactionOption> getAllSupportedTransactionOptions();
     Optional<User> getCurrentUser();
     List<Level> getAllLevels();

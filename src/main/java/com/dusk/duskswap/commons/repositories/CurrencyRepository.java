@@ -12,4 +12,5 @@ public interface CurrencyRepository extends CrudRepository<Currency, Long> {
     List<Currency> findByIsoIn(Collection<String> isos);
     Optional<Currency> findByIso(String iso);
     List<Currency> findByIsSupported(Boolean isSupported);
+    List<Currency> findByTypeAndIsSupported(String type, Boolean isSupported);
 }
