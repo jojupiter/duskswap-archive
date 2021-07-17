@@ -43,8 +43,4 @@ public class Deposit extends Auditable<String> {
     @JoinColumn(name = "exchange_account_id", referencedColumnName = "id")
     private ExchangeAccount exchangeAccount;
 
-    /*@ManyToOne
-    @JoinColumn(name = "transaction_option_id", referencedColumnName = "id")
-    private TransactionOption transactionOption;*/
-
 }

@@ -71,7 +71,7 @@ public class BuyServiceImpl implements BuyService {
         //then, we get the currency
         Optional<Currency> currency = currencyRepository.findById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
+            logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
             return null;
         }
 

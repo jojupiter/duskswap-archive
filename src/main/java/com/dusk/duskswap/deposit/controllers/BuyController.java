@@ -53,8 +53,10 @@ public class BuyController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<String> createBuy(BuyDto dto) { // this method create a buy command and return noti
+    public ResponseEntity<String> createBuy(BuyDto dto) { // this method create a buy command and return notification url
         return null;
     }
+
+
 
 }
