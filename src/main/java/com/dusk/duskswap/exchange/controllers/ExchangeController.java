@@ -34,7 +34,7 @@ public class ExchangeController {
     private Logger logger = LoggerFactory.getLogger(ExchangeController.class);
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @PostMapping(value = "/create", produces = "application/json")
+    @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<List<Exchange>> getAllUserExchanges() {
         // >>>>>>> 1. we get the user
         Optional<User> user = utilitiesService.getCurrentUser();
@@ -48,7 +48,7 @@ public class ExchangeController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(value = "/create", produces = "application/json")
+    @GetMapping(value = "/all", produces = "application/json")
     public ResponseEntity<List<Exchange>> getAllExchanges() {
         return exchangeService.getAllExchanges();
     }
