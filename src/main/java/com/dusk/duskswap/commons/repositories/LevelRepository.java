@@ -9,5 +9,6 @@ import java.util.Optional;
 public interface LevelRepository extends CrudRepository<Level, Long> {
 
     Optional<Level> findByName(String name);
+    Optional<Level> findByIso(String iso);
     List<Level> findAll();
 }

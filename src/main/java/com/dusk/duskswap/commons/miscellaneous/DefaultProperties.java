@@ -21,6 +21,10 @@ public class DefaultProperties {
     public static final String STATUS_TRANSACTION_CRYPTO_INVALID = "TRANSACTION_CRYPTO_Invalid";
     public static final String STATUS_TRANSACTION_CRYPTO_RADICAL = "TRANSACTION_CRYPTO_";
 
+    // ============ levels ===============
+    public static final String LEVEL_ISO_0 = "LVL_0";
+    public static final String LEVEL_ISO_1 = "LVL_1";
+
     // ============ email addresses ===========
     public static final String EMAIL_NO_REPLY_ADDRESS = "Duskswap<no-reply@duskpay.com>";
     public static final String EMAIL_SUPPORT_ADDRESS = "Duskswap<support@duskpay.com>";

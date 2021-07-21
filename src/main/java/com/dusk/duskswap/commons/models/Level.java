@@ -19,4 +19,7 @@ public class Level extends Auditable<String>{
     @Column(name = "name")
     private String name;
 
+    @Column(name = "iso")
+    private String iso;
+
 }
