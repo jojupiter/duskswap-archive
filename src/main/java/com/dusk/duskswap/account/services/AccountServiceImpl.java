@@ -166,6 +166,7 @@ public class AccountServiceImpl implements AccountService {
                 amountCurrency -> {
                     if(amountCurrency.getCurrency().getType().equals(DefaultProperties.CURRENCY_TYPE_CRYPTO)) {
                         CryptoBalance cryptoBalance = new CryptoBalance();
+                        cryptoBalance.setId(amountCurrency.getCurrency().getId());
                         cryptoBalance.setAmount(amountCurrency.getAmount());
                         cryptoBalance.setCrypto(amountCurrency.getCurrency().getName());
                         cryptoBalance.setIso(amountCurrency.getCurrency().getIso());
@@ -212,6 +213,7 @@ public class AccountServiceImpl implements AccountService {
 
         // >>>>> 4. we create the object crypto balance and return it
         CryptoBalance cryptoBalance = new CryptoBalance();
+        cryptoBalance.setId(currency.get().getId());
         cryptoBalance.setIso(cryptoIso);
         cryptoBalance.setCrypto(currency.get().getName());
         cryptoBalance.setAmount(amountCurrency.get().getAmount());
