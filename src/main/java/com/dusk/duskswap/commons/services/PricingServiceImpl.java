@@ -68,14 +68,21 @@ public class PricingServiceImpl implements PricingService {
                 logger.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] >>>>>>>> createPricing :: PricingServiceImpl.java");
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
             }
+        }
 
+        if(
+                !dto.getType().equals(DefaultProperties.PRICING_TYPE_FIX) &&
+                !dto.getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)
+        ) { // If type is not fix or percentage, then we return an error
+            logger.info("[" + new Date() + "] => PRICING TYPE IS NEITHER FIX NOR PERCENTAGE >>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // then we create properly the pricing
         Pricing pricing = new Pricing();
         pricing.setLevel(level.get());
         pricing.setCurrency(currency.get());
-        pricing.setType(dto.getType());
+        pricing.setType(dto.getType().toUpperCase());
         pricing.setBuyFees(dto.getBuyFees());
         pricing.setBuyMax(dto.getBuyMax());
         pricing.setBuyMin(dto.getBuyMin());
@@ -92,7 +99,7 @@ public class PricingServiceImpl implements PricingService {
         pricing.setExchangeMax(dto.getExchangeMax());
 
         // here we check the positivity of numbers
-        if(checkPositivity(pricing)) {
+        if(!isPricingPositive(pricing)) {
             logger.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> createPricing :: PricingServiceImpl.java " +
                     " ===== pricing = " + pricing);
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -116,19 +123,8 @@ public class PricingServiceImpl implements PricingService {
             logger.error("[" + new Date() + "] => PRICING NOT FOUND >>>>>>>> updatePricing :: PricingServiceImpl.java ");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-
-        // here we check what data is updated in input
-        if(dto.getLevelId() != pricing.get().getLevel().getId()) {
-            logger.error("[" + new Date() + "] => CANNOT CHANGE LEVEL ID >>>>>>>> updatePricing :: PricingServiceImpl.java ");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        if(dto.getCurrencyId() != pricing.get().getCurrency().getId()) {
-            logger.error("[" + new Date() + "] => CANNOT CHANGE CURRENCY ID >>>>>>>> updatePricing :: PricingServiceImpl.java ");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
         // here we check the positivity of numbers
-        if(checkPositivity(pricing.get())) {
+        if(!isPricingPositive(pricing.get())) {
             logger.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> updatePricing :: PricingServiceImpl.java " +
                     " ===== pricing = " + pricing.get());
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -211,11 +207,11 @@ public class PricingServiceImpl implements PricingService {
 
     @Override
     public ResponseEntity<List<Pricing>> getAllPricing() {
-        return ResponseEntity.ok(pricingRepository.findAllGroupByLevel());
+        return ResponseEntity.ok(pricingRepository.findAll());
     }
 
 
-    private Boolean checkPositivity(Pricing pricing) {
+    private Boolean isPricingPositive(Pricing pricing) {
         return Double.parseDouble(pricing.getBuyFees()) >= 0 && Double.parseDouble(pricing.getBuyMin()) >= 0 &&
                Double.parseDouble(pricing.getBuyMax()) >= 0 && Double.parseDouble(pricing.getDepositMin()) >= 0 &&
                Double.parseDouble(pricing.getDepositMax()) >= 0 && Double.parseDouble(pricing.getWithdrawalFees()) >= 0 &&
@@ -225,4 +221,15 @@ public class PricingServiceImpl implements PricingService {
                Double.parseDouble(pricing.getExchangeMax()) >= 0 && Double.parseDouble(pricing.getExchangeMin()) >= 0;
     }
 
+    @Override
+    public ResponseEntity<Boolean> deletePricing(Long pricingId) {
+        // input checking
+        if(pricingId == null) {
+            logger.error("[" + new Date() + "] => INPUT NULL pricingId >>>>>>>> deletePricing :: PricingServiceImpl.java");
+            return ResponseEntity.badRequest().body(false);
+        }
+
+        pricingRepository.deleteById(pricingId);
+        return ResponseEntity.ok(true);
+    }
 }

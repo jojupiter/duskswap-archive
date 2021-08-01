@@ -11,9 +11,6 @@ import java.util.Optional;
 
 public interface PricingRepository extends JpaRepository<Pricing, Long> {
 
-    @Query(value = "SELECT * FROM pricing GROUP BY level_id", nativeQuery = true)
-    List<Pricing> findAllGroupByLevel();
-
     List<Pricing> findByLevel(Level level);
 
     List<Pricing> findByCurrency(Currency currency);

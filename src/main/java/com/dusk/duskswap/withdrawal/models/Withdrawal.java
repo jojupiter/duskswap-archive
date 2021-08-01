@@ -1,38 +1,36 @@
 package com.dusk.duskswap.withdrawal.models;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.commons.models.Conversion;
-import com.dusk.duskswap.commons.models.TransactionOption;
-import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.commons.models.Status;
+import com.dusk.duskswap.commons.models.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Table(name = "withdrawal")
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Withdrawal {
+public class Withdrawal extends Auditable<String> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "client_address")
-    private String clientAddress;
+    private String clientAddress; // crypto address of user
 
     @Column(name = "amount")
-    private String amount;
+    private String amount; // amount of crypto for withdrawal
 
-    @Column(name = "market_price_usd")
-    private String marketPriceUsd;
+    @Column(name = "dusk_fees_crypto")
+    private String duskFeesCrypto; // duskswap fees in CRYPTO
 
-    @Column(name = "dusk_fees")
-    private String duskFees;
+    @Column(name = "withdrawal_date")
+    private Date withdrawalDate;
 
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")

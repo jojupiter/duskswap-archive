@@ -10,7 +10,9 @@ import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.models.Status;
+import com.dusk.duskswap.commons.repositories.PricingRepository;
 import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
@@ -52,9 +54,9 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     @Autowired
     private StatusRepository statusRepository;
     @Autowired
-    private AmountCurrencyRepository amountCurrencyRepository;
-    @Autowired
     private CurrencyRepository currencyRepository;
+    @Autowired
+    private PricingRepository pricingRepository;
     @Autowired
     private TransactionOptionRepository transactionOptionRepository;
     @Autowired
@@ -64,19 +66,13 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private Logger logger = LoggerFactory.getLogger(WithdrawalServiceImpl.class);
 
     @Override
-    public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(Integer currentPage, Integer pageSize) {
-        // first we get the current authenticated user
-        Optional<User> user = getCurrentUser();
-        if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalServiceImpl.java");
-            return null;
-        }
+    public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(User user, Integer currentPage, Integer pageSize) {
 
         if(currentPage == null) currentPage = 0;
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
         // getting the corresponding exchange account and verify if exists
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserWithdrawals :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -105,7 +101,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         if(currentPage == null) currentPage = 0;
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
-        Pageable pageable = PageRequest.of(currentPage, pageSize/*, Sort.by("createdDate").descending()*/);
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
         Page<Withdrawal> withdrawals = withdrawalRepository.findAll(pageable);
 
         if(withdrawals.hasContent()) {
@@ -123,72 +119,63 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
     @Override
     @Transactional
-    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user){
+    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount){
         // input checking
         if(wdto == null ||
                 (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()) )
                 )
         ) {
-            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto);
+            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
             return null;
         }
 
-        // we then get exchange account
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
-        if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
-        }
-        // next, it's currency
+        // ============================= getting the necessary elements =============================
+
+        // >>>>> 1. we get the currency object
         Optional<Currency> currency = currencyRepository.findById(wdto.getCurrencyId());
         if(!currency.isPresent()) {
             logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             return null;
         }
-        // next, the amount of the corresponding currency
-        Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(exchangeAccount.get().getId(), currency.get().getId());
-        if(!amountCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+        // >>>>> 2. we check according to the pricing, if the user is able to make
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
+        if(!pricing.isPresent()) {
+            logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            return null;
+        }
+        if(
+                Double.parseDouble(wdto.getAmount()) > Double.parseDouble(pricing.get().getWithdrawalMax()) ||
+                Double.parseDouble(wdto.getAmount()) < Double.parseDouble(pricing.get().getWithdrawalMin())
+        ) {
+            logger.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            return null;
+        }
+        // >>>>> 3. we get the status "confirmed"
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
+        if(!status.isPresent()) {
+            logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             return null;
         }
 
-        // After getting all the necessary info, we check whether or not the balance is sufficient before debiting the account
-        Double amount = Double.parseDouble(wdto.getAmount());
-        if(amount < 0 || amount > Double.parseDouble(amountCurrency.get().getAmount())) {
-            logger.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
+        // ============================== fees calculation ================================
+        Double duskFees = 0.0;
+        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+            duskFees = Double.parseDouble(pricing.get().getWithdrawalFees()) *
+                       Double.parseDouble(wdto.getAmount());
         }
-        // if sufficient amount, we create the withdrawal
+        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
+            duskFees = Double.parseDouble(pricing.get().getWithdrawalFees());
+        }
+
         Withdrawal withdrawal = new Withdrawal();
+        withdrawal.setWithdrawalDate(new Date());
         withdrawal.setAmount(wdto.getAmount());
         withdrawal.setClientAddress(wdto.getToAddress());
         withdrawal.setCurrency(currency.get());
-        withdrawal.setExchangeAccount(exchangeAccount.get());
-
-        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
-        withdrawal.setStatus(status.get());
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getIso());
-        BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
-        if(currencyBinanceClassName == null)
-        {
-            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
-        }
-        if(rate != null)
-            withdrawal.setMarketPriceUsd(rate.getTicks().getClose());
+        withdrawal.setExchangeAccount(exchangeAccount);
+        withdrawal.setDuskFeesCrypto(Double.toString(duskFees));
 
         return withdrawalRepository.save(withdrawal);
-    }
-
-    @Override
-    public Optional<User> getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken || authentication == null)
-            return Optional.empty();
-        Long userId = ((UserDetailsImpl)authentication.getPrincipal()).getId();
-        if(userId == null)
-            return Optional.empty();
-        return userRepository.findById(userId);
     }
 
 }

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Table(name = "buy")
 @Entity
@@ -41,6 +42,9 @@ public class Buy extends Auditable<String> {
 
     @Column(name = "notif_token")
     private String notifToken;
+
+    @Column(name = "buy_date")
+    private Date buyDate;
 
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")

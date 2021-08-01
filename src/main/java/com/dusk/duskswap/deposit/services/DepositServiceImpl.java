@@ -51,36 +51,25 @@ public class DepositServiceImpl implements DepositService {
     @Autowired
     private InvoiceService invoiceService;
 
-    @Autowired
-    private JwtUtils jwtUtils;
     private Logger logger = LoggerFactory.getLogger(DepositServiceImpl.class);
 
     @Override
-    public ResponseEntity<DepositPage> getAllUserDeposits(String userToken, Integer currentPage, Integer pageSize) {
+    public ResponseEntity<DepositPage> getAllUserDeposits(User user, Integer currentPage, Integer pageSize) {
         // input checking
-        if(userToken == null || (userToken != null && userToken.isEmpty())) {
+        if(
+                user == null ||
+                (
+                        user != null && (user.getEmail() == null || (user.getEmail() != null && user.getEmail().isEmpty()))
+                )
+        ) {
             logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
         if(currentPage == null) currentPage = 0;
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
-        String userEmail = jwtUtils.getEmailFromJwtToken(userToken);
-
-        if(userEmail == null || (userEmail != null && userEmail.isEmpty())) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty), Can't get email from token >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
-            return ResponseEntity.badRequest().body(null);
-        }
-
-        // getting the corresponding user and verify if exists
-        Optional<User> user = userRepository.findByEmail(userEmail);
-        if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
         // getting the corresponding exchange account and verify if exists
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -104,7 +93,7 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
-    public ResponseEntity<DepositPage> getAllUserDeposits(Integer currentPage, Integer pageSize) {
+    public ResponseEntity<DepositPage> getAllDeposits(Integer currentPage, Integer pageSize) {
 
         if(currentPage == null) currentPage = 0;
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
@@ -132,7 +121,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
-    public ResponseEntity<DepositResponseDto> createCryptoDeposit(DepositDto dto) {
+    public ResponseEntity<DepositResponseDto> createCryptoDeposit(User user, DepositDto dto) {
         // input checking
         if(dto == null ||
                 (dto != null &&
@@ -149,17 +138,12 @@ public class DepositServiceImpl implements DepositService {
         }
 
         // First we check if the user exists and has already an exchange account
-        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(dto.getJwtToken()));
-        if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        if(user.get().getLevel() == null) {
+        if(user.getLevel() == null) {
             logger.error("[" + new Date() + "] => USER HAS NO CORRESPONDING LEVEL >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -192,7 +176,7 @@ public class DepositServiceImpl implements DepositService {
         }
 
         // Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.get().getLevel(), currency.get());
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
         if(!pricing.isPresent()) {
             logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);

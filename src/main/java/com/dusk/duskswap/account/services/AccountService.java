@@ -11,11 +11,11 @@ import java.util.List;
 
 public interface AccountService {
 
-    ResponseEntity<ExchangeAccount> createExchangeAccount(String userEmail); // TODO: put user object instead of user email
-    ResponseEntity<ExchangeAccount> getExchangeAccount(String userEmail); // TODO: put user object instead of user email
+    ResponseEntity<ExchangeAccount> createExchangeAccount(User user);
+    ResponseEntity<ExchangeAccount> getExchangeAccount(User user);
     ResponseEntity<List<ExchangeAccount>> getAllExchangeAccounts();
     ExchangeAccount getAccountById(Long accountId);
-    ExchangeAccount getAccountByUserEmail(String userEmail); // TODO: put user object instead of user email
+    ExchangeAccount getAccountByUser(User user);
 
     ResponseEntity<List<CryptoBalance>> getUserAccountBalance(User user);
     ResponseEntity<CryptoBalance> getUserCryptoBalance(User user, String cryptoIso);

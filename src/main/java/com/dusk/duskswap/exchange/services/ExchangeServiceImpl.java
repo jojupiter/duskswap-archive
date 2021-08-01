@@ -15,12 +15,16 @@ import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.commons.repositories.PricingRepository;
 import com.dusk.duskswap.commons.repositories.StatusRepository;
 import com.dusk.duskswap.exchange.entityDto.ExchangeDto;
+import com.dusk.duskswap.exchange.entityDto.ExchangePage;
 import com.dusk.duskswap.exchange.models.Exchange;
 import com.dusk.duskswap.exchange.repositories.ExchangeRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -52,24 +56,54 @@ public class ExchangeServiceImpl implements ExchangeService {
     private Logger logger = LoggerFactory.getLogger(ExchangeServiceImpl.class);
 
     @Override
-    public ResponseEntity<List<Exchange>> getAllExchanges() {
-        return ResponseEntity.ok(exchangeRepository.findAll());
+    public ResponseEntity<ExchangePage> getAllExchanges(Integer currentPage, Integer pageSize) {
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
+
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
+        Page<Exchange> exchanges = exchangeRepository.findAll(pageable);
+        if(exchanges.hasContent()) {
+            ExchangePage exchangePage = new ExchangePage();
+            exchangePage.setCurrentPage(exchanges.getNumber());
+            exchangePage.setTotalItems(exchanges.getTotalElements());
+            exchangePage.setTotalNumberPages(exchanges.getTotalPages());
+            exchangePage.setExchanges(exchanges.getContent());
+
+            return ResponseEntity.ok(exchangePage);
+        }
+        return ResponseEntity.ok(null);
     }
 
     @Override
-    public ResponseEntity<List<Exchange>> getAllUserExchanges(User user) {
+    public ResponseEntity<ExchangePage> getAllUserExchanges(User user, Integer currentPage, Integer pageSize) {
         if(user == null) {
             logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllUserExchanges :: ExchangeServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
+        // we get the exchange account here
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserExchanges :: ExchangeServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        return ResponseEntity.ok(exchangeRepository.findByExchangeAccount(exchangeAccount.get()));
+        // then we get the elements we want
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
+        Page<Exchange> exchanges = exchangeRepository.findByExchangeAccount(exchangeAccount.get(), pageable);
+        if(exchanges.hasContent()) {
+            ExchangePage exchangePage = new ExchangePage();
+            exchangePage.setCurrentPage(exchanges.getNumber());
+            exchangePage.setTotalItems(exchanges.getTotalElements());
+            exchangePage.setTotalNumberPages(exchanges.getTotalPages());
+            exchangePage.setExchanges(exchanges.getContent());
+
+            return ResponseEntity.ok(exchangePage);
+        }
+
+        return ResponseEntity.ok(null);
     }
 
     @Transactional
@@ -81,7 +115,6 @@ public class ExchangeServiceImpl implements ExchangeService {
                 (dto != null &&
                         (
                                 dto.getFromAmount() == null || (dto.getFromAmount() != null && dto.getFromAmount().isEmpty()) ||
-                                dto.getToAmount() == null || (dto.getToAmount() != null && dto.getToAmount().isEmpty()) ||
                                 dto.getFromCurrencyId() == null || dto.getToCurrencyId() == null
                         )
                 ) ||
@@ -91,8 +124,8 @@ public class ExchangeServiceImpl implements ExchangeService {
             logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             return null;
         }
-        if(testExchangePositivity(dto)) {
-            logger.error("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO (" + dto + ") >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+        if(Double.parseDouble(dto.getFromAmount()) <= 0) {
+            logger.error("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             return null;
         }
         if(user.getLevel() == null) {
@@ -148,7 +181,7 @@ public class ExchangeServiceImpl implements ExchangeService {
             return null;
         }
 
-        // ========================= calculating the fees and the exchanged amount =====
+        // ========================= calculating the fees and the exchanged amount ==========
 
         // >>>>>>> 1. we get the conversion fromCurrency - udst
         Class<?> fromCurrencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
@@ -206,11 +239,6 @@ public class ExchangeServiceImpl implements ExchangeService {
 
         return exchangeRepository.save(exchange);
 
-    }
-
-
-    private Boolean testExchangePositivity(ExchangeDto dto) {
-        return Double.parseDouble(dto.getToAmount()) > 0 && Double.parseDouble(dto.getFromAmount()) > 0;
     }
 
 }

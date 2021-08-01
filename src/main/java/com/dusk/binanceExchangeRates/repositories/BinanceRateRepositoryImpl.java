@@ -1,7 +1,6 @@
 package com.dusk.binanceExchangeRates.repositories;
 
 import com.dusk.binanceExchangeRates.models.BinanceRate;
-import com.dusk.binanceExchangeRates.models.BtcUsd;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;

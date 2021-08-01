@@ -1,6 +1,7 @@
 package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.BuyDto;
 import com.dusk.duskswap.deposit.entityDto.BuyPage;
@@ -39,7 +40,7 @@ public class BuyController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
-    public  ResponseEntity<BuyPage> getAllUserBuy(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+    public  ResponseEntity<?> getAllUserBuy(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                   @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
         Optional<User> user = utilitiesService.getCurrentUser();
@@ -52,11 +53,15 @@ public class BuyController {
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @GetMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<String> createBuy(BuyDto dto) { // this method create a buy command and return notification url
+    @PostMapping(value = "/buy-request", produces = "application/json")
+    public ResponseEntity<String> buyRequest(BuyDto dto) { // this method create a buy command and return notification url
         return null;
     }
 
-
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PutMapping(value = "/update-buy", produces = "application/json")
+    public ResponseEntity<String> updateBuy() {
+        return null;
+    }
 
 }

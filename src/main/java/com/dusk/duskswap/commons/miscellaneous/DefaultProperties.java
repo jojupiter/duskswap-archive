@@ -1,6 +1,11 @@
 package com.dusk.duskswap.commons.miscellaneous;
 
 public class DefaultProperties {
+    // ========== roles ==================
+    public static final String ROLE_USER = "ROLE_USER";
+    public static final String ROLE_SECRETARY = "ROLE_SECRETARY";
+    public static final String ROLE_ADMIN = "ROLE_ADMIN";
+
     // =========== statuses ==============
     public static final String STATUS_USER_SUSPENDED_BY_SUPERADMIN = "USER_SUSPENDED_BY_SUPERADMIN";
     public static final String STATUS_USER_SELF_SUSPENDED = "USER_SELF_SUSPENDED";
@@ -33,6 +38,7 @@ public class DefaultProperties {
     // ============ verification codes ==========
     public static final String VERIFICATION_WITHDRAWAL_SELL_PURPOSE = "WITHDRAWAL_SELL";
     public static final String VERIFICATION_SIGN_IN_UP_PURPOSE = "SIGN_IN_UP";
+    public static final String VERIFICATION_FORGOT_PASSWORD = "FORGOT_PASSWORD";
 
     // =========== pages ========================
     public static final int DEFAULT_PAGE_SIZE = 10;
@@ -41,8 +47,8 @@ public class DefaultProperties {
     private static final String BUY_NOTIFICATION_URL_OM = "";
 
     // ============ pricing ==================
-    public static final String PRICING_TYPE_FIX = "fix";
-    public static final String PRICING_TYPE_PERCENTAGE = "percentage";
+    public static final String PRICING_TYPE_FIX = "FIX";
+    public static final String PRICING_TYPE_PERCENTAGE = "PERCENTAGE";
     public static final String PRICING_EURO_DEFAULT_VALUE_IN_XAF = "656";
 
     // =========== currency =====================

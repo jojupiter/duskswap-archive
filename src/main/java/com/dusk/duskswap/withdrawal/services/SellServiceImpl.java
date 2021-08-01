@@ -3,27 +3,29 @@ package com.dusk.duskswap.withdrawal.services;
 import com.dusk.binanceExchangeRates.factories.BinanceRateFactory;
 import com.dusk.binanceExchangeRates.models.BinanceRate;
 import com.dusk.binanceExchangeRates.repositories.BinanceRateRepository;
-import com.dusk.duskswap.account.models.AmountCurrency;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
-import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
-import com.dusk.duskswap.commons.models.Conversion;
+import com.dusk.duskswap.commons.miscellaneous.Utilities;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.Pricing;
+import com.dusk.duskswap.commons.models.Status;
 import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.repositories.*;
-import com.dusk.duskswap.withdrawal.entityDto.SellDto;
-import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
-import com.dusk.duskswap.withdrawal.models.Sell;
-import com.dusk.duskswap.withdrawal.repositories.SellRepository;
-import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.commons.models.Status;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
+import com.dusk.duskswap.withdrawal.entityDto.SellDto;
+import com.dusk.duskswap.withdrawal.entityDto.SellPage;
+import com.dusk.duskswap.withdrawal.models.Sell;
+import com.dusk.duskswap.withdrawal.repositories.SellRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -56,179 +58,225 @@ public class SellServiceImpl implements SellService {
     private ConversionRepository conversionRepository;
     @Autowired
     private AmountCurrencyRepository amountCurrencyRepository;
-    //@Autowired
-    //private VerificationCodeRepository verificationCodeRepository;
+    @Autowired
+    private PricingRepository pricingRepository;
     @Autowired
     private JwtUtils jwtUtils;
-    @Autowired
-    private AccountService accountService;
     private Logger logger = LoggerFactory.getLogger(SellServiceImpl.class);
 
     @Override
-    public ResponseEntity<List<Sell>> getAllSales(String userEmail) {
+    public ResponseEntity<SellPage> getAllSales(User user, Integer currentPage, Integer pageSize) {
         // input checking
-        if(userEmail == null || (userEmail != null && userEmail.isEmpty()))
+        if(user == null) {
+            logger.error("[" + new Date() + "] => INPUT (user) NULL >>>>>>>> getAllSales :: SellServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
-
-        Optional<User> user = userRepository.findByEmail(userEmail);
-        if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
+
+        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllSales :: SellServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        return ResponseEntity.ok(sellRepository.findByExchangeAccount(exchangeAccount.get()));
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
+        Page<Sell> sells = sellRepository.findByExchangeAccount(exchangeAccount.get(), pageable);
+        if(sells.hasContent()) {
+            SellPage sellPage = new SellPage();
+            sellPage.setCurrentPage(sells.getNumber());
+            sellPage.setTotalItems(sells.getTotalElements());
+            sellPage.setTotalNumberPages(sells.getTotalPages());
+            sellPage.setSells(sells.getContent());
+
+            return ResponseEntity.ok(sellPage);
+        }
+
+        return ResponseEntity.ok(null);
     }
 
     @Override
-    public ResponseEntity<List<Sell>> getAllSales() {
-        return ResponseEntity.ok(sellRepository.findAll());
+    public ResponseEntity<SellPage> getAllSales(Integer currentPage, Integer pageSize) {
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
+
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
+        Page<Sell> sells = sellRepository.findAll(pageable);
+        if(sells.hasContent()) {
+            SellPage sellPage = new SellPage();
+            sellPage.setCurrentPage(sells.getNumber());
+            sellPage.setTotalItems(sells.getTotalElements());
+            sellPage.setTotalNumberPages(sells.getTotalPages());
+            sellPage.setSells(sells.getContent());
+
+            return ResponseEntity.ok(sellPage);
+        }
+        return ResponseEntity.ok(null);
     }
-
-    @Override
-    public ResponseEntity<SellPriceDto> calculateSale(SellDto sellDto) {
-        // input checking
-        if(sellDto == null)
-            return ResponseEntity.badRequest().body(null);
-
-        // After checking the input, we then verify if info provided are correct
-        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
-        if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
-        if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        Optional<Currency> currency = currencyRepository.findById(sellDto.getFromCurrencyId());
-        if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> calculateSale :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        // Here we check if the amount to be sold is less than the current balance
-        Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(exchangeAccount.get().getId(), currency.get().getId());
-        if(!amountCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT FOR THE ACCOUNT > "+exchangeAccount.get().getId()+
-                    "< FOR CURRENCY >"+ currency.get().getIso() +"< >>>>>>>> calculateSale :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        if(Double.parseDouble(sellDto.getAmount()) > Double.parseDouble(amountCurrency.get().getAmount())) {
-            logger.error("[" + new Date() + "] => SUPPLIED AMOUNT OF CURRENCY HIGHER THAN AVAILABLE AMOUNT >>>>>>>> calculateSale :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        // then, we get the session close price of the crypto
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
-        if(currencyBinanceClassName == null)
-        {
-            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> calculateSale :: SellServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
-
-        // now, we proceed to price calculations (when selling, the price is calculated in USDT. USDT is the default currency in our system (stablecoin))
-        double cryptoAmount = Double.parseDouble(sellDto.getAmount()); // conversion of crypto currency amount in double
-        double cryptoClosePrice = Double.parseDouble(rate.getTicks().getClose()); // crypto close price
-        // TODO: Add duskswap fees
-        String sellPrice = calculatePrice(cryptoAmount, cryptoClosePrice);
-
-        SellPriceDto sellPriceDto = new SellPriceDto();
-        sellPriceDto.setAmount(sellDto.getAmount());
-        sellPriceDto.setFromCurrency(currency.get().getIso());
-        sellPriceDto.setUsdPrice(sellPrice);
-
-        return ResponseEntity.ok(sellPriceDto);
-    }
-
 
     @Override
     @Transactional
-    public Sell createSale(SellDto sellDto) {
-        // =========> input checking
-        if(sellDto == null)
-            return null;
-
-        // =========> we get necessary elements from sellDto to create a sale
-        Optional<User> user = userRepository.findByEmail(jwtUtils.getEmailFromJwtToken(sellDto.getJwtToken()));
-        if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+    public Sell createSale(SellDto dto, User user, ExchangeAccount account) {
+        // input checking
+        if(dto == null || user == null || account == null) {
+            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
+                    " ======= sellDto = " + dto + ", user = " + user + ", account = " + account);
             return null;
         }
 
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user.get());
-        if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
-        }
-        Optional<Currency> fromCurrency = currencyRepository.findById(sellDto.getFromCurrencyId());
+        // ===================== Getting necessary elements from sellDto to create a sale =================
+        // >>>>> 1. now we get the currency we want to sell
+        Optional<Currency> fromCurrency = currencyRepository.findById(dto.getFromCurrencyId());
         if(!fromCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
-
-        Optional<Currency> toCurrency = sellDto.getToCurrencyId() == null ? currencyRepository.findByIso("USD") :
-                                                                            currencyRepository.findById(sellDto.getToCurrencyId());
-
-        Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(sellDto.getTransactionOptId());
+        // >>>>> 2. we check according to the pricing, if the user is able to make
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency.get());
+        if(!pricing.isPresent()) {
+            logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        if(
+                Double.parseDouble(dto.getAmount()) > Double.parseDouble(pricing.get().getSellMax()) ||
+                Double.parseDouble(dto.getAmount()) < Double.parseDouble(pricing.get().getSellMin())
+        ) {
+            logger.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        // >>>>> 3. get the transaction option (OM, MOMO, ...)
+        Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             logger.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
         }
+        // >>>>> 4. get the conversion of the initial currency in USDT (example: btc -> usdt)
         Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
-
         if(currencyBinanceClassName == null)
         {
             logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
+        BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
+        if(usdtRate == null) {
+            logger.error("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
+        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
+        if(currencyBinanceClassName == null)
+        {
+            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
+        if(usdtRate == null) {
+            logger.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
+            return null;
+        }
+        // >>>>> 6. we get these conversions in variables
+        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
+        Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
 
-        // =========> Then, we create a sale and persist it to database
-        BinanceRate rate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
+        // ================================== price calculation =========================================
 
+        // >>>>> 7. fees calculation
+        Double duskFeesInFiat = 0.0;
+        Double duskFeesInCrypto = 0.0;
+
+        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+            // here we take percentage of the initial amount
+            duskFeesInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(pricing.get().getSellFees());
+            duskFeesInFiat = Utilities.convertUSdtToXaf( duskFeesInCrypto,
+                    cryptoToUsdt,
+                    (1.0 / eurToUsdt)
+            );
+        }
+        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
+            // here we just convert the buy fees of pricing in xaf
+            duskFeesInCrypto = Double.parseDouble(pricing.get().getSellFees());
+            duskFeesInFiat = Utilities.convertUSdtToXaf( duskFeesInCrypto,
+                    cryptoToUsdt,
+                    (1.0 / eurToUsdt)
+            );
+        }
+
+        // >>>>> 8. amount to be received by the user
+        // sold amount = conversion to xaf (initial amount (supplied in parameter) in crypto - dusk fees in crypto)
+        Double amountToBeReceivedInFiat = Utilities.convertUSdtToXaf(
+            Double.parseDouble(dto.getAmount()) - duskFeesInCrypto,
+                cryptoToUsdt,
+                (1.0 / eurToUsdt)
+        );
+
+        // >>>>> 9. finally, we create the sell object and we save it in the DB
         Sell sell = new Sell();
-        sell.setAmount(sellDto.getAmount());
-        sell.setTel(sellDto.getTel());
+        sell.setSellDate(new Date());
+        sell.setTotalAmountCrypto(dto.getAmount());
+        sell.setAmountReceived(Double.toString(amountToBeReceivedInFiat));
+        sell.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
+        sell.setDuskFees(Double.toString(duskFeesInFiat));
+        sell.setTel(dto.getTel());
         sell.setCurrency(fromCurrency.get());
+        sell.setCryptoPriceInUsdt(usdtRate.getTicks().getClose());
+        sell.setEurToUsdtPrice(eurUsdtRate.getTicks().getClose());
         sell.setTransactionOption(transactionOption.get());
-        sell.setExchangeAccount(exchangeAccount.get());
-
+        sell.setExchangeAccount(account);
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
             return null;
         }
         sell.setStatus(status.get());
-
-        Conversion conversion = new Conversion();
-        double cryptoAmount = Double.parseDouble(sellDto.getAmount()); // conversion of crypto currency amount in double
-        double cryptoClosePrice = Double.parseDouble(rate.getTicks().getClose()); // crypto close price
-        // TODO: Add duskswap fees
-        String sellPrice = calculatePrice(cryptoAmount, cryptoClosePrice);
-        conversion.setDuskPrice(sellPrice); // TODO: Replace sellPrice by the price of crypto currency that we had fixed in duskswap
-        conversion.setFromCurrency(fromCurrency.get().getIso());
-        conversion.setMarketPrice(rate.getTicks().getClose());
-        conversion.setToCurrency(toCurrency.get().getIso());
-        conversionRepository.save(conversion);
-        sell.setConversion(conversion);
-
-        Sell savedSell = sellRepository.save(sell);
-
-        // ==========> finally, we debit the account
-        accountService.debitAccount(exchangeAccount.get(),
-                fromCurrency.get(),
-                sellDto.getAmount());
-
-        return savedSell;
+        return sellRepository.save(sell);
     }
 
-    private String calculatePrice(double cryptoAmount, double cryptoCloseAmount) {
-        return Double.toString(cryptoAmount * cryptoCloseAmount);
+
+    @Override
+    public ResponseEntity<String> getAllSaleProfits() {
+        List<Sell> sells = sellRepository.findAll();
+        if(sells == null || (sells != null && sells.isEmpty()))
+            return ResponseEntity.ok("0.0");
+        Double profits = 0.0;
+        for(Sell sell : sells) {
+            profits += Double.parseDouble(sell.getDuskFees());
+        }
+        return ResponseEntity.ok(Double.toString(profits));
+    }
+
+    @Override
+    public ResponseEntity<String> getAllSaleProfitsBefore(Date date) {
+        List<Sell> sells = sellRepository.findBySellDateBefore(date);
+        if(sells == null || (sells != null && sells.isEmpty()))
+            return ResponseEntity.ok("0.0");
+        Double profits = 0.0;
+        for(Sell sell : sells) {
+            profits += Double.parseDouble(sell.getDuskFees());
+        }
+        return ResponseEntity.ok(Double.toString(profits));
+    }
+
+    @Override
+    public ResponseEntity<String> getAllSaleProfitsAfter(Date date) {
+        List<Sell> sells = sellRepository.findBySellDateAfter(date);
+        if(sells == null || (sells != null && sells.isEmpty()))
+            return ResponseEntity.ok("0.0");
+        Double profits = 0.0;
+        for(Sell sell : sells) {
+            profits += Double.parseDouble(sell.getDuskFees());
+        }
+        return ResponseEntity.ok(Double.toString(profits));
+    }
+
+    @Override
+    public ResponseEntity<String> getAllSaleProfitsBetween(Date startDate, Date endDate) {
+        List<Sell> sells = sellRepository.findBySellDateBetween(startDate, endDate);
+        if(sells == null || (sells != null && sells.isEmpty()))
+            return ResponseEntity.ok("0.0");
+        Double profits = 0.0;
+        for(Sell sell : sells) {
+            profits += Double.parseDouble(sell.getDuskFees());
+        }
+        return ResponseEntity.ok(Double.toString(profits));
     }
 }

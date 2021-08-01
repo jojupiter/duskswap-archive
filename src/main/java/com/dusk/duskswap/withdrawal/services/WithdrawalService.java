@@ -1,5 +1,6 @@
 package com.dusk.duskswap.withdrawal.services;
 
+import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
@@ -14,9 +15,7 @@ import java.util.Optional;
 
 public interface WithdrawalService {
 
-    ResponseEntity<WithdrawalPage> getAllUserWithdrawals(Integer currentPage, Integer pageSize);
+    ResponseEntity<WithdrawalPage> getAllUserWithdrawals(User user, Integer currentPage, Integer pageSize);
     ResponseEntity<WithdrawalPage> getAllWithdrawals(Integer currentPage, Integer pageSize);
-    Withdrawal createWithdrawal(WithdrawalDto wdto, User user);
-    Optional<User> getCurrentUser();
-
+    Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount); // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
 }

@@ -9,6 +9,7 @@ import com.dusk.duskswap.commons.models.JwtResponse;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
 import com.dusk.duskswap.deposit.services.BuyServiceImpl;
+import com.dusk.duskswap.newslettersManagement.services.NewsLetterService;
 import com.dusk.duskswap.usersManagement.models.*;
 import com.dusk.duskswap.usersManagement.services.UserService;
 import org.slf4j.Logger;
@@ -44,6 +45,8 @@ public class AuthController {
     private VerificationCodeService verificationCodeService;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private NewsLetterService newsLetterService;
     private FieldValidation fieldValidation = new FieldValidation();
     private Logger logger = LoggerFactory.getLogger(AuthController.class);
 
@@ -171,7 +174,7 @@ public class AuthController {
         user.setEmail(signupRequest.getEmail());
         user.setEncryptedPassword(encoder.encode(signupRequest.getPassword()));
         user.setRoles(new HashSet<Role>());
-        Optional<Role> roleUser = userService.getRoleByName("ROLE_USER");
+        Optional<Role> roleUser = userService.getRoleByName(DefaultProperties.ROLE_USER);
         if(roleUser.isPresent()) {
             user.getRoles().add(roleUser.get());
         }
@@ -181,6 +184,8 @@ public class AuthController {
         }
 
         User addedUser = userService.addUser(user);
+
+        newsLetterService.addSubscriberToNewsLetter(signupRequest.getEmail());
 
         return ResponseEntity.ok(addedUser);
     }
@@ -220,7 +225,7 @@ public class AuthController {
 
         emailService.sendSigninConfirmationEmail(emailMessage);
 
-        return ResponseEntity.ok(verificationCode);
+        return ResponseEntity.ok(true);
 
     }
 

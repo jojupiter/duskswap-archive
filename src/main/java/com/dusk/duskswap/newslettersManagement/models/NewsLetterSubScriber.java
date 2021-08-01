@@ -23,8 +23,8 @@ public class NewsLetterSubScriber extends Auditable<String> {
     @NotBlank
     private String email;
 
-    @Column(name = "accept")
+    @Column(name = "activated")
     @NotBlank
-    private Boolean accept;
+    private Boolean activated; // to know whether or not the subscriber wants to receive newsletter
 
 }

@@ -6,7 +6,6 @@ import lombok.Data;
 public class ExchangeDto {
 
     private String fromAmount;
-    private String toAmount;
     private Long fromCurrencyId;
     private Long toCurrencyId;
 

@@ -6,18 +6,25 @@ import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Invoice;
 import com.dusk.duskswap.commons.models.WebhookEvent;
 import com.dusk.duskswap.commons.services.InvoiceService;
+import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
 import com.dusk.duskswap.deposit.entityDto.DepositResponseDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.services.DepositService;
 import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.deposit.services.DepositServiceImpl;
+import com.dusk.duskswap.usersManagement.models.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Date;
+import java.util.Optional;
 
 @RestController
 @CrossOrigin("*")
@@ -30,27 +37,40 @@ public class DepositController {
     private InvoiceService invoiceService;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private UtilitiesService utilitiesService;
+    private Logger logger = LoggerFactory.getLogger(DepositController.class);
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @GetMapping(value = "/all", produces = "application/json", params = {"token"})
-    public ResponseEntity<DepositPage> getAllUserDeposits(@RequestParam(name = "token") String token,
-                                                          @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+    @GetMapping(value = "/user-all", produces = "application/json")
+    public ResponseEntity<DepositPage> getAllUserDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                           @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        return depositService.getAllUserDeposits(token, currentPage, pageSize);
+        Optional<User> user = utilitiesService.getCurrentUser();
+        if(!user.isPresent()) {
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return depositService.getAllUserDeposits(user.get(), currentPage, pageSize);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
     public ResponseEntity<DepositPage> getAllDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                         @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        return depositService.getAllUserDeposits(currentPage, pageSize);
+        return depositService.getAllDeposits(currentPage, pageSize);
     }
 
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/create", produces = "application/json")
     public ResponseEntity<DepositResponseDto> createDeposit(@RequestBody DepositDto dto) {
-        return depositService.createCryptoDeposit(dto);
+        Optional<User> user = utilitiesService.getCurrentUser();
+        if(!user.isPresent()) {
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        return depositService.createCryptoDeposit(user.get(), dto);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")

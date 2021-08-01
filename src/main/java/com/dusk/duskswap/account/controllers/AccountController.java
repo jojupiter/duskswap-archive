@@ -27,22 +27,28 @@ public class AccountController {
     private AccountService accountService;
     @Autowired
     private UtilitiesService utilitiesService;
-    @Autowired
-    private JwtUtils jwtUtils;
     private Logger logger = LoggerFactory.getLogger(AccountController.class);
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PostMapping("/create")
-    public ResponseEntity<ExchangeAccount> createExchangeAccount(@RequestParam("token") String token) {
-        String email = jwtUtils.getEmailFromJwtToken(token);
-        return accountService.createExchangeAccount(email);
+    public ResponseEntity<ExchangeAccount> createExchangeAccount() {
+        Optional<User> user = utilitiesService.getCurrentUser();
+        if(!user.isPresent()) {
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createExchangeAccount :: AccountController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return accountService.createExchangeAccount(user.get());
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping("/")
-    public ResponseEntity<ExchangeAccount> getExchangeAccount(@RequestParam("token") String token) {
-        String email = jwtUtils.getEmailFromJwtToken(token);
-        return accountService.getExchangeAccount(email);
+    public ResponseEntity<ExchangeAccount> getExchangeAccount() {
+        Optional<User> user = utilitiesService.getCurrentUser();
+        if(!user.isPresent()) {
+            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getExchangeAccount :: AccountController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return accountService.getExchangeAccount(user.get());
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
@@ -54,7 +60,6 @@ public class AccountController {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getUserCryptoBalances :: AccountController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-
         return accountService.getUserAccountBalance(user.get());
     }
 

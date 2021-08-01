@@ -4,11 +4,9 @@ import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.commons.models.Currency;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -42,6 +40,24 @@ public class UtilitiesController {
     @GetMapping("/supported-transaction-opts")
     public List<TransactionOption> getAllSupportedTransactionOptions() {
         return utilitiesService.getAllSupportedTransactionOptions();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/currencies/create")
+    public ResponseEntity<Currency> createCurrency(@RequestBody Currency currency) {
+        return utilitiesService.createCurrency(currency);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/currencies/disable")
+    public ResponseEntity<Boolean> disableCurrency(@RequestParam(name = "currencyId") Long currencyId) {
+        return utilitiesService.enableCurrency(currencyId, false);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/currencies/activate")
+    public ResponseEntity<Boolean> enableCurrency(@RequestParam(name = "currencyId") Long currencyId) {
+        return utilitiesService.enableCurrency(currencyId, true);
     }
 
 }

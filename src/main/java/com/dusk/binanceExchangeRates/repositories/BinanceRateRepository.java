@@ -1,7 +1,6 @@
 package com.dusk.binanceExchangeRates.repositories;
 
 import com.dusk.binanceExchangeRates.models.BinanceRate;
-import com.dusk.binanceExchangeRates.models.BtcUsd;
 
 import java.util.List;
 

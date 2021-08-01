@@ -1,32 +1,48 @@
 package com.dusk.duskswap.withdrawal.models;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.commons.models.Conversion;
-import com.dusk.duskswap.commons.models.TransactionOption;
-import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.commons.models.Status;
+import com.dusk.duskswap.commons.models.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Table(name = "sell")
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Sell {
+public class Sell extends Auditable<String> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "amount")
-    private String amount;
+    @Column(name = "total_amount_crypto")
+    private String totalAmountCrypto; // the total amount of crypto that the user want to sell (the amount he enters) (it's in this amount we take fees)
+
+    @Column(name = "amount_received")
+    private String amountReceived; // the exact amount converted in FIAT the user should receive when selling
+
+    @Column(name = "dusk_fees_crypto")
+    private String duskFeesCrypto; // duskswap fees in CRYPTO
+
+    @Column(name = "dusk_fees")
+    private String duskFees; // duskswap fees in FIAT
 
     @Column(name = "tel")
     private String tel;
+
+    @Column(name = "crypto_price_usdt")
+    private String cryptoPriceInUsdt;
+
+    @Column(name = "euro_to_usdt")
+    private String eurToUsdtPrice;
+
+    @Column(name = "sell_date")
+    private Date sellDate;
 
     @ManyToOne
     @JoinColumn(name = "currency_id", referencedColumnName = "id")
@@ -43,9 +59,5 @@ public class Sell {
     @ManyToOne
     @JoinColumn(name = "transaction_option_id", referencedColumnName = "id")
     private TransactionOption transactionOption;
-
-    @ManyToOne
-    @JoinColumn(name = "exchange_rate_id", referencedColumnName = "id")
-    private Conversion conversion;
 
 }

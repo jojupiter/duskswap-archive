@@ -37,29 +37,24 @@ public class AccountServiceImpl implements AccountService {
     private Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     @Override
-    public ResponseEntity<ExchangeAccount> createExchangeAccount(String userEmail) {
+    public ResponseEntity<ExchangeAccount> createExchangeAccount(User user) {
 
         // first, we check the input
-        if((userEmail != null && userEmail.isEmpty()) || userEmail == null) {
+        if(user == null ) {
             logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> createExchangeAccount :: AccountServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
 
-        // next, we check if the userEmail belongs to a real user
-        Optional<User> user = userRepository.findByEmail(userEmail); // TODO: Remove this part when user object will be in parameter
-        if(!user.isPresent())
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-
         // here we check the status of user, if it's not activated we can't create an account
-        if(!user.get().getStatus().getName().equals(DefaultProperties.STATUS_USER_ACTIVATED))
+        if(!user.getStatus().getName().equals(DefaultProperties.STATUS_USER_ACTIVATED))
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
 
         // then we proceed to the creation, by initializing the "based" currencies the user will use
-        if(exchangeAccountRepository.existsByUser(user.get()))
+        if(exchangeAccountRepository.existsByUser(user))
             return ResponseEntity.ok(null);
 
         ExchangeAccount exchangeAccount = new ExchangeAccount();
-        exchangeAccount.setUser(user.get());
+        exchangeAccount.setUser(user);
 
         List<String> currencyStrings = new ArrayList<>();
         /*currencyStrings.add("USD");
@@ -97,35 +92,25 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public ResponseEntity<ExchangeAccount> getExchangeAccount(String userEmail) {
+    public ResponseEntity<ExchangeAccount> getExchangeAccount(User user) {
         // input checking
-        if((userEmail!= null && userEmail.isEmpty()) || userEmail == null) {
+        if(user == null) {
             logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getExchangeAccount :: AccountServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
 
-        // we find the corresponding user here
-        Optional<User> user = userRepository.findByEmail(userEmail); // TODO: remove this part once user object in parameter
-        if(!user.isPresent())
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-
-         return ResponseEntity.ok(exchangeAccountRepository.findByUser(user.get()).get());
+         return ResponseEntity.ok(exchangeAccountRepository.findByUser(user).get());
     }
 
     @Override
-    public ExchangeAccount getAccountByUserEmail(String userEmail) {
+    public ExchangeAccount getAccountByUser(User user) {
         // input checking
-        if((userEmail!= null && userEmail.isEmpty()) || userEmail == null) {
+        if(user == null) {
             logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getAccountByUserEmail :: AccountServiceImpl.java");
             return null;
         }
 
-        // we find the corresponding user here
-        Optional<User> user = userRepository.findByEmail(userEmail);
-        if(!user.isPresent())
-            return null;
-
-        return exchangeAccountRepository.findByUser(user.get()).get();
+        return exchangeAccountRepository.findByUser(user).get();
     }
 
     @Override

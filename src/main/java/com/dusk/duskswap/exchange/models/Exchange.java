@@ -1,6 +1,7 @@
 package com.dusk.duskswap.exchange.models;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.commons.models.Auditable;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Status;
 import lombok.Data;
@@ -10,7 +11,7 @@ import javax.persistence.*;
 @Data
 @Table(name = "exchange")
 @Entity
-public class Exchange {
+public class Exchange extends Auditable<String> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

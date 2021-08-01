@@ -1,18 +1,24 @@
 package com.dusk.duskswap.withdrawal.services;
 
+import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
-import com.dusk.duskswap.withdrawal.entityDto.SellPriceDto;
+import com.dusk.duskswap.withdrawal.entityDto.SellPage;
+import com.dusk.duskswap.withdrawal.entityDto.SellProfit;
 import com.dusk.duskswap.withdrawal.models.Sell;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Date;
 import java.util.List;
 
 public interface SellService {
 
-    ResponseEntity<List<Sell>> getAllSales(String userEmail);
-    ResponseEntity<List<Sell>> getAllSales();
-    ResponseEntity<SellPriceDto> calculateSale(SellDto sellDto);
-    Sell createSale(SellDto sellDto); // return sell id
-    //ResponseEntity<Boolean> confirmSale(Long sellId);
+    ResponseEntity<SellPage> getAllSales(User user, Integer currentPage, Integer pageSize);
+    ResponseEntity<SellPage> getAllSales(Integer currentPage, Integer pageSize);
+    Sell createSale(SellDto sellDto, User user, ExchangeAccount account); // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
+    ResponseEntity<String> getAllSaleProfits();
+    ResponseEntity<String> getAllSaleProfitsBefore(Date date);
+    ResponseEntity<String> getAllSaleProfitsAfter(Date date);
+    ResponseEntity<String> getAllSaleProfitsBetween(Date startDate, Date endDate);
 
 }

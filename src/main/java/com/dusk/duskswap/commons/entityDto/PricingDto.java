@@ -30,7 +30,7 @@ public class PricingDto {
     private String sellMin;
     private String sellMax;
 
-    private String exchangeFees; // in %
+    private String exchangeFees;
     private String exchangeMin;
     private String exchangeMax;
 

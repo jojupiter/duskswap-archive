@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Table(name = "deposit")
 @Entity
@@ -30,6 +31,9 @@ public class Deposit extends Auditable<String> {
 
     @Column(name = "invoice_id")
     private String invoiceId;
+
+    @Column(name = "deposit_date")
+    private Date depositDate;
 
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")
