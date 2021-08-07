@@ -208,18 +208,21 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount) {
+    public AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount) throws Exception {
         // inputs checking
         if(amount == null || currency == null || account == null) {
             logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
                     " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
+                    " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
+            //return null;
         }
 
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currency.getId());
         if(!amountCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> fundAccount :: AccountServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> fundAccount :: AccountServiceImpl.java");
+            //return null;
         }
 
         Double currentAmount = Double.parseDouble(amountCurrency.get().getAmount());
@@ -227,7 +230,8 @@ public class AccountServiceImpl implements AccountService {
 
         if(amountToAdd < 0) {// we can't add a negative amount
             logger.error("[" + new Date() + "] => WE CAN'T ADD A NEGATIVE NUMBER (amountToAdd="+amountToAdd+")>>>>>>>> fundAccount :: AccountServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => WE CAN'T ADD A NEGATIVE NUMBER (amountToAdd="+amountToAdd+")>>>>>>>> fundAccount :: AccountServiceImpl.java");
+            //return null;
         }
 
         amountCurrency.get().setAmount(Double.toString(currentAmount + amountToAdd));
@@ -237,18 +241,21 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount) {
+    public AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount) throws Exception {
         // input checking
         if(amount == null || currency == null || account == null) {
             logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> debitAccount :: AccountServiceImpl.java" +
                     " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
+                    " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
+            //return null;
         }
 
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currency.getId());
         if(!amountCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
+            //return null;
         }
 
         Double currentAmount = Double.parseDouble(amountCurrency.get().getAmount());
@@ -256,7 +263,8 @@ public class AccountServiceImpl implements AccountService {
 
         if(amountToRemove < 0 || amountToRemove > currentAmount) {
             logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
+            //return null;
         }
 
         amountCurrency.get().setAmount(Double.toString(currentAmount - amountToRemove));

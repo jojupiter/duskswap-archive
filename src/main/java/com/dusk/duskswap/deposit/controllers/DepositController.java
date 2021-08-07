@@ -2,6 +2,7 @@ package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Invoice;
 import com.dusk.duskswap.commons.models.WebhookEvent;
@@ -23,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.transaction.Transactional;
 import java.util.Date;
 import java.util.Optional;
 
@@ -43,12 +45,12 @@ public class DepositController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
-    public ResponseEntity<DepositPage> getAllUserDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+    public ResponseEntity<?> getAllUserDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                           @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return depositService.getAllUserDeposits(user.get(), currentPage, pageSize);
     }
@@ -63,11 +65,12 @@ public class DepositController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<DepositResponseDto> createDeposit(@RequestBody DepositDto dto) {
+    @Transactional
+    public ResponseEntity<?> createDeposit(@RequestBody DepositDto dto) throws Exception {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return depositService.createCryptoDeposit(user.get(), dto);
@@ -81,7 +84,8 @@ public class DepositController {
     }
 
     @PutMapping(value = "/update-status", produces = "application/json")
-    public void updateDepositStatus(@RequestBody WebhookEvent webhookEvent) {
+    @Transactional
+    public void updateDepositStatus(@RequestBody WebhookEvent webhookEvent) throws Exception {
         // first we check the input and the invoice id
         if(
                  webhookEvent == null ||
@@ -97,7 +101,7 @@ public class DepositController {
         // We update the deposit status if it has changed
         Deposit deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
         if(deposit != null && deposit.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus())) {
-            depositService.updateDepositStatus(deposit.getId(), DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
+            depositService.updateDepositStatus(deposit, DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
         }
         if(deposit == null)
             return;

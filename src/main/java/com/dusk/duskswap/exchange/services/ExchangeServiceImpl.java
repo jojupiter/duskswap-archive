@@ -108,7 +108,7 @@ public class ExchangeServiceImpl implements ExchangeService {
 
     @Transactional
     @Override
-    public Exchange makeExchange(ExchangeDto dto, User user, ExchangeAccount exchangeAccount) {
+    public Exchange makeExchange(ExchangeDto dto, User user, ExchangeAccount exchangeAccount) throws Exception{
         // input checking
         if(
                 dto == null ||
@@ -122,15 +122,18 @@ public class ExchangeServiceImpl implements ExchangeService {
                 exchangeAccount == null
         ) {
             logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         if(Double.parseDouble(dto.getFromAmount()) <= 0) {
             logger.error("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         if(user.getLevel() == null) {
             logger.error("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
 
         // ==================== now we get the necessary elements ============
@@ -139,13 +142,15 @@ public class ExchangeServiceImpl implements ExchangeService {
         Optional<Currency> fromCurrency = currencyRepository.findById(dto.getFromCurrencyId());
         if(!fromCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => INITIAL CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INITIAL CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         // >>>>> 2. the destination currency
         Optional<Currency> toCurrency = currencyRepository.findById(dto.getToCurrencyId());
         if(!toCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => DESTINATION CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => DESTINATION CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         // >>>> 3. status confirmed
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
@@ -158,18 +163,21 @@ public class ExchangeServiceImpl implements ExchangeService {
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(exchangeAccount.getId(), fromCurrency.get().getId());
         if(!amountCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         if(Double.parseDouble(amountCurrency.get().getAmount()) < Double.parseDouble(dto.getFromAmount())) {
             logger.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
 
         // ========================= check the user's pricing for exchange =========
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency.get());
         if(!pricing.isPresent()) {
             logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
 
         if(
@@ -178,7 +186,9 @@ public class ExchangeServiceImpl implements ExchangeService {
         ) {
             logger.error("[" + new Date() + "] => INITIAL AMOUNT OUT OF BOUNDS [" + pricing.get().getExchangeMin()+ "," + pricing.get().getExchangeMax() +" ]" +
                   " WITH fromAmount = " + dto.getFromAmount() + ">>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INITIAL AMOUNT OUT OF BOUNDS [" + pricing.get().getExchangeMin()+ "," + pricing.get().getExchangeMax() +" ]" +
+                    " WITH fromAmount = " + dto.getFromAmount() + ">>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
 
         // ========================= calculating the fees and the exchanged amount ==========
@@ -188,12 +198,14 @@ public class ExchangeServiceImpl implements ExchangeService {
         if(fromCurrencyBinanceClassName == null)
         {
             logger.error("[" + new Date() + "] => FROM CURRENCY BINANCE CLASS NAME NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => FROM CURRENCY BINANCE CLASS NAME NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         BinanceRate fromCurrencyUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(fromCurrencyBinanceClassName);
         if(fromCurrencyUsdtRate == null) {
             logger.error("[" + new Date() + "] => FROM BINANCE RATE NULL ("+ fromCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => FROM BINANCE RATE NULL ("+ fromCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
 
         // >>>>>> 2. we get the conversion fromCurrency - usdt
@@ -201,12 +213,14 @@ public class ExchangeServiceImpl implements ExchangeService {
         if(toCurrencyBinanceClassName == null)
         {
             logger.error("[" + new Date() + "] => TO CURRENCY BINANCE CLASS NAME NULL ("+ toCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => TO CURRENCY BINANCE CLASS NAME NULL ("+ toCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
         BinanceRate toCurrencyUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(toCurrencyBinanceClassName);
         if(toCurrencyUsdtRate == null) {
             logger.error("[" + new Date() + "] => TO BINANCE RATE NULL ("+ toCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => TO BINANCE RATE NULL ("+ toCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            //return null;
         }
 
         // >>>>> 3. we calculate ratio from - to crypto

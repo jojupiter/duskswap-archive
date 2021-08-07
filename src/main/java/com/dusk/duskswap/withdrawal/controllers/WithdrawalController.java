@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -102,7 +103,8 @@ public class WithdrawalController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/confirm", produces = "application/json")
-    public ResponseEntity<?> confirm(@RequestBody WithdrawalDto dto) {
+    @Transactional
+    public ResponseEntity<?> confirm(@RequestBody WithdrawalDto dto) throws Exception {
         // input checking
         if(dto == null || (dto != null && dto.getCode() == null)) {
             logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> confirm :: WithdrawalController.java");
@@ -112,12 +114,12 @@ public class WithdrawalController {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // here we test if his email is null or empty
         if(user.isPresent() && (user.get().getEmail() == null || (user.get().getEmail() != null && user.get().getEmail().isEmpty()))) {
             logger.error("[" + new Date() + "] => USER EMAIL NULL >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.EMAIL_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         ExchangeAccount account = accountService.getAccountByUser(user.get());

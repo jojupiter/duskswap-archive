@@ -119,14 +119,15 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
     @Override
     @Transactional
-    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount){
+    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount) throws Exception {
         // input checking
         if(wdto == null ||
                 (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()) )
                 )
         ) {
             logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
+            //return null;
         }
 
         // ============================= getting the necessary elements =============================
@@ -135,26 +136,30 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         Optional<Currency> currency = currencyRepository.findById(wdto.getCurrencyId());
         if(!currency.isPresent()) {
             logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            //return null;
         }
         // >>>>> 2. we check according to the pricing, if the user is able to make
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
         if(!pricing.isPresent()) {
             logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            //return null;
         }
         if(
                 Double.parseDouble(wdto.getAmount()) > Double.parseDouble(pricing.get().getWithdrawalMax()) ||
                 Double.parseDouble(wdto.getAmount()) < Double.parseDouble(pricing.get().getWithdrawalMin())
         ) {
             logger.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            //return null;
         }
         // >>>>> 3. we get the status "confirmed"
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            //return null;
         }
 
         // ============================== fees calculation ================================

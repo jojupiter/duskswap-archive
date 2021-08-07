@@ -116,12 +116,14 @@ public class SellServiceImpl implements SellService {
 
     @Override
     @Transactional
-    public Sell createSale(SellDto dto, User user, ExchangeAccount account) {
+    public Sell createSale(SellDto dto, User user, ExchangeAccount account) throws Exception {
         // input checking
         if(dto == null || user == null || account == null) {
             logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
                     " ======= sellDto = " + dto + ", user = " + user + ", account = " + account);
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
+                    " ======= sellDto = " + dto + ", user = " + user + ", account = " + account);
+            //return null;
         }
 
         // ===================== Getting necessary elements from sellDto to create a sale =================
@@ -129,50 +131,58 @@ public class SellServiceImpl implements SellService {
         Optional<Currency> fromCurrency = currencyRepository.findById(dto.getFromCurrencyId());
         if(!fromCurrency.isPresent()) {
             logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         // >>>>> 2. we check according to the pricing, if the user is able to make
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency.get());
         if(!pricing.isPresent()) {
             logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         if(
                 Double.parseDouble(dto.getAmount()) > Double.parseDouble(pricing.get().getSellMax()) ||
                 Double.parseDouble(dto.getAmount()) < Double.parseDouble(pricing.get().getSellMin())
         ) {
             logger.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         // >>>>> 3. get the transaction option (OM, MOMO, ...)
         Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             logger.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         // >>>>> 4. get the conversion of the initial currency in USDT (example: btc -> usdt)
         Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(currencyBinanceClassName == null)
         {
             logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
         if(usdtRate == null) {
             logger.error("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
         Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
         if(currencyBinanceClassName == null)
         {
             logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
         if(usdtRate == null) {
             logger.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         // >>>>> 6. we get these conversions in variables
         Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
@@ -225,7 +235,8 @@ public class SellServiceImpl implements SellService {
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
+            //return null;
         }
         sell.setStatus(status.get());
         return sellRepository.save(sell);

@@ -46,7 +46,7 @@ public class BuyController {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return buyService.getAllBuyByUser(user.get(), currentPage, pageSize);

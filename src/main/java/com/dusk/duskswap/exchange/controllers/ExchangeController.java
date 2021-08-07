@@ -37,13 +37,13 @@ public class ExchangeController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
-    public ResponseEntity<ExchangePage> getAllUserExchanges(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+    public ResponseEntity<?> getAllUserExchanges(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                             @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         // >>>>>>> 1. we get the user
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserExchange :: ExchangeController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>>>> 2. we then apply the corresponding method
@@ -61,18 +61,18 @@ public class ExchangeController {
     @Transactional
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<?> makeExchange(@RequestBody ExchangeDto dto) {
+    public ResponseEntity<?> makeExchange(@RequestBody ExchangeDto dto) throws Exception {
         // >>>>>>> 1. we get the user
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>>> 2. we get the exchange account
         ExchangeAccount exchangeAccount = accountService.getAccountByUser(user.get());
         if(exchangeAccount == null) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         if(!accountService.isBalanceSufficient(exchangeAccount, dto.getFromCurrencyId(), dto.getFromAmount())) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.jav");

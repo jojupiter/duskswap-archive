@@ -53,7 +53,7 @@ public class SellController {
     @Transactional
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/confirm", produces = "application/json")
-    public ResponseEntity<?> confirmation(@RequestBody SellDto sellDto) {
+    public ResponseEntity<?> confirmation(@RequestBody SellDto sellDto) throws Exception{
         // input checking
         if(
             sellDto == null
@@ -65,11 +65,15 @@ public class SellController {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we check the account's balance
         ExchangeAccount account = accountService.getAccountByUser(user.get());
+        if(account == null) {
+            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT FOUND >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
         if(!accountService.isBalanceSufficient(account, sellDto.getFromCurrencyId(), sellDto.getAmount())) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.INSUFFICIENT_AMOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -95,7 +99,7 @@ public class SellController {
         AmountCurrency amountCurrency = accountService.debitAccount(account, sell.getCurrency(), sellDto.getAmount());
         if(amountCurrency == null) {
             logger.error("[" + new Date() + "] => THE ACCOUNT WASN'T DEBITED>>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNABLE_TO_DEBIT_ACCOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return ResponseEntity.ok(true);
@@ -130,13 +134,13 @@ public class SellController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
-    public ResponseEntity<SellPage> getAllUserSales(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+    public ResponseEntity<?> getAllUserSales(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                       @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return sellService.getAllSales(user.get(), currentPage, pageSize);
     }

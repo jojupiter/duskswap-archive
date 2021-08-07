@@ -4,6 +4,7 @@ import com.dusk.duskswap.account.entityDto.CryptoBalance;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
+import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.usersManagement.models.User;
 import org.slf4j.Logger;
@@ -31,46 +32,46 @@ public class AccountController {
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PostMapping("/create")
-    public ResponseEntity<ExchangeAccount> createExchangeAccount() {
+    public ResponseEntity<?> createExchangeAccount() {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createExchangeAccount :: AccountController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return accountService.createExchangeAccount(user.get());
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping("/")
-    public ResponseEntity<ExchangeAccount> getExchangeAccount() {
+    public ResponseEntity<?> getExchangeAccount() {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getExchangeAccount :: AccountController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return accountService.getExchangeAccount(user.get());
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping("/balance/all")
-    public ResponseEntity<List<CryptoBalance>> getUserCryptoBalances() {
+    public ResponseEntity<?> getUserCryptoBalances() {
         // >>>>> 1. getting the current authenticated user
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getUserCryptoBalances :: AccountController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return accountService.getUserAccountBalance(user.get());
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping("/balance")
-    public ResponseEntity<CryptoBalance> getUserCryptoBalance(@RequestParam("cryptoIso") String cryptoIso) {
+    public ResponseEntity<?> getUserCryptoBalance(@RequestParam("cryptoIso") String cryptoIso) {
         // >>>>> 1. getting the current authenticated user
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
             logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return accountService.getUserCryptoBalance(user.get(), cryptoIso);

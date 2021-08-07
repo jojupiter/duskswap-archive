@@ -121,7 +121,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
-    public ResponseEntity<DepositResponseDto> createCryptoDeposit(User user, DepositDto dto) {
+    public ResponseEntity<DepositResponseDto> createCryptoDeposit(User user, DepositDto dto) throws Exception {
         // input checking
         if(dto == null ||
                 (dto != null &&
@@ -206,40 +206,34 @@ public class DepositServiceImpl implements DepositService {
         DepositResponseDto responseDto = new DepositResponseDto();
         responseDto.setDepositId(savedDeposit.getId());
         String invoicePageSource = "";
-        try {
-            invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
-            responseDto.setInvoiceSourceCode(invoicePageSource);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
+
+        invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
+        responseDto.setInvoiceSourceCode(invoicePageSource);
+
         return ResponseEntity.ok(responseDto);
     }
 
+    @Transactional
     @Override
-    public Deposit updateDepositStatus(Long depositId, String statusString) {
-        if(depositId == null ||
+    public Deposit updateDepositStatus(Deposit deposit, String statusString) throws Exception{
+        if(deposit == null ||
            (statusString != null && statusString.isEmpty()) || statusString == null
         ) {
             logger.error("[" + new Date() + "] => INPUTS INCORRECT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUTS INCORRECT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
+            //return null;
         }
 
-        Optional<Deposit> deposit = depositRepository.findById(depositId);
-        if(!deposit.isPresent()) {
-            logger.error("[" + new Date() + "] => DEPOSIT NOT PRESENT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
-            return null;
-        }
         Optional<Status> status = statusRepository.findByName(statusString);
         if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
+            //return null;
         }
 
-        deposit.get().setStatus(status.get());
+        deposit.setStatus(status.get());
 
-        return depositRepository.save(deposit.get());
+        return depositRepository.save(deposit);
     }
 
     @Override

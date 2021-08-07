@@ -15,7 +15,8 @@ public interface SellService {
 
     ResponseEntity<SellPage> getAllSales(User user, Integer currentPage, Integer pageSize);
     ResponseEntity<SellPage> getAllSales(Integer currentPage, Integer pageSize);
-    Sell createSale(SellDto sellDto, User user, ExchangeAccount account); // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
+    Sell createSale(SellDto sellDto, User user, ExchangeAccount account) throws Exception; // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
+                                                                        // exception is used to rollback transaction
     ResponseEntity<String> getAllSaleProfits();
     ResponseEntity<String> getAllSaleProfitsBefore(Date date);
     ResponseEntity<String> getAllSaleProfitsAfter(Date date);

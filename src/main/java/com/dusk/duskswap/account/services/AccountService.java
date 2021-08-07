@@ -20,8 +20,8 @@ public interface AccountService {
     ResponseEntity<List<CryptoBalance>> getUserAccountBalance(User user);
     ResponseEntity<CryptoBalance> getUserCryptoBalance(User user, String cryptoIso);
 
-    AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount); // destined to be used by another service/controller outside this package
-    AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount); // destined to be used by another service/controller outside this package
+    AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount) throws Exception; // destined to be used by another service/controller outside this package
+    AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount) throws Exception; // destined to be used by another service/controller outside this package
 
     boolean isBalanceSufficient(ExchangeAccount account, Long currencyId, String amount);
 }

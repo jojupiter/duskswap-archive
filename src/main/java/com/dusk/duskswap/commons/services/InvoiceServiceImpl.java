@@ -2,6 +2,7 @@ package com.dusk.duskswap.commons.services;
 
 import com.dusk.duskswap.commons.models.Invoice;
 import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.WalletTransaction;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,5 +154,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         Optional<Currency> currency = currencyRepository.findByIso(invoice.getCurrency());
 
         return currency.get();
+    }
+
+    @Override
+    public String sendCrypto(WalletTransaction walletTransaction) {
+        return null;
     }
 }

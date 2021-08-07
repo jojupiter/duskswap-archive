@@ -199,7 +199,7 @@ public class UserServiceImpl implements UserService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>> 2. we then verify if the old password is correct
-        if(!encoder.encode(oldPassword).equals(user.getEncryptedPassword())) {
+        if(!encoder.matches(oldPassword,user.getEncryptedPassword())) {
             logger.error("[" + new Date() + "] => PROVIDED OLD PASSWORD INCORRECT >>>>>>>> updateUser :: UserServiceImpl.java" +
                     " === old = " + encoder.encode(oldPassword) + " user pas = " + user.getEncryptedPassword());
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
