@@ -165,6 +165,16 @@ public class UserController {
         return userService.getUserById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @GetMapping(value = "/current", produces = "application/json")
+    public ResponseEntity<User> getCurrentUser() {
+        Optional<User> user = utilitiesService.getCurrentUser();
+        if(!user.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return ResponseEntity.ok(user.get());
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/username", produces = "application/json")
     public User getUserByUsername(@RequestParam(name = "username") String username)
