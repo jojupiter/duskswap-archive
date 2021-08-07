@@ -64,7 +64,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // here we get the corresponding exchange account and verify if exists
+        // >>>>> 1. here we get the corresponding exchange account and verify if exists
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -72,7 +72,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        //then, we get the currency
+        // >>>>> 2. then, we get the currency
         Optional<Currency> currency = currencyRepository.findById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
             logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -80,7 +80,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // next, we get the transaction option
+        // >>>>> 3. next, we get the transaction option
         Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             logger.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -88,7 +88,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
+        // >>>>> 4. Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_IN_CONFIRMATION);
         if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -96,7 +96,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
+        // >>>>> 5. Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
         if(!pricing.isPresent()) {
             logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -113,69 +113,6 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // if the amount is in the authorized bounds, then we create the buy
-   // ============================ fees calculation =========================
-        // first we get the conversion fromCurrency to USDT
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
-        if(currencyBinanceClassName == null)
-        {
-            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ currency.get().getIso() + " - USDT) >>>>>>>> createBuy :: BuyServiceImpl.java");
-            return null;
-        }
-        BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
-        if(usdtRate == null) {
-            logger.error("[" + new Date() + "] => BINANCE RATE NULL ("+ currency.get().getIso()+ " - USDT) >>>>>>>> createBuy :: BuyServiceImpl.java");
-            return null;
-        }
-
-        // After that, we look at the pair EUR/USDT to have the value in euros
-        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
-        if(currencyBinanceClassName == null)
-        {
-            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> createBuy :: BuyServiceImpl.java");
-            return null;
-        }
-        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
-        if(usdtRate == null) {
-            logger.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> createBuy :: BuyServiceImpl.java");
-            return null;
-        }
-
-        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
-        Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
-
-        // Then we calculate fees
-        // >>>>> dusk fees in xaf
-        Double duskFeesInXaf = 0.0;
-        Double duskFeesInCrypto = 0.0;
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
-            // here we take percentage of the initial amount
-            duskFeesInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(pricing.get().getBuyFees());
-            duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
-                                                        cryptoToUsdt,
-                                                        (1.0 / eurToUsdt)
-            );
-
-        }
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
-            // here we just convert the buy fees of pricing in xaf
-            duskFeesInCrypto = Double.parseDouble(pricing.get().getBuyFees());
-            duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
-                                                        cryptoToUsdt,
-                                                        (1.0 / eurToUsdt)
-            );
-        }
-
-        // then we calculate the amount the user will be allocated
-        //>>>>>> basically allocated amount = conversion to Crypto (initial amount (supplied in parameter) in xaf - dusk fees in xaf - api fees in xaf)
-        Double amountCryptoToBeAllocatedInXaf = Utilities.convertXafToCrypto(
-                Double.parseDouble(dto.getAmount()) -
-                                duskFeesInXaf -
-                                Double.parseDouble(apiFees),
-                        cryptoToUsdt,
-                        eurToUsdt
-        );
-
         // After getting the necessary elements, we create the buy command
         Buy buy = new Buy();
         buy.setNotifToken(notifToken);
@@ -184,42 +121,125 @@ public class BuyServiceImpl implements BuyService {
         buy.setTransactionOption(transactionOption.get());
         buy.setToCurrency(currency.get());
         buy.setStatus(status.get());
-
-        buy.setTotalAmount(dto.getAmount());
-        buy.setAmountCrypto(Double.toString(amountCryptoToBeAllocatedInXaf));
-        buy.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
-        buy.setDuskFees(Double.toString(duskFeesInXaf));
         buy.setApiFees(apiFees);
+        buy.setTotalAmount(dto.getAmount());
 
         return buyRepository.save(buy);
     }
 
+    @Transactional
     @Override
-    public Buy updateBuyStatus(String payToken, String statusString) {
+    public Buy updateBuy(String notifToken, String statusString) throws Exception {
         // input checking
         if(
-                payToken == null || (payToken != null && payToken.isEmpty()) ||
-                statusString == null || (statusString != null && payToken.isEmpty())
+                notifToken == null || (notifToken != null && notifToken.isEmpty()) ||
+                statusString == null || (statusString != null && notifToken.isEmpty())
         ) {
             logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
         }
 
-        // Now, we get the saved buy according to its pay token
-        Optional<Buy> buy = buyRepository.findByPayToken(payToken);
+        // >>>>> 1. we get the saved buy according to its notif token
+        Optional<Buy> buy = buyRepository.findByNotifToken(notifToken);
         if(!buy.isPresent()) {
             logger.error("[" + new Date() + "] => BUY NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => BUY NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
         }
-        // and we get the corresponding status too
+        // >>>>> 2. and we get the corresponding status too
         Optional<Status> status = statusRepository.findByName(statusString);
         if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            return null;
+            throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
         }
 
-        // finally we proceed to the update
+        // =============================== price calculation ==================================
+        // >>>>> 3. Get the pricing
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(buy.get().getExchangeAccount().getUser().getLevel(),
+                                                                             buy.get().getToCurrency());
+        if(!pricing.isPresent()) {
+            logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
+        }
+
+        // >>>>> 4. get the conversion of the destination currency in USDT (example: btc -> usdt)
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(buy.get().getToCurrency().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        if(currencyBinanceClassName == null)
+        {
+            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ buy.get().getToCurrency().getIso() + " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ buy.get().getToCurrency().getIso() + " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
+        }
+        BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
+        if(usdtRate == null) {
+            logger.error("[" + new Date() + "] => BINANCE RATE NULL ("+ buy.get().getToCurrency().getIso()+ " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ buy.get().getToCurrency().getIso()+ " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
+        }
+
+        // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
+        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
+        if(currencyBinanceClassName == null)
+        {
+            logger.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
+        }
+        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
+        if(usdtRate == null) {
+            logger.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            //return null;
+        }
+
+        // >>>>> 6. we get these conversions in variables
+        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
+        Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
+
+        // >>>>> 7. we then calculate the fees in xaf
+        if(buy.get().getApiFees() == null) {
+            buy.get().setApiFees("0.0");
+        }
+        Double duskFeesInXaf = 0.0;
+        Double duskFeesInCrypto = 0.0;
+        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+            // here we take percentage of the initial amount
+            duskFeesInCrypto = Double.parseDouble(buy.get().getTotalAmount()) * Double.parseDouble(pricing.get().getBuyFees());
+            duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
+                    cryptoToUsdt,
+                    (1.0 / eurToUsdt)
+            );
+
+        }
+        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
+            // here we just convert the buy fees of pricing in xaf
+            duskFeesInCrypto = Double.parseDouble(pricing.get().getBuyFees());
+            duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
+                    cryptoToUsdt,
+                    (1.0 / eurToUsdt)
+            );
+        }
+
+        // >>>>> 8. we calculate the amount the user will be allocated
+        //  basically, allocated amount = conversion to Crypto (initial amount (supplied in parameter) in xaf - dusk fees in xaf - api fees in xaf)
+        Double amountCryptoToBeAllocatedInXaf = Utilities.convertXafToCrypto(
+                Double.parseDouble(buy.get().getTotalAmount()) -
+                        duskFeesInXaf -
+                        Double.parseDouble(buy.get().getApiFees()),
+                cryptoToUsdt,
+                eurToUsdt
+        );
+        // =====================================================================================
+
+        // >>>>> 9. finally we proceed to the update
+        buy.get().setBuyDate(new Date());
         buy.get().setStatus(status.get());
+        buy.get().setAmountCrypto(Double.toString(amountCryptoToBeAllocatedInXaf));
+        buy.get().setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
+        buy.get().setDuskFees(Double.toString(duskFeesInXaf));
 
         return buyRepository.save(buy.get());
     }

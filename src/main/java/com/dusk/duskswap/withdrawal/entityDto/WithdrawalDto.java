@@ -11,8 +11,7 @@ public class WithdrawalDto {
 
     private String toAddress;
     private String amount;
-    private Long currencyId;
-    //private String jwtToken;
-    private Integer code;
+    private Long currencyId; // the crypto currency to withdraw
+    private Integer code; // the verification code
 
 }

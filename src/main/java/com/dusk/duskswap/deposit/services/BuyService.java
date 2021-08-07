@@ -13,7 +13,7 @@ public interface BuyService {
     ResponseEntity<BuyPage> getAllBuy(Integer currentPage, Integer pageSize);
     ResponseEntity<BuyPage> getAllBuyByUser(User user, Integer currentPage, Integer pageSize);
 
-    Buy createBuy(User user, BuyDto dto, String payToken, String notifToken, String apiFees); // api fees in XAF
-    Buy updateBuyStatus(String payToken, String statusString);
+    Buy createBuy(User user, BuyDto dto, String payToken, String notifToken, String apiFees) throws Exception; // api fees in XAF
+    Buy updateBuy(String notifToken, String statusString) throws Exception; // here we calculate fees and the amount that should be attributed
 
 }

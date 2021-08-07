@@ -12,4 +12,5 @@ public interface PricingService {
     ResponseEntity<List<Pricing>> getAllPricingForLevel(Long levelId);
     ResponseEntity<List<Pricing>> getAllPricingForCurrency(Long currencyId);
     ResponseEntity<List<Pricing>> getAllPricing();
+    ResponseEntity<Boolean> deletePricing(Long pricingId);
 }

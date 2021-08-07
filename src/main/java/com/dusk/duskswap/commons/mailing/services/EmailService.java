@@ -8,4 +8,5 @@ public interface EmailService {
     void sendSignupConfirmationEmail(Email email);
     void sendSigninConfirmationEmail(Email email);
     void sendWithdrawalEmail(Email email);
+    void sendForgotPasswordEmail(Email email);
 }

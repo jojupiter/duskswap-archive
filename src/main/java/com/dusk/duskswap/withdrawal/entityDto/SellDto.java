@@ -9,11 +9,9 @@ import lombok.*;
 public class SellDto {
 
     private Long fromCurrencyId;
-    private String amount;
-    private String jwtToken;
-    private Integer code;
+    private String amount; // the amount the user desires to sell
+    private Integer code; // verification code
     private String tel;
-    private Long transactionOptId;
-    private Long toCurrencyId;
+    private Long transactionOptId; // OM, MOMO, ....
 
 }

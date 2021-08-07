@@ -76,4 +76,16 @@ public class EmailServiceImpl implements EmailService {
 
         sendEmail(email);
     }
+
+    @Override
+    public void sendForgotPasswordEmail(Email email) {
+        email.setSubject("Réinitialisation du mot de passe");
+        email.setMessageTitle("Code de réinitialisation");
+        email.setMessageSubTitle("Votre code est:");
+        email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
+        email.setMessageFooter("Pour réinitialiser votre mot de passe , veuillez copier et collez ce code dans le champ requis du formulaire de réinitialisation.");
+
+        sendEmail(email);
+    }
+
 }

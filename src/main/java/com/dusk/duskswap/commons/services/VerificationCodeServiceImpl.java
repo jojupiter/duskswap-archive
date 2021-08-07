@@ -102,6 +102,27 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
     }
 
     @Override
+    public VerificationCode createForgotPasswordCode(String email) {
+        if(email == null || (email != null && email.isEmpty())) {
+            logger.error("EMAIL EMPTY OR NULL >>>>>>>> createForgotPasswordCode :: VerificationCodeServiceImpl.java ==== email = " + email);
+            return null;
+        }
+
+        Optional<VerificationCode> currentVerificationCode = verificationCodeRepository.findByUserEmailAndPurpose(email, DefaultProperties.VERIFICATION_FORGOT_PASSWORD);
+
+        if(currentVerificationCode.isPresent()) {
+            currentVerificationCode.get().setCode(Utilities.generateVerificationCode());
+            return verificationCodeRepository.save(currentVerificationCode.get());
+        }
+        VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setCode(Utilities.generateVerificationCode());
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_FORGOT_PASSWORD);
+        verificationCode.setUserEmail(email);
+
+        return verificationCodeRepository.save(verificationCode);
+    }
+
+    @Override
     public Boolean isCodeCorrect(String email, Integer code, String purpose) {
         if(
                 email == null || (email != null && email.isEmpty()) ||
