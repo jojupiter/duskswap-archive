@@ -11,7 +11,5 @@ public class DepositDto {
 
     private String amount;
     private Long currencyId;
-    private String jwtToken;
-    //private Long transactionOptId;
 
 }

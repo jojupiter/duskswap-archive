@@ -127,7 +127,6 @@ public class DepositServiceImpl implements DepositService {
                 (dto != null &&
                         (
                                 dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
-                                dto.getJwtToken() == null || (dto.getJwtToken() != null && dto.getJwtToken().isEmpty()) ||
                                 dto.getCurrencyId() == null
                          )
                  )
