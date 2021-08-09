@@ -121,7 +121,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
-    public ResponseEntity<DepositResponseDto> createCryptoDeposit(User user, DepositDto dto) throws Exception {
+    public ResponseEntity<String> createCryptoDeposit(User user, DepositDto dto) throws Exception {
         // input checking
         if(dto == null ||
                 (dto != null &&
@@ -202,14 +202,15 @@ public class DepositServiceImpl implements DepositService {
 
 
         // finally return the source code of the invoice
-        DepositResponseDto responseDto = new DepositResponseDto();
-        responseDto.setDepositId(savedDeposit.getId());
+        //DepositResponseDto responseDto = new DepositResponseDto();
+        //responseDto.setDepositId(savedDeposit.getId());
         String invoicePageSource = "";
-
         invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
-        responseDto.setInvoiceSourceCode(invoicePageSource);
+        //responseDto.setInvoiceSourceCode(invoicePageSource);
 
-        return ResponseEntity.ok(responseDto);
+        String depositIdString = "@@" + savedDeposit.getId(); // we append this to the page's source code to make it easier for front end
+
+        return ResponseEntity.ok(invoicePageSource + depositIdString);
     }
 
     @Transactional

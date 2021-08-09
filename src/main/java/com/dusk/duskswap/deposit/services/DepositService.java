@@ -16,7 +16,7 @@ public interface DepositService {
 
     Deposit getDepositByInvoiceId(String invoiceId);
 
-    ResponseEntity<DepositResponseDto> createCryptoDeposit(User user, DepositDto dto) throws Exception; // Exception is used to rollback transactional methods
+    ResponseEntity<String/*DepositResponseDto*/> createCryptoDeposit(User user, DepositDto dto) throws Exception; // Exception is used to rollback transactional methods
     Deposit updateDepositStatus(Deposit deposit, String statusString)  throws Exception; // destined to be used only when the corresponding invoice is updated by BTCPAY
     ResponseEntity<Boolean> updateDestinationAddress(Long depositId, String toAddress);
 

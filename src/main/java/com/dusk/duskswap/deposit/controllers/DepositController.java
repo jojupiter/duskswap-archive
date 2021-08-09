@@ -64,7 +64,7 @@ public class DepositController {
 
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @PostMapping(value = "/create", produces = "application/json")
+    @PostMapping(value = "/create")
     @Transactional
     public ResponseEntity<?> createDeposit(@RequestBody DepositDto dto) throws Exception {
         Optional<User> user = utilitiesService.getCurrentUser();

@@ -20,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.util.Date;
 import java.util.Optional;
 
 @Service
@@ -50,7 +51,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();
-
+            // here we write the request's body
             String invoiceAsString = mapper.writeValueAsString(invoice);
             try(OutputStream os = conn.getOutputStream()) {
                 byte[] input = invoiceAsString.getBytes("utf-8");
@@ -111,7 +112,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             conn.connect();
 
             // reading response
-            // first check if the response code is valid, if not we send back an unprocessable entity status code
+            // first check if the response code is validde
             if(conn.getResponseCode() != 200)
                 return null;
 
@@ -157,7 +158,59 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
-    public String sendCrypto(WalletTransaction walletTransaction) {
+    public String sendCrypto(WalletTransaction walletTransaction, String cryptoCode) {
+        // input checking
+        if(walletTransaction == null) {
+            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
+        }
+
+        URL url = null;
+        try {
+            url = new URL(domainUrl + storeAddress + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setInstanceFollowRedirects(false);
+            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.connect();
+
+            // here we write the request's body
+            String walletTransactionString = mapper.writeValueAsString(walletTransaction);
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = walletTransactionString.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            // reading response
+            // first check if the response code is valid
+            if(conn.getResponseCode() != 200)
+                return null;
+
+            // if response's status = 200, we read the response
+            StringBuilder response = new StringBuilder();
+
+            try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"))) {
+                String responseLine = null;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+            }
+
+            return response.toString();
+
+        }
+        catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        catch (ProtocolException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
         return null;
     }
+
 }

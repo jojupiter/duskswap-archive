@@ -11,6 +11,6 @@ public interface InvoiceService {
     Invoice getInvoice(String invoiceId);
     Currency getInvoiceCurrency(Invoice invoice);
 
-    String sendCrypto(WalletTransaction walletTransaction); // return transaction in hex (tx)
+    String sendCrypto(WalletTransaction walletTransaction, String cryptoCode); // return transaction in hex (tx)
 
 }

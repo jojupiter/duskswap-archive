@@ -59,6 +59,7 @@ public class PricingServiceImpl implements PricingService {
         if(dto.getType() == null || (dto.getType() != null && dto.getType().isEmpty()))
             dto.setType(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
 
+        dto.setType(dto.getType().toUpperCase()); // we put type into capital letters for avoiding casting
         if(dto.getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
             if(
                     Double.parseDouble(dto.getBuyFees()) > 1.0 || Double.parseDouble(dto.getBuyFees()) < 0.0 ||
