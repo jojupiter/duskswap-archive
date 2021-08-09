@@ -25,9 +25,9 @@ import java.util.Optional;
 @Service
 public class InvoiceServiceImpl implements InvoiceService {
 
-    private String btcpayServerApi = "71108d2c1722443951e445849678ed01591c64f1";
-    private String domainUrl = "https://09btcpay.kifipay.com/api/v1/stores/";
-    private String storeAddress = "CML9V2zd6KDrkFMPLc6yTdZSznhV7GYxGEBT98ShwYer";
+    private String btcpayServerApi = "1c8d064550bdbabf88df49c87bfa521bc3df62ce";//"71108d2c1722443951e445849678ed01591c64f1";
+    private String domainUrl = "https://ax1.duskpay.com/api/v1/stores/";//"https://09btcpay.kifipay.com/api/v1/stores/";
+    private String storeAddress = "6pRqHdao7ne75ggFmthQ8eLXMZaChmH2xzttAzgHTHXu";//"CML9V2zd6KDrkFMPLc6yTdZSznhV7GYxGEBT98ShwYer";
     private ObjectMapper mapper = new ObjectMapper();
     private Logger logger = LoggerFactory.getLogger(InvoiceServiceImpl.class);
 

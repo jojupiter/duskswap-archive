@@ -160,7 +160,7 @@ public class DepositServiceImpl implements DepositService {
         invoice.setCurrency(currency.get().getIso());
         Checkout checkout = new Checkout();
         List<String> paymentMethods = new ArrayList<>();
-        paymentMethods.add(currency.get().getIso()); // TODO: REVIEW THIS, SEE IF WE HAVE TO USE dto.transactionOpt instead
+        //paymentMethods.add(currency.get().getIso()); // TODO: REVIEW THIS, SEE IF WE HAVE TO USE dto.transactionOpt instead
         invoice.setCheckout(checkout);
         ResponseEntity<Invoice> invoiceResponse = invoiceService.createInvoice(invoice);
 
