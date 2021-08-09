@@ -180,6 +180,16 @@ public class UserServiceImpl implements UserService {
         if(newUser.getEncryptedPassword() != null)
             user.get().setEncryptedPassword(newUser.getEncryptedPassword());
 
+        // >>>>> 4. we then modify all the values
+        if(newUser.getUsername() != null && !newUser.getUsername().isEmpty())
+            user.get().setUsername(newUser.getUsername());
+        if(newUser.getTel() != null && !newUser.getTel().isEmpty())
+            user.get().setTel(newUser.getTel());
+        if(newUser.getFirstName() != null && !newUser.getFirstName().isEmpty())
+            user.get().setFirstName(newUser.getFirstName());
+        if(newUser.getLastName() != null && !newUser.getLastName().isEmpty())
+            user.get().setLastName(newUser.getLastName());
+
         // >>>>> 4. we save the user
         return ResponseEntity.ok(userRepository.save(user.get()));
     }
@@ -208,7 +218,17 @@ public class UserServiceImpl implements UserService {
         if(newUser.getEncryptedPassword() != null)
             user.setEncryptedPassword(newUser.getEncryptedPassword());
 
-        // >>>>> 4. we save the user
+        // >>>>> 4. we then modify all the values
+        if(newUser.getUsername() != null && !newUser.getUsername().isEmpty())
+            user.setUsername(newUser.getUsername());
+        if(newUser.getTel() != null && !newUser.getTel().isEmpty())
+            user.setTel(newUser.getTel());
+        if(newUser.getFirstName() != null && !newUser.getFirstName().isEmpty())
+            user.setFirstName(newUser.getFirstName());
+        if(newUser.getLastName() != null && !newUser.getLastName().isEmpty())
+            user.setLastName(newUser.getLastName());
+
+        // >>>>> 5. we save the user
         return ResponseEntity.ok(userRepository.save(user));
     }
 
