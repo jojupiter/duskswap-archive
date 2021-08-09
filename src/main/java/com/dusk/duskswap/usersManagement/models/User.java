@@ -29,29 +29,35 @@ public class User extends Auditable<String> {
     private Long id;
 
     @Column(name = "username")
+    @JsonProperty("username")
     @NotNull
     private String username;
 
     @Column(name = "password")
     @NotNull
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @JsonProperty(value = "password", access = JsonProperty.Access.WRITE_ONLY)
     private String encryptedPassword;
 
     @Column(name = "tel")
+    @JsonProperty("tel")
     private String tel;
 
     @Column(name = "email")
+    @JsonProperty("email")
     @Email(message = "Email should be valid!")
     @NotNull
     private String  email;
 
     @Column(name = "firstname")
+    @JsonProperty("firstname")
     private String firstName;
 
     @Column(name = "lastname")
+    @JsonProperty("lastname")
     private String lastName;
 
     @Column(name = "last_login")
+    @JsonProperty("last_login")
     @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
     private Date lastLogin;
 
