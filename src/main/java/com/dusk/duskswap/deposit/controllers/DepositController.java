@@ -100,7 +100,7 @@ public class DepositController {
 
         // We update the deposit status if it has changed
         Deposit deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
-        if(deposit != null && deposit.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus())) {
+        if(deposit != null && !deposit.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus())) {
             depositService.updateDepositStatus(deposit, DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
         }
         if(deposit == null)
