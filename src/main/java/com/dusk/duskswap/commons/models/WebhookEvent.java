@@ -11,7 +11,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 public class WebhookEvent {
 
-    private Long id;
+    private Boolean manuallyMarked;
     private String deliveryId;
     private String webhookId;
     private String originalDeliveryId;
