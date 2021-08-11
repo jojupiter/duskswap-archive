@@ -56,4 +56,10 @@ public class DefaultProperties {
     public static final String CURRENCY_TYPE_CRYPTO = "CRYPTO";
     public static final String CURRENCY_TYPE_FIAT = "FIAT";
 
+    // =========== btcpay params ================
+    public static final String BTCPAY_INVOICE_LOW_SPEED = "LowSpeed";
+    public static final String BTCPAY_INVOICE_MEDIUM_SPEED = "MediumSpeed";
+    public static final String BTCPAY_INVOICE_LOW_MEDIUM_SPEED = "LowMediumSpeed";
+    public static final String BTCPAY_INVOICE_HIGH_SPEED = "HighSpeed";
+
 }

@@ -79,7 +79,6 @@ public class AccountServiceImpl implements AccountService {
                     amountCurrency.setAmount(Double.toString(0.0));
                     amountCurrency.setCurrency(currency);
                     amountCurrency.setExchangeAccount(newExchangeAccount);
-                    amountCurrency.setExchangeAccount(newExchangeAccount);
                     amountCurrency.setId(key);
 
                     amountCurrencies.add(amountCurrency);

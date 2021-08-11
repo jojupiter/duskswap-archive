@@ -160,8 +160,11 @@ public class DepositServiceImpl implements DepositService {
         invoice.setCurrency(currency.get().getIso());
         Checkout checkout = new Checkout();
         List<String> paymentMethods = new ArrayList<>();
-        //paymentMethods.add(currency.get().getIso()); // TODO: REVIEW THIS, SEE IF WE HAVE TO USE dto.transactionOpt instead
+        paymentMethods.add(currency.get().getIso());
+        checkout.setPaymentMethods(paymentMethods);
+        checkout.setSpeedPolicy(DefaultProperties.BTCPAY_INVOICE_MEDIUM_SPEED);
         invoice.setCheckout(checkout);
+
         ResponseEntity<Invoice> invoiceResponse = invoiceService.createInvoice(invoice);
 
         if(invoiceResponse.getStatusCode() != HttpStatus.OK)
@@ -200,7 +203,6 @@ public class DepositServiceImpl implements DepositService {
 
         Deposit savedDeposit = depositRepository.save(deposit);
 
-
         // finally return the source code of the invoice
         //DepositResponseDto responseDto = new DepositResponseDto();
         //responseDto.setDepositId(savedDeposit.getId());
@@ -232,6 +234,7 @@ public class DepositServiceImpl implements DepositService {
         }
 
         deposit.setStatus(status.get());
+        deposit.setDepositDate(new Date());
 
         return depositRepository.save(deposit);
     }

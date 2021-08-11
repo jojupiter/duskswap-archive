@@ -1,5 +1,10 @@
 package com.dusk.duskswap.commons.services;
 
+import com.dusk.duskswap.account.models.AmountCurrency;
+import com.dusk.duskswap.account.models.AmountCurrencyKey;
+import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
+import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.TransactionOption;
@@ -20,6 +25,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +41,10 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     private UserRepository userRepository;
     @Autowired
     private LevelRepository levelRepository;
+    @Autowired
+    private AmountCurrencyRepository amountCurrencyRepository;
+    @Autowired
+    private ExchangeAccountRepository exchangeAccountRepository;
     private Logger logger = LoggerFactory.getLogger(UtilitiesServiceImpl.class);
 
     @Override
@@ -95,9 +105,32 @@ public class UtilitiesServiceImpl implements UtilitiesService {
             return ResponseEntity.badRequest().body(null);
         }
 
+        // by default, we set the attribute is_supported to true
         if(currency.getIsSupported() == null)
             currency.setIsSupported(true);
-        return ResponseEntity.ok(currencyRepository.save(currency));
+
+        Currency createdCurrency = currencyRepository.save(currency);
+
+        // after that, we have to add the corresponding amount currency for all th users
+        List<ExchangeAccount> accounts = exchangeAccountRepository.findAll();
+        List<AmountCurrency> amountCurrencies = new ArrayList<>();
+        if(accounts != null && !accounts.isEmpty()) {
+            for(ExchangeAccount account: accounts) {
+                AmountCurrencyKey key = new AmountCurrencyKey();
+                key.setCurrencyId(currency.getId());
+                key.setExchangeAccountId(account.getId());
+
+                AmountCurrency amountCurrency = new AmountCurrency();
+                amountCurrency.setId(key);
+                amountCurrency.setAmount(Double.toString(0.0));
+                amountCurrency.setCurrency(createdCurrency);
+                amountCurrency.setExchangeAccount(account);
+                amountCurrencies.add(amountCurrency);
+            }
+            amountCurrencyRepository.saveAll(amountCurrencies);
+        }
+
+        return ResponseEntity.ok(createdCurrency);
     }
 
     // =======================================================================================
