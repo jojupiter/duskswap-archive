@@ -30,7 +30,7 @@ public class Auditable<U>
     @CreatedDate
     @Column(name = "created_date")
     @JsonFormat(pattern="dd/MM/yyyy HH:mm:ss")
-    @JsonProperty(value = "created_date", access = JsonProperty.Access.WRITE_ONLY)
+    @JsonProperty(value = "created_date"/*, access = JsonProperty.Access.WRITE_ONLY*/)
     private Date createdDate;
 
     @LastModifiedBy
