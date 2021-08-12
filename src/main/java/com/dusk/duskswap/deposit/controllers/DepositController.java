@@ -83,7 +83,7 @@ public class DepositController {
         return depositService.updateDestinationAddress(depositId, toAddress);
     }
 
-    @PutMapping(value = "/update-status", produces = "application/json")
+    @PostMapping(value = "/update-status", produces = "application/json")
     @Transactional
     public void updateDepositStatus(@RequestBody WebhookEvent webhookEvent) throws Exception {
         // first we check the input and the invoice id
@@ -95,26 +95,34 @@ public class DepositController {
 
         // Then we verify the status of the corresponding invoice
         Invoice invoice = invoiceService.getInvoice(webhookEvent.getInvoiceId());
-        if(invoice == null)
+        if(invoice == null) {
+            logger.error("[" + new Date() + "] => CAN'T FIND INVOICE with id = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
             return;
+        }
 
         // We update the deposit status if it has changed
-        Deposit deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
-        if(deposit != null && !deposit.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus())) {
-            depositService.updateDepositStatus(deposit, DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
+        Optional<Deposit> deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
+        if(deposit.isPresent()) {
+            depositService.updateDepositStatus(deposit.get(), DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
         }
-        if(deposit == null)
+        if(!deposit.isPresent()) {
+            logger.error("[" + new Date() + "] => CAN'T FIND DEPOSIT WITH INVOICE ID = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
             return;
+        }
 
         // if the status is "Complete", then we update the account balance
-        if(invoice.getStatus().equals("Complete")) {
-            ExchangeAccount account = accountService.getAccountById(deposit.getId());
-            if(account == null)
+        if(invoice.getStatus().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED)) {
+            ExchangeAccount account = accountService.getAccountById(deposit.get().getId());
+            if(account == null) {
+                logger.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> updateDepositStatus :: DepositController.java");
                 return;
+            }
 
             Currency currency = invoiceService.getInvoiceCurrency(invoice);
-            if(currency == null)
+            if(currency == null) {
+                logger.error("[" + new Date() + "] => CAN'T FIND CORRESPONDING CURRENCY >>>>>>>> updateDepositStatus :: DepositController.java");
                 return;
+            }
 
             accountService.fundAccount(account, currency, invoice.getAmount());
         }

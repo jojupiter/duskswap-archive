@@ -20,9 +20,8 @@ public class DefaultProperties {
     public static final String STATUS_TRANSACTION_INITIATED = "TRANSACTION_INITIATED";
     public static final String STATUS_TRANSACTION_CRYPTO_NEW = "TRANSACTION_CRYPTO_New";
     public static final String STATUS_TRANSACTION_CRYPTO_EXPIRED = "TRANSACTION_CRYPTO_Expired";
-    public static final String STATUS_TRANSACTION_CRYPTO_PAID = "TRANSACTION_CRYPTO_Paid";
-    public static final String STATUS_TRANSACTION_CRYPTO_CONFIRMED = "TRANSACTION_CRYPTO_Confirmed";
-    public static final String STATUS_TRANSACTION_CRYPTO_COMPLETE = "TRANSACTION_CRYPTO_Complete";
+    public static final String STATUS_TRANSACTION_CRYPTO_PROCESSING = "TRANSACTION_CRYPTO_Processing";
+    public static final String STATUS_TRANSACTION_CRYPTO_SETTLED = "TRANSACTION_CRYPTO_Settled";
     public static final String STATUS_TRANSACTION_CRYPTO_INVALID = "TRANSACTION_CRYPTO_Invalid";
     public static final String STATUS_TRANSACTION_CRYPTO_RADICAL = "TRANSACTION_CRYPTO_";
 

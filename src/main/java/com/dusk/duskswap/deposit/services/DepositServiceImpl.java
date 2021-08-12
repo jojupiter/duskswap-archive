@@ -113,10 +113,12 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
-    public Deposit getDepositByInvoiceId(String invoiceId) {
-        if(invoiceId == null)
-            return null;
-        return depositRepository.findByInvoiceId(invoiceId).get();
+    public Optional<Deposit> getDepositByInvoiceId(String invoiceId) {
+        if(invoiceId == null) {
+            logger.error("[" + new Date() + "] => INPUT INCORRECT (INVOICE ID NULL) >>>>>>>> getDepositByInvoiceId :: DepositServiceImpl.java");
+            return Optional.empty();
+        }
+        return depositRepository.findByInvoiceId(invoiceId);
     }
 
     @Transactional

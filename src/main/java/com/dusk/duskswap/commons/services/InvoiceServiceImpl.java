@@ -112,7 +112,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             conn.connect();
 
             // reading response
-            // first check if the response code is validde
+            // first check if the response code is valid
             if(conn.getResponseCode() != 200)
                 return null;
 
@@ -127,7 +127,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 }
             }
 
-            if((content.toString() != null && content.toString().isEmpty()) || content.toString() == null) {
+            if(content.toString() != null && !content.toString().isEmpty()) {
                 Invoice invoice = mapper.readValue(content.toString(), Invoice.class);
                 return invoice;
             }
