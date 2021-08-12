@@ -125,18 +125,15 @@ public class DepositServiceImpl implements DepositService {
     @Override
     public ResponseEntity<String> createCryptoDeposit(User user, DepositDto dto) throws Exception {
         // input checking
-        if(dto == null ||
-                (dto != null &&
-                        (
-                                dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
-                                dto.getCurrencyId() == null
-                         )
-                 )
+        if(dto == null || (dto != null && dto.getCurrencyId() == null)
         ) {
             logger.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> createDeposit :: DepositServiceImpl.java" +
                     " ========= DepositDto = " + dto);
             return ResponseEntity.badRequest().body(null);
         }
+
+        if(dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()))
+            dto.setAmount(DefaultProperties.DEPOSIT_DEFAULT_VALUE);
 
         // First we check if the user exists and has already an exchange account
         if(user.getLevel() == null) {
@@ -219,7 +216,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
-    public Deposit updateDepositStatus(Deposit deposit, String statusString) throws Exception{
+    public Deposit updateDepositStatus(Deposit deposit, String statusString, String paidAmount) throws Exception{
         if(deposit == null ||
            (statusString != null && statusString.isEmpty()) || statusString == null
         ) {
@@ -237,6 +234,7 @@ public class DepositServiceImpl implements DepositService {
 
         deposit.setStatus(status.get());
         deposit.setDepositDate(new Date());
+        deposit.setAmount(paidAmount);
 
         return depositRepository.save(deposit);
     }

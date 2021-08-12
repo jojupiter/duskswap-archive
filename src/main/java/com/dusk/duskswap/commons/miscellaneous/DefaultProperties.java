@@ -61,4 +61,7 @@ public class DefaultProperties {
     public static final String BTCPAY_INVOICE_LOW_MEDIUM_SPEED = "LowMediumSpeed";
     public static final String BTCPAY_INVOICE_HIGH_SPEED = "HighSpeed";
 
+    // ========== deposits =====================
+    public static final String DEPOSIT_DEFAULT_VALUE = "0.00001";
+
 }

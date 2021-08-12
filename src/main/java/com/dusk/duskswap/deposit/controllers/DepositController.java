@@ -103,15 +103,17 @@ public class DepositController {
         // We update the deposit status if it has changed
         Optional<Deposit> deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
         if(deposit.isPresent()) {
-            depositService.updateDepositStatus(deposit.get(), DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus());
+            depositService.updateDepositStatus(deposit.get(),
+                    DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus(),
+                    invoice.getAmount());
         }
         if(!deposit.isPresent()) {
             logger.error("[" + new Date() + "] => CAN'T FIND DEPOSIT WITH INVOICE ID = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
             return;
         }
 
-        // if the status is "Complete", then we update the account balance
-        if(invoice.getStatus().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED)) {
+        // if the status is "Settled", then we update the account balance
+        if(invoice.getStatus().equals("Settled")) {
             ExchangeAccount account = accountService.getAccountById(deposit.get().getId());
             if(account == null) {
                 logger.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> updateDepositStatus :: DepositController.java");
