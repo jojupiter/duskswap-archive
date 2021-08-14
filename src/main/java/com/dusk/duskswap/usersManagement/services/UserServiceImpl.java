@@ -258,7 +258,7 @@ public class UserServiceImpl implements UserService {
         }
         // >>>>> 1. we find the user self suspended status
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_USER_SELF_SUSPENDED);
-        if(status.isPresent()) {
+        if(!status.isPresent()) {
             logger.error("[" + new Date() + "] => STATUS (Self suspended) NOT PRESENT >>>>>>>> suspendUser :: UserServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
