@@ -139,7 +139,7 @@ public class DepositController {
                 invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_OVER) ||
                 invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_PARTIAL)
         ) {
-            ExchangeAccount account = accountService.getAccountById(deposit.get().getId());
+            ExchangeAccount account = accountService.getAccountById(deposit.get().getExchangeAccount().getId());
             if(account == null) {
                 logger.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> updateDepositStatus :: DepositController.java");
                 return;
