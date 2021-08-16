@@ -67,6 +67,8 @@ public class DefaultProperties {
     public static final String BTCPAY_INVOICE_STATUS_PAID_LATE = "PaidLate";
     public static final String BTCPAY_INVOICE_STATUS_NONE = "None";
     public static final String BTCPAY_INVOICE_STATUS_MARKED = "Marked";
+    public static final String BTCPAY_INVOICE_STATUS_COMPLETE = "Complete";
+    public static final String BTCPAY_INVOICE_STATUS_SETTLED = "Settled";
 
     // ========== deposits =====================
     public static final String DEPOSIT_DEFAULT_VALUE = "0.00001";

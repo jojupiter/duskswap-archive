@@ -119,13 +119,23 @@ public class DepositController {
         Optional<Deposit> deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
         if(deposit.isPresent()) {
             // if status == complete, we save it as "Settled" in deposit. ("Settled" for us means that the deposit is done)
-            String newDepositStatus = invoice.getStatus().equals("Complete") ?
-                    DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + "Settled" :
-                    DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus();
+            String newDepositStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus();
 
-            depositService.updateDepositStatus(deposit.get(),
+            // if the payment is either partial or over or even settled, we set the deposit status as "Settled"
+            if(
+                    invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_SETTLED) ||
+                    invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_COMPLETE) ||
+                    invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_LATE) ||
+                    invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_OVER) ||
+                    invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_PARTIAL)
+            )
+                newDepositStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED;
+
+            depositService.updateDepositStatus(
+                    deposit.get(),
                     newDepositStatus,
-                    Double.toString(amountPaid));
+                    Double.toString(amountPaid)
+            );
         }
         if(!deposit.isPresent()) {
             logger.error("[" + new Date() + "] => CAN'T FIND DEPOSIT WITH INVOICE ID = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
@@ -134,7 +144,8 @@ public class DepositController {
 
         // >>>>> 5. if the status is "Settled" or the additional status is paid over, late or partial, then we update the account balance
         if(
-                invoice.getStatus().equals("Settled") || invoice.getStatus().equals("Complete") ||
+                invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_SETTLED) ||
+                invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_COMPLETE) ||
                 invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_LATE) ||
                 invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_OVER) ||
                 invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_PARTIAL)
