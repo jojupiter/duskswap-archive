@@ -132,14 +132,18 @@ public class DepositServiceImpl implements DepositService {
             return ResponseEntity.badRequest().body(null);
         }
 
-        if(dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()))
+        if(
+                dto.getAmount() == null ||
+                (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
+                (dto.getAmount() != null && !dto.getAmount().isEmpty() && Double.parseDouble(dto.getAmount()) < 0)
+        )
             dto.setAmount(DefaultProperties.DEPOSIT_DEFAULT_VALUE);
 
         // First we check if the user exists and has already an exchange account
-        if(user.getLevel() == null) {
+        /*if(user.getLevel() == null) {
             logger.error("[" + new Date() + "] => USER HAS NO CORRESPONDING LEVEL >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
+        }*/
 
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
@@ -177,7 +181,7 @@ public class DepositServiceImpl implements DepositService {
         }
 
         // Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
+        /*Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
         if(!pricing.isPresent()) {
             logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -189,7 +193,7 @@ public class DepositServiceImpl implements DepositService {
         ) {
             logger.error("[" + new Date() + "] => CAN'T MAKE DEPOSIT (The amount is too high/low for the authorized amount) >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
+        }*/
 
         // If the deposit's amount is within the authorized bounds, then we proceed to the deposit creation
 
@@ -234,7 +238,8 @@ public class DepositServiceImpl implements DepositService {
 
         deposit.setStatus(status.get());
         deposit.setDepositDate(new Date());
-        deposit.setAmount(paidAmount);
+        if(paidAmount != null && !paidAmount.isEmpty())
+            deposit.setAmount(paidAmount);
 
         return depositRepository.save(deposit);
     }

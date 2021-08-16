@@ -87,8 +87,14 @@ public class PricingServiceImpl implements PricingService {
         pricing.setBuyFees(dto.getBuyFees());
         pricing.setBuyMax(dto.getBuyMax());
         pricing.setBuyMin(dto.getBuyMin());
-        pricing.setDepositMin(dto.getDepositMin());
-        pricing.setDepositMax(dto.getDepositMax());
+        if(dto.getDepositMin() == null || (dto.getDepositMin() != null && dto.getDepositMin().isEmpty()))
+            pricing.setDepositMin("0.0");
+        else
+            pricing.setDepositMin(dto.getDepositMin());
+        if(dto.getDepositMax() == null || (dto.getDepositMax() != null && dto.getDepositMax().isEmpty()))
+            pricing.setDepositMax("0.0");
+        else
+            pricing.setDepositMax(dto.getDepositMax());
         pricing.setWithdrawalFees(dto.getWithdrawalFees());
         pricing.setWithdrawalMin(dto.getWithdrawalMin());
         pricing.setWithdrawalMax(dto.getWithdrawalMax());

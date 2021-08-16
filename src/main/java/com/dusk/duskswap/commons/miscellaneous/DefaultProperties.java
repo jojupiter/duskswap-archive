@@ -23,6 +23,7 @@ public class DefaultProperties {
     public static final String STATUS_TRANSACTION_CRYPTO_PROCESSING = "TRANSACTION_CRYPTO_Processing";
     public static final String STATUS_TRANSACTION_CRYPTO_SETTLED = "TRANSACTION_CRYPTO_Settled";
     public static final String STATUS_TRANSACTION_CRYPTO_INVALID = "TRANSACTION_CRYPTO_Invalid";
+    public static final String STATUS_TRANSACTION_CRYPTO_COMPLETE = "TRANSACTION_CRYPTO_Complete";
     public static final String STATUS_TRANSACTION_CRYPTO_RADICAL = "TRANSACTION_CRYPTO_";
 
     // ============ levels ===============
@@ -60,6 +61,12 @@ public class DefaultProperties {
     public static final String BTCPAY_INVOICE_MEDIUM_SPEED = "MediumSpeed";
     public static final String BTCPAY_INVOICE_LOW_MEDIUM_SPEED = "LowMediumSpeed";
     public static final String BTCPAY_INVOICE_HIGH_SPEED = "HighSpeed";
+
+    public static final String BTCPAY_INVOICE_STATUS_PAID_OVER = "PaidOver";
+    public static final String BTCPAY_INVOICE_STATUS_PAID_PARTIAL = "PaidPartial";
+    public static final String BTCPAY_INVOICE_STATUS_PAID_LATE = "PaidLate";
+    public static final String BTCPAY_INVOICE_STATUS_NONE = "None";
+    public static final String BTCPAY_INVOICE_STATUS_MARKED = "Marked";
 
     // ========== deposits =====================
     public static final String DEPOSIT_DEFAULT_VALUE = "0.00001";

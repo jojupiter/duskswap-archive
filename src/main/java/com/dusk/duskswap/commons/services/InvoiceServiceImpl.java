@@ -2,8 +2,10 @@ package com.dusk.duskswap.commons.services;
 
 import com.dusk.duskswap.commons.models.Invoice;
 import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.InvoicePayment;
 import com.dusk.duskswap.commons.models.WalletTransaction;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -158,10 +161,62 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public List<InvoicePayment> getPaymentMethods(String invoiceId, Boolean onlyAccountedPayments) {
+        // input checking
+        if(invoiceId == null || (invoiceId != null && invoiceId.isEmpty())) {
+            logger.error("[" + new Date() + "] => INPUT NULL (INVOICE ID) >>>>>>>> getPaymentMethods :: InvoiceServiceImpl.java");
+            return null;
+        }
+
+        URL url = null;
+        try {
+            url = new URL(domainUrl + storeAddress + "/invoices/" + invoiceId + "/payment-methods");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setInstanceFollowRedirects(false);
+            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.connect();
+
+            // reading response
+            // first check if the response code is valid
+            if(conn.getResponseCode() != 200)
+                return null;
+
+            // if response is not null, we return the source code of the checkout link
+            StringBuilder content;
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                String line;
+                content = new StringBuilder();
+                while ((line = in.readLine()) != null) {
+                    content.append(line);
+                    content.append(System.lineSeparator());
+                }
+            }
+
+            if(content.toString() != null && !content.toString().isEmpty()) {
+                List<InvoicePayment> invoicePayment = mapper.readValue(content.toString(), new TypeReference<List<InvoicePayment>>(){});
+                return invoicePayment;
+            }
+
+        }
+        catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
     public String sendCrypto(WalletTransaction walletTransaction, String cryptoCode) {
         // input checking
         if(walletTransaction == null) {
             logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
+            return null;
         }
 
         URL url = null;
