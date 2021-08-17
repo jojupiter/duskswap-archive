@@ -16,6 +16,7 @@ import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPage;
 import com.dusk.duskswap.withdrawal.models.Sell;
 import com.dusk.duskswap.withdrawal.services.SellService;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import java.util.Optional;
 @RestController
 @CrossOrigin("*")
 @RequestMapping("/sell")
+@Slf4j
 public class SellController {
 
     @Autowired
@@ -48,7 +50,6 @@ public class SellController {
     private VerificationCodeService verificationCodeService;
     @Autowired
     private JwtUtils jwtUtils;
-    private Logger logger = LoggerFactory.getLogger(SellController.class);
 
     @Transactional
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -58,30 +59,30 @@ public class SellController {
         if(
             sellDto == null
         ) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> confirmation :: SellController.java");
             return ResponseEntity.badRequest().body(null);
         }
         // >>>>> 1. getting the current authenticated user
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we check the account's balance
         ExchangeAccount account = accountService.getAccountByUser(user.get());
         if(account == null) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT FOUND >>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT FOUND >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         if(!accountService.isBalanceSufficient(account, sellDto.getFromCurrencyId(), sellDto.getAmount())) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.INSUFFICIENT_AMOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. here we verify if the provided code is correct
         if(!verificationCodeService.isCodeCorrect(user.get().getEmail(), sellDto.getCode(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE)) {
-            logger.error("[" + new Date() + "] => CODE PROVIDED NOT CORRECT >>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => CODE PROVIDED NOT CORRECT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -91,14 +92,14 @@ public class SellController {
         // >>>>> 5. then we create the sale
         Sell sell = sellService.createSale(sellDto, user.get(), account);
         if(sell == null) {
-            logger.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 6. Finally we debit the user's account
         AmountCurrency amountCurrency = accountService.debitAccount(account, sell.getCurrency(), sellDto.getAmount());
         if(amountCurrency == null) {
-            logger.error("[" + new Date() + "] => THE ACCOUNT WASN'T DEBITED>>>>>>>> confirmation :: SellController.java");
+            log.error("[" + new Date() + "] => THE ACCOUNT WASN'T DEBITED>>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.UNABLE_TO_DEBIT_ACCOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -111,13 +112,13 @@ public class SellController {
         // first we get the current authenticated user
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> askCode :: SellController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> askCode :: SellController.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         VerificationCode code = verificationCodeService.createWithdrawalCode(user.get().getEmail());
         if(code == null) {
-            logger.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: SellController.java");
+            log.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: SellController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -139,7 +140,7 @@ public class SellController {
 
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return sellService.getAllSales(user.get(), currentPage, pageSize);

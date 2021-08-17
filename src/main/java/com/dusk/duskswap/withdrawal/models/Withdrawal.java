@@ -32,6 +32,9 @@ public class Withdrawal extends Auditable<String> {
     @Column(name = "withdrawal_date")
     private Date withdrawalDate;
 
+    @Column(name = "transactionHash")
+    private String transactionHash;
+
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")
     private Status status;

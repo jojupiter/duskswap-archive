@@ -8,8 +8,7 @@ import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.commons.repositories.LevelRepository;
 import com.dusk.duskswap.commons.repositories.PricingRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class PricingServiceImpl implements PricingService {
     @Autowired
     private PricingRepository pricingRepository;
@@ -27,31 +27,30 @@ public class PricingServiceImpl implements PricingService {
     private LevelRepository levelRepository;
     @Autowired
     private CurrencyRepository currencyRepository;
-    private Logger logger = LoggerFactory.getLogger(PricingServiceImpl.class);
 
     @Override
     public ResponseEntity<Pricing> createPricing(PricingDto dto) {
         // input checking
         if(dto == null) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> createPricing :: PricingServiceImpl.java ");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> createPricing :: PricingServiceImpl.java ");
             return ResponseEntity.badRequest().body(null);
         }
 
         // here we get the level and currency of the pricing
         Optional<Level> level = levelRepository.findById(dto.getLevelId());
         if(!level.isPresent()) {
-            logger.error("[" + new Date() + "] => LEVEL NOT FOUND >>>>>>>> createPricing :: PricingServiceImpl.java");
+            log.error("[" + new Date() + "] => LEVEL NOT FOUND >>>>>>>> createPricing :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY NOT FOUND >>>>>>>> createPricing :: PricingServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY NOT FOUND >>>>>>>> createPricing :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // next we check if a pricing with the same user's level and currency exists. If yes, then we don't create it anymore
         if(pricingRepository.existsByLevelAndCurrency(level.get(), currency.get())) {
-            logger.info("[" + new Date() + "] => PRICING ALREADY EXISTS >>>>>>>> createPricing :: PricingServiceImpl.java");
+            log.info("[" + new Date() + "] => PRICING ALREADY EXISTS >>>>>>>> createPricing :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -66,7 +65,7 @@ public class PricingServiceImpl implements PricingService {
                     Double.parseDouble(dto.getSellFees()) > 1.0 || Double.parseDouble(dto.getSellFees()) < 0.0 ||
                     Double.parseDouble(dto.getExchangeFees()) > 1.0 || Double.parseDouble(dto.getExchangeFees()) < 0.0
             ) {
-                logger.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] >>>>>>>> createPricing :: PricingServiceImpl.java");
+                log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] >>>>>>>> createPricing :: PricingServiceImpl.java");
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
             }
         }
@@ -75,7 +74,7 @@ public class PricingServiceImpl implements PricingService {
                 !dto.getType().equals(DefaultProperties.PRICING_TYPE_FIX) &&
                 !dto.getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)
         ) { // If type is not fix or percentage, then we return an error
-            logger.info("[" + new Date() + "] => PRICING TYPE IS NEITHER FIX NOR PERCENTAGE >>>>>>>> createPricing :: PricingServiceImpl.java");
+            log.info("[" + new Date() + "] => PRICING TYPE IS NEITHER FIX NOR PERCENTAGE >>>>>>>> createPricing :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -107,7 +106,7 @@ public class PricingServiceImpl implements PricingService {
 
         // here we check the positivity of numbers
         if(!isPricingPositive(pricing)) {
-            logger.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> createPricing :: PricingServiceImpl.java " +
+            log.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> createPricing :: PricingServiceImpl.java " +
                     " ===== pricing = " + pricing);
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
@@ -119,7 +118,7 @@ public class PricingServiceImpl implements PricingService {
     public ResponseEntity<Pricing> updatePricing(Long pricingId, PricingDto dto) {
         // input checking
         if(pricingId == null || dto == null) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> updatePricing :: PricingServiceImpl.java " +
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> updatePricing :: PricingServiceImpl.java " +
                     "========= pricingId = " + pricingId + ",  pricingDto = " + dto);
             return ResponseEntity.badRequest().body(null);
         }
@@ -127,12 +126,12 @@ public class PricingServiceImpl implements PricingService {
         // now we get the corresponding pricing
         Optional<Pricing> pricing = pricingRepository.findById(pricingId);
         if(!pricing.isPresent()) {
-            logger.error("[" + new Date() + "] => PRICING NOT FOUND >>>>>>>> updatePricing :: PricingServiceImpl.java ");
+            log.error("[" + new Date() + "] => PRICING NOT FOUND >>>>>>>> updatePricing :: PricingServiceImpl.java ");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // here we check the positivity of numbers
         if(!isPricingPositive(pricing.get())) {
-            logger.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> updatePricing :: PricingServiceImpl.java " +
+            log.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> updatePricing :: PricingServiceImpl.java " +
                     " ===== pricing = " + pricing.get());
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
@@ -180,14 +179,14 @@ public class PricingServiceImpl implements PricingService {
     public ResponseEntity<List<Pricing>> getAllPricingForLevel(Long levelId) {
         // input checking
         if(levelId == null) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllPricingForLevel :: PricingServiceImpl.java ");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllPricingForLevel :: PricingServiceImpl.java ");
             return ResponseEntity.badRequest().body(null);
         }
 
         // we now get the corresponding level
         Optional<Level> level = levelRepository.findById(levelId);
         if(!level.isPresent()) {
-            logger.error("[" + new Date() + "] => LEVEL NOT FOUND >>>>>>>> getAllPricingForLevel :: PricingServiceImpl.java");
+            log.error("[" + new Date() + "] => LEVEL NOT FOUND >>>>>>>> getAllPricingForLevel :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -198,14 +197,14 @@ public class PricingServiceImpl implements PricingService {
     public ResponseEntity<List<Pricing>> getAllPricingForCurrency(Long currencyId) {
         // input checking
         if(currencyId == null) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllPricingForCurrency :: PricingServiceImpl.java ");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllPricingForCurrency :: PricingServiceImpl.java ");
             return ResponseEntity.badRequest().body(null);
         }
 
         // we now get the corresponding currency
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY NOT FOUND >>>>>>>> getAllPricingForCurrency :: PricingServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY NOT FOUND >>>>>>>> getAllPricingForCurrency :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -232,7 +231,7 @@ public class PricingServiceImpl implements PricingService {
     public ResponseEntity<Boolean> deletePricing(Long pricingId) {
         // input checking
         if(pricingId == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL pricingId >>>>>>>> deletePricing :: PricingServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL pricingId >>>>>>>> deletePricing :: PricingServiceImpl.java");
             return ResponseEntity.badRequest().body(false);
         }
 

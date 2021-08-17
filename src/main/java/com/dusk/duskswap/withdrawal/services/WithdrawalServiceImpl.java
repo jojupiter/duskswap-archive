@@ -1,11 +1,8 @@
 package com.dusk.duskswap.withdrawal.services;
 
 import com.dusk.binanceExchangeRates.factories.BinanceRateFactory;
-import com.dusk.binanceExchangeRates.models.BinanceRate;
 import com.dusk.binanceExchangeRates.repositories.BinanceRateRepository;
-import com.dusk.duskswap.account.models.AmountCurrency;
 import com.dusk.duskswap.account.models.ExchangeAccount;
-import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
@@ -15,7 +12,6 @@ import com.dusk.duskswap.commons.models.Status;
 import com.dusk.duskswap.commons.repositories.PricingRepository;
 import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
 import com.dusk.duskswap.usersManagement.models.User;
-import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalDto;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalPage;
 import com.dusk.duskswap.withdrawal.models.Withdrawal;
@@ -23,6 +19,7 @@ import com.dusk.duskswap.withdrawal.repositories.WithdrawalRepository;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.commons.repositories.StatusRepository;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +28,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +35,7 @@ import java.util.Date;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class WithdrawalServiceImpl implements WithdrawalService {
 
     @Autowired
@@ -63,7 +58,6 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private BinanceRateFactory binanceRateFactory;
     @Autowired
     private JwtUtils jwtUtils;
-    private Logger logger = LoggerFactory.getLogger(WithdrawalServiceImpl.class);
 
     @Override
     public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(User user, Integer currentPage, Integer pageSize) {
@@ -74,7 +68,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         // getting the corresponding exchange account and verify if exists
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserWithdrawals :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserWithdrawals :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -125,7 +119,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()) )
                 )
         ) {
-            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
             throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
             //return null;
         }
@@ -135,14 +129,14 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         // >>>>> 1. we get the currency object
         Optional<Currency> currency = currencyRepository.findById(wdto.getCurrencyId());
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             //return null;
         }
         // >>>>> 2. we check according to the pricing, if the user is able to make
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
         if(!pricing.isPresent()) {
-            logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             //return null;
         }
@@ -150,14 +144,14 @@ public class WithdrawalServiceImpl implements WithdrawalService {
                 Double.parseDouble(wdto.getAmount()) > Double.parseDouble(pricing.get().getWithdrawalMax()) ||
                 Double.parseDouble(wdto.getAmount()) < Double.parseDouble(pricing.get().getWithdrawalMin())
         ) {
-            logger.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            log.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             //return null;
         }
         // >>>>> 3. we get the status "confirmed"
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
-            logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             //return null;
         }

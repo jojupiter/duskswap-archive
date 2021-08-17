@@ -19,8 +19,7 @@ import com.dusk.duskswap.exchange.entityDto.ExchangePage;
 import com.dusk.duskswap.exchange.models.Exchange;
 import com.dusk.duskswap.exchange.repositories.ExchangeRepository;
 import com.dusk.duskswap.usersManagement.models.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,10 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class ExchangeServiceImpl implements ExchangeService {
 
     @Autowired
@@ -53,7 +52,6 @@ public class ExchangeServiceImpl implements ExchangeService {
     private BinanceRateFactory binanceRateFactory;
     @Autowired
     private BinanceRateRepository binanceRateRepository;
-    private Logger logger = LoggerFactory.getLogger(ExchangeServiceImpl.class);
 
     @Override
     public ResponseEntity<ExchangePage> getAllExchanges(Integer currentPage, Integer pageSize) {
@@ -77,7 +75,7 @@ public class ExchangeServiceImpl implements ExchangeService {
     @Override
     public ResponseEntity<ExchangePage> getAllUserExchanges(User user, Integer currentPage, Integer pageSize) {
         if(user == null) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllUserExchanges :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllUserExchanges :: ExchangeServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
         if(currentPage == null) currentPage = 0;
@@ -86,7 +84,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         // we get the exchange account here
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserExchanges :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserExchanges :: ExchangeServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -121,17 +119,17 @@ public class ExchangeServiceImpl implements ExchangeService {
                 user == null ||
                 exchangeAccount == null
         ) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         if(Double.parseDouble(dto.getFromAmount()) <= 0) {
-            logger.error("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INPUT VALUE NEGATIVE OR ZERO >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         if(user.getLevel() == null) {
-            logger.error("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
@@ -141,33 +139,33 @@ public class ExchangeServiceImpl implements ExchangeService {
         // >>>>> 1. the initial currency
         Optional<Currency> fromCurrency = currencyRepository.findById(dto.getFromCurrencyId());
         if(!fromCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => INITIAL CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => INITIAL CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INITIAL CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         // >>>>> 2. the destination currency
         Optional<Currency> toCurrency = currencyRepository.findById(dto.getToCurrencyId());
         if(!toCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => DESTINATION CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => DESTINATION CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => DESTINATION CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         // >>>> 3. status confirmed
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
-            logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             return null;
         }
 
         // ========================== next, we check account balance ==========
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(exchangeAccount.getId(), fromCurrency.get().getId());
         if(!amountCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         if(Double.parseDouble(amountCurrency.get().getAmount()) < Double.parseDouble(dto.getFromAmount())) {
-            logger.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
@@ -175,7 +173,7 @@ public class ExchangeServiceImpl implements ExchangeService {
         // ========================= check the user's pricing for exchange =========
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency.get());
         if(!pricing.isPresent()) {
-            logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
@@ -184,7 +182,7 @@ public class ExchangeServiceImpl implements ExchangeService {
                 Double.parseDouble(dto.getFromAmount()) > Double.parseDouble(pricing.get().getExchangeMax()) ||
                 Double.parseDouble(dto.getFromAmount()) < Double.parseDouble(pricing.get().getExchangeMin())
         ) {
-            logger.error("[" + new Date() + "] => INITIAL AMOUNT OUT OF BOUNDS [" + pricing.get().getExchangeMin()+ "," + pricing.get().getExchangeMax() +" ]" +
+            log.error("[" + new Date() + "] => INITIAL AMOUNT OUT OF BOUNDS [" + pricing.get().getExchangeMin()+ "," + pricing.get().getExchangeMax() +" ]" +
                   " WITH fromAmount = " + dto.getFromAmount() + ">>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INITIAL AMOUNT OUT OF BOUNDS [" + pricing.get().getExchangeMin()+ "," + pricing.get().getExchangeMax() +" ]" +
                     " WITH fromAmount = " + dto.getFromAmount() + ">>>>>>>> makeExchange :: ExchangeServiceImpl.java");
@@ -197,13 +195,13 @@ public class ExchangeServiceImpl implements ExchangeService {
         Class<?> fromCurrencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(fromCurrencyBinanceClassName == null)
         {
-            logger.error("[" + new Date() + "] => FROM CURRENCY BINANCE CLASS NAME NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => FROM CURRENCY BINANCE CLASS NAME NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => FROM CURRENCY BINANCE CLASS NAME NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         BinanceRate fromCurrencyUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(fromCurrencyBinanceClassName);
         if(fromCurrencyUsdtRate == null) {
-            logger.error("[" + new Date() + "] => FROM BINANCE RATE NULL ("+ fromCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => FROM BINANCE RATE NULL ("+ fromCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => FROM BINANCE RATE NULL ("+ fromCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
@@ -212,13 +210,13 @@ public class ExchangeServiceImpl implements ExchangeService {
         Class<?> toCurrencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(toCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(toCurrencyBinanceClassName == null)
         {
-            logger.error("[" + new Date() + "] => TO CURRENCY BINANCE CLASS NAME NULL ("+ toCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => TO CURRENCY BINANCE CLASS NAME NULL ("+ toCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => TO CURRENCY BINANCE CLASS NAME NULL ("+ toCurrency.get().getIso() + " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }
         BinanceRate toCurrencyUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(toCurrencyBinanceClassName);
         if(toCurrencyUsdtRate == null) {
-            logger.error("[" + new Date() + "] => TO BINANCE RATE NULL ("+ toCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
+            log.error("[" + new Date() + "] => TO BINANCE RATE NULL ("+ toCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => TO BINANCE RATE NULL ("+ toCurrency.get().getIso()+ " - USDT) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             //return null;
         }

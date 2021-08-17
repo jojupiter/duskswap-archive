@@ -15,8 +15,7 @@ import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class UtilitiesServiceImpl implements UtilitiesService {
 
     @Autowired
@@ -45,7 +45,6 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     private AmountCurrencyRepository amountCurrencyRepository;
     @Autowired
     private ExchangeAccountRepository exchangeAccountRepository;
-    private Logger logger = LoggerFactory.getLogger(UtilitiesServiceImpl.class);
 
     @Override
     public List<Currency> getAllCurrencies() {
@@ -71,21 +70,21 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     public ResponseEntity<Boolean> enableCurrency(Long currencyId, Boolean isSupported) {
         // input checking
         if(currencyId == null || isSupported == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java" +
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java" +
                     " ==== currencyId = " + currencyId + ", isSupported = " + isSupported);
             return ResponseEntity.badRequest().body(false);
         }
         // getting currency
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         currency.get().setIsSupported(isSupported);
         Currency currency1 = currencyRepository.save(currency.get());
         if(currency1 == null) {
-            logger.error("[" + new Date() + "] => UNABLE TO SAVE CURRENCY >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java");
+            log.error("[" + new Date() + "] => UNABLE TO SAVE CURRENCY >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return ResponseEntity.ok(true);
@@ -101,7 +100,7 @@ public class UtilitiesServiceImpl implements UtilitiesService {
                         )
                 )
         ) {
-            logger.error("[" + new Date() + "] => INPUT NULL (currency="+ currency + ") >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL (currency="+ currency + ") >>>>>>>> deactivateCurrency :: UtilitiesServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
 
@@ -164,14 +163,14 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     public ResponseEntity<Level> updateLevel(Long levelId, Level newLevel) {
         // input checking
         if(levelId == null || newLevel == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> updateLevel :: UtilitiesServiceImpl.java" +
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> updateLevel :: UtilitiesServiceImpl.java" +
                     " ==== levelId = " + levelId + ", newLevel = " + newLevel);
             return ResponseEntity.badRequest().body(null);
         }
         // we get the corresponding level
         Optional<Level> level = levelRepository.findById(levelId);
         if(!level.isPresent()) {
-            logger.error("[" + new Date() + "] => LEVEL NOT PRESENT >>>>>>>> updateLevel :: UtilitiesServiceImpl.java");
+            log.error("[" + new Date() + "] => LEVEL NOT PRESENT >>>>>>>> updateLevel :: UtilitiesServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // then we proceed to update
@@ -187,7 +186,7 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     public ResponseEntity<Boolean> deleteLevel(Long levelId) {
         // input checking
         if(levelId == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL (levelId) >>>>>>>> deleteLevel :: UtilitiesServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL (levelId) >>>>>>>> deleteLevel :: UtilitiesServiceImpl.java");
             return ResponseEntity.badRequest().body(false);
         }
         levelRepository.deleteById(levelId);

@@ -11,9 +11,7 @@ import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
-import com.dusk.duskswap.withdrawal.services.SellServiceImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Service
+@Slf4j
 public class AccountServiceImpl implements AccountService {
 
     @Autowired
@@ -34,14 +33,13 @@ public class AccountServiceImpl implements AccountService {
     private UserRepository userRepository;
     @Autowired
     private CurrencyRepository currencyRepository;
-    private Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     @Override
     public ResponseEntity<ExchangeAccount> createExchangeAccount(User user) {
 
         // first, we check the input
         if(user == null ) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> createExchangeAccount :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> createExchangeAccount :: AccountServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
 
@@ -94,7 +92,7 @@ public class AccountServiceImpl implements AccountService {
     public ResponseEntity<ExchangeAccount> getExchangeAccount(User user) {
         // input checking
         if(user == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getExchangeAccount :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getExchangeAccount :: AccountServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
 
@@ -105,7 +103,7 @@ public class AccountServiceImpl implements AccountService {
     public ExchangeAccount getAccountByUser(User user) {
         // input checking
         if(user == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getAccountByUserEmail :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getAccountByUserEmail :: AccountServiceImpl.java");
             return null;
         }
 
@@ -126,21 +124,21 @@ public class AccountServiceImpl implements AccountService {
     public ResponseEntity<List<CryptoBalance>> getUserAccountBalance(User user) {
         // input checking
         if(user == null) {
-            logger.error("[" + new Date() + "] => INPUT (USER) NULL OR EMPTY >>>>>>>> getUserAccountBalance :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT (USER) NULL OR EMPTY >>>>>>>> getUserAccountBalance :: AccountServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
 
         // >>>>> 1. We get the exchange account
         Optional<ExchangeAccount> account = exchangeAccountRepository.findByUser(user);
         if(!account.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getUserAccountBalance :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getUserAccountBalance :: AccountServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we get the amount currency list
         List<AmountCurrency> amountCurrencies = amountCurrencyRepository.findByAccountId(account.get().getId());
         if(amountCurrencies == null || (amountCurrencies != null && amountCurrencies.isEmpty())) {
-            logger.error("[" + new Date() + "] => NO AMOUNT CURRENCY FOUND >>>>>>>> getUserAccountBalance :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => NO AMOUNT CURRENCY FOUND >>>>>>>> getUserAccountBalance :: AccountServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -169,7 +167,7 @@ public class AccountServiceImpl implements AccountService {
                 user == null ||
                 cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty())
         ) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java" +
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java" +
                     " ===== user = " + user + ", cryptoIso = " + cryptoIso);
             return ResponseEntity.badRequest().body(null);
         }
@@ -177,21 +175,21 @@ public class AccountServiceImpl implements AccountService {
         // >>>>> 1. We get the exchange account
         Optional<ExchangeAccount> account = exchangeAccountRepository.findByUser(user);
         if(!account.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. We get the corresponding currency
         Optional<Currency> currency = currencyRepository.findByIso(cryptoIso);
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. we then get the amount currency according to the account and the currency
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.get().getId(), currency.get().getId());
         if(!amountCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> getUserCryptoBalance :: AccountServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -210,7 +208,7 @@ public class AccountServiceImpl implements AccountService {
     public AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount) throws Exception {
         // inputs checking
         if(amount == null || currency == null || account == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
                     " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
             throw new Exception("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
                     " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
@@ -219,7 +217,7 @@ public class AccountServiceImpl implements AccountService {
 
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currency.getId());
         if(!amountCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> fundAccount :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> fundAccount :: AccountServiceImpl.java");
             throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> fundAccount :: AccountServiceImpl.java");
             //return null;
         }
@@ -228,7 +226,7 @@ public class AccountServiceImpl implements AccountService {
         Double amountToAdd = Double.parseDouble(amount);
 
         if(amountToAdd < 0) {// we can't add a negative amount
-            logger.error("[" + new Date() + "] => WE CAN'T ADD A NEGATIVE NUMBER (amountToAdd="+amountToAdd+")>>>>>>>> fundAccount :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => WE CAN'T ADD A NEGATIVE NUMBER (amountToAdd="+amountToAdd+")>>>>>>>> fundAccount :: AccountServiceImpl.java");
             throw new Exception("[" + new Date() + "] => WE CAN'T ADD A NEGATIVE NUMBER (amountToAdd="+amountToAdd+")>>>>>>>> fundAccount :: AccountServiceImpl.java");
             //return null;
         }
@@ -243,7 +241,7 @@ public class AccountServiceImpl implements AccountService {
     public AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount) throws Exception {
         // input checking
         if(amount == null || currency == null || account == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> debitAccount :: AccountServiceImpl.java" +
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> debitAccount :: AccountServiceImpl.java" +
                     " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
             throw new Exception("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> fundAccount :: AccountServiceImpl.java" +
                     " ===== amount = " + amount + ", currency = " + currency + ", account = " + account);
@@ -252,7 +250,7 @@ public class AccountServiceImpl implements AccountService {
 
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currency.getId());
         if(!amountCurrency.isPresent()) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
             throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
             //return null;
         }
@@ -261,7 +259,7 @@ public class AccountServiceImpl implements AccountService {
         Double amountToRemove = Double.parseDouble(amount);
 
         if(amountToRemove < 0 || amountToRemove > currentAmount) {
-            logger.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
+            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
             throw new Exception("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> debitAccount :: AccountServiceImpl.java");
             //return null;
         }
@@ -276,14 +274,14 @@ public class AccountServiceImpl implements AccountService {
         // input checking
         if(account == null || currencyId == null || amount == null || (amount != null && amount.isEmpty()))
         {
-            logger.error("WRONG INPUT >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java  ========== Account = " + account +
+            log.error("WRONG INPUT >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java  ========== Account = " + account +
                     ", currencyId = " + currencyId + ", amount = " + amount);
             return false;
         }
 
         Optional<AmountCurrency> amountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(account.getId(), currencyId);
         if(!amountCurrency.isPresent()) {
-            logger.error("AMOUNT CURRENCY NOT PRESENT >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java");
+            log.error("AMOUNT CURRENCY NOT PRESENT >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java");
             return false;
         }
 

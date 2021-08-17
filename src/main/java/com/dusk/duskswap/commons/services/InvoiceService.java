@@ -1,9 +1,6 @@
 package com.dusk.duskswap.commons.services;
 
-import com.dusk.duskswap.commons.models.Invoice;
-import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.commons.models.InvoicePayment;
-import com.dusk.duskswap.commons.models.WalletTransaction;
+import com.dusk.duskswap.commons.models.*;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -15,6 +12,7 @@ public interface InvoiceService {
     Currency getInvoiceCurrency(Invoice invoice);
     List<InvoicePayment> getPaymentMethods(String invoiceId, Boolean onlyAccountedPayments);
 
+    WalletBalance getCryptoBalance(String cryptoCode);
     String sendCrypto(WalletTransaction walletTransaction, String cryptoCode); // return transaction in hex (tx)
 
 }

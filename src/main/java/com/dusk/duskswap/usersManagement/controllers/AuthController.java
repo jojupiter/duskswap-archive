@@ -8,12 +8,10 @@ import com.dusk.duskswap.commons.miscellaneous.FieldValidation;
 import com.dusk.duskswap.commons.models.JwtResponse;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
-import com.dusk.duskswap.deposit.services.BuyServiceImpl;
 import com.dusk.duskswap.newslettersManagement.services.NewsLetterService;
 import com.dusk.duskswap.usersManagement.models.*;
 import com.dusk.duskswap.usersManagement.services.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +29,7 @@ import java.util.stream.Collectors;
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/auth")
+@Slf4j
 public class AuthController {
 
     @Autowired
@@ -48,7 +47,6 @@ public class AuthController {
     @Autowired
     private NewsLetterService newsLetterService;
     private FieldValidation fieldValidation = new FieldValidation();
-    private Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
     @PostMapping(value = "/signin", produces = "application/json")
@@ -62,14 +60,14 @@ public class AuthController {
                 (password.isEmpty() || password == null) ||
                 code == null
         ) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> authenticateUser :: AuthController.java" +
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> authenticateUser :: AuthController.java" +
                     "===== email = " + email + ", password = " + password + ", code = " + code);
             return ResponseEntity.badRequest().body(null);
         }
 
         HashMap<String, String> emailValidity = fieldValidation.isEmailValid(email);
         if(!Boolean.parseBoolean(emailValidity.get("isEmailValid"))) {
-            logger.error("[" + new Date() + "] => EMAIL INVALID >>>>>>>> authenticateUser :: AuthController.java");
+            log.error("[" + new Date() + "] => EMAIL INVALID >>>>>>>> authenticateUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(emailValidity.get("message"));
@@ -77,7 +75,7 @@ public class AuthController {
 
         HashMap<String, String> passValidity = fieldValidation.isPasswordValid(password);
         if(!Boolean.parseBoolean(passValidity.get("isPasswordValid"))) {
-            logger.error("[" + new Date() + "] => PASSWORD INVALID >>>>>>>> authenticateUser :: AuthController.java");
+            log.error("[" + new Date() + "] => PASSWORD INVALID >>>>>>>> authenticateUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(passValidity.get("message"));
@@ -85,7 +83,7 @@ public class AuthController {
 
         // First we need to verify if the supplied code is correct and valid
         if(!verificationCodeService.isCodeCorrect(email, code, DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE)) {
-            logger.error("[" + new Date() + "] => VERIFICATION CODE INVALID >>>>>>>> authenticateUser :: AuthController.java");
+            log.error("[" + new Date() + "] => VERIFICATION CODE INVALID >>>>>>>> authenticateUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body("The verification code is not correct/valid");
@@ -125,20 +123,20 @@ public class AuthController {
                                           ) {
         // Input verification
         if(signupRequest == null || code == null) {
-            logger.error("[" + new Date() + "] => INPUT INVALID >>>>>>>> registerUser :: AuthController.java" +
+            log.error("[" + new Date() + "] => INPUT INVALID >>>>>>>> registerUser :: AuthController.java" +
                     " ==== signuprequest = " + signupRequest + ", code = " + code);
             return ResponseEntity.badRequest().body(null);
         }
 
         if (userService.existsByUsername(signupRequest.getEmail())) {
-            logger.error("[" + new Date() + "] => Error: Username is already taken! >>>>>>>> registerUser :: AuthController.java");
+            log.error("[" + new Date() + "] => Error: Username is already taken! >>>>>>>> registerUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body("Error: Username is already taken!");
         }
 
         if (userService.existsByEmail(signupRequest.getEmail())){
-            logger.error("[" + new Date() + "] => Error: Email is already in use! >>>>>>>> registerUser :: AuthController.java");
+            log.error("[" + new Date() + "] => Error: Email is already in use! >>>>>>>> registerUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body("Error: Email is already in use!");
@@ -146,7 +144,7 @@ public class AuthController {
 
         HashMap<String, String> emailValidity = fieldValidation.isEmailValid(signupRequest.getEmail());
         if(!Boolean.parseBoolean(emailValidity.get("isEmailValid"))) {
-            logger.error("[" + new Date() + "] => EMAIL INVALID (" + emailValidity.get("message") + ") >>>>>>>> registerUser :: AuthController.java");
+            log.error("[" + new Date() + "] => EMAIL INVALID (" + emailValidity.get("message") + ") >>>>>>>> registerUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(emailValidity.get("message"));
@@ -154,7 +152,7 @@ public class AuthController {
 
         HashMap<String, String> passValidity = fieldValidation.isPasswordValid(signupRequest.getPassword());
         if(!Boolean.parseBoolean(passValidity.get("isPasswordValid"))) {
-            logger.error("[" + new Date() + "] => PASSWORD INVALID (" + passValidity.get("message") + ") >>>>>>>> registerUser :: AuthController.java");
+            log.error("[" + new Date() + "] => PASSWORD INVALID (" + passValidity.get("message") + ") >>>>>>>> registerUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(passValidity.get("message"));
@@ -162,7 +160,7 @@ public class AuthController {
 
         // Check if verification code is correct and valid
         if(!verificationCodeService.isCodeCorrect(signupRequest.getEmail(), code, DefaultProperties.VERIFICATION_SIGN_IN_UP_PURPOSE)) {
-            logger.error("[" + new Date() + "] => PASSWORD INVALID (" + passValidity.get("message") + ") >>>>>>>> registerUser :: AuthController.java");
+            log.error("[" + new Date() + "] => PASSWORD INVALID (" + passValidity.get("message") + ") >>>>>>>> registerUser :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body("The verification code is not correct/valid");
@@ -179,7 +177,7 @@ public class AuthController {
             user.getRoles().add(roleUser.get());
         }
         else {
-            logger.error("NO ROLE USER FOUND>>>>>>>> registerUser :: AuthController.java");
+            log.error("NO ROLE USER FOUND>>>>>>>> registerUser :: AuthController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -195,20 +193,20 @@ public class AuthController {
 
         // Input verification
         if (email.isEmpty() || email == null) {
-            logger.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> askForSigninVerificationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> askForSigninVerificationCode :: AuthController.java");
             return ResponseEntity.
                     badRequest().
                     body("Email null or empty");
         }
 
         if (!userService.existsByEmail(email)) { // if user doesn't exist, then return null
-            logger.error("[" + new Date() + "] => USER DOESN'T EXIST >>>>>>>> askForSigninVerificationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => USER DOESN'T EXIST >>>>>>>> askForSigninVerificationCode :: AuthController.java");
             return new ResponseEntity<>("User doesn't exist", HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         HashMap<String, String> emailValidity = fieldValidation.isEmailValid(email);
         if(!Boolean.parseBoolean(emailValidity.get("isEmailValid"))) {
-            logger.error("[" + new Date() + "] => EMAIL IS INVALID (" +emailValidity.get("message")+ ") >>>>>>>> askForSigninVerificationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => EMAIL IS INVALID (" +emailValidity.get("message")+ ") >>>>>>>> askForSigninVerificationCode :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(emailValidity.get("message"));
@@ -234,19 +232,19 @@ public class AuthController {
 
         // Input verification
         if(signupRequest == null) {
-            logger.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> askRegistrationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> askRegistrationCode :: AuthController.java");
             return ResponseEntity.badRequest().body(null);
         }
 
         if (userService.existsByUsername(signupRequest.getEmail())) {
-            logger.error("[" + new Date() + "] => Error: Username is already taken! >>>>>>>> askRegistrationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => Error: Username is already taken! >>>>>>>> askRegistrationCode :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body("Error: Username is already taken!");
         }
 
         if (userService.existsByEmail(signupRequest.getEmail())){
-            logger.error("[" + new Date() + "] => Error: Email is already in use! >>>>>>>> askRegistrationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => Error: Email is already in use! >>>>>>>> askRegistrationCode :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body("Error: Email is already in use!");
@@ -254,7 +252,7 @@ public class AuthController {
 
         HashMap<String, String> emailValidity = fieldValidation.isEmailValid(signupRequest.getEmail());
         if(!Boolean.parseBoolean(emailValidity.get("isEmailValid"))) {
-            logger.error("[" + new Date() + "] => Email is invalid! (" + emailValidity.get("message") + ") >>>>>>>> askRegistrationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => Email is invalid! (" + emailValidity.get("message") + ") >>>>>>>> askRegistrationCode :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(emailValidity.get("message"));
@@ -262,7 +260,7 @@ public class AuthController {
 
         HashMap<String, String> passValidity = fieldValidation.isPasswordValid(signupRequest.getPassword());
         if(!Boolean.parseBoolean(passValidity.get("isPasswordValid"))) {
-            logger.error("[" + new Date() + "] => Password is invalid! (" + passValidity.get("message") + ") >>>>>>>> askRegistrationCode :: AuthController.java");
+            log.error("[" + new Date() + "] => Password is invalid! (" + passValidity.get("message") + ") >>>>>>>> askRegistrationCode :: AuthController.java");
             return ResponseEntity
                     .badRequest()
                     .body(passValidity.get("message"));

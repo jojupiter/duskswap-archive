@@ -7,8 +7,7 @@ import com.dusk.duskswap.deposit.entityDto.BuyDto;
 import com.dusk.duskswap.deposit.entityDto.BuyPage;
 import com.dusk.duskswap.deposit.services.BuyService;
 import com.dusk.duskswap.usersManagement.models.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +20,7 @@ import java.util.Optional;
 @RestController
 @CrossOrigin("*")
 @RequestMapping("/buy")
+@Slf4j
 public class BuyController {
 
     @Autowired
@@ -29,7 +29,6 @@ public class BuyController {
     private UtilitiesService utilitiesService;
     @Autowired
     private AccountService accountService;
-    private Logger logger = LoggerFactory.getLogger(BuyController.class);
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -45,7 +44,7 @@ public class BuyController {
 
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 

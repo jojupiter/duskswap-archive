@@ -2,7 +2,6 @@ package com.dusk.duskswap.deposit.services;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
-import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Misc;
 import com.dusk.duskswap.commons.models.*;
@@ -10,13 +9,11 @@ import com.dusk.duskswap.commons.repositories.*;
 import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
-import com.dusk.duskswap.deposit.entityDto.DepositResponseDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.repositories.DepositRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,13 +24,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class DepositServiceImpl implements DepositService {
 
     @Autowired
@@ -51,8 +48,6 @@ public class DepositServiceImpl implements DepositService {
     @Autowired
     private InvoiceService invoiceService;
 
-    private Logger logger = LoggerFactory.getLogger(DepositServiceImpl.class);
-
     @Override
     public ResponseEntity<DepositPage> getAllUserDeposits(User user, Integer currentPage, Integer pageSize) {
         // input checking
@@ -62,7 +57,7 @@ public class DepositServiceImpl implements DepositService {
                         user != null && (user.getEmail() == null || (user.getEmail() != null && user.getEmail().isEmpty()))
                 )
         ) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
         }
         if(currentPage == null) currentPage = 0;
@@ -71,7 +66,7 @@ public class DepositServiceImpl implements DepositService {
         // getting the corresponding exchange account and verify if exists
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -115,7 +110,7 @@ public class DepositServiceImpl implements DepositService {
     @Override
     public Optional<Deposit> getDepositByInvoiceId(String invoiceId) {
         if(invoiceId == null) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT (INVOICE ID NULL) >>>>>>>> getDepositByInvoiceId :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT INCORRECT (INVOICE ID NULL) >>>>>>>> getDepositByInvoiceId :: DepositServiceImpl.java");
             return Optional.empty();
         }
         return depositRepository.findByInvoiceId(invoiceId);
@@ -127,7 +122,7 @@ public class DepositServiceImpl implements DepositService {
         // input checking
         if(dto == null || (dto != null && dto.getCurrencyId() == null)
         ) {
-            logger.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> createDeposit :: DepositServiceImpl.java" +
+            log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> createDeposit :: DepositServiceImpl.java" +
                     " ========= DepositDto = " + dto);
             return ResponseEntity.badRequest().body(null);
         }
@@ -147,14 +142,14 @@ public class DepositServiceImpl implements DepositService {
 
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
-            logger.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         //then, we create an invoice for the deposit
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
-            logger.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -176,7 +171,7 @@ public class DepositServiceImpl implements DepositService {
         // creation of the deposit object to be saved
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_NEW);
         if(!status.isPresent()) {
-            logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -224,14 +219,14 @@ public class DepositServiceImpl implements DepositService {
         if(deposit == null ||
            (statusString != null && statusString.isEmpty()) || statusString == null
         ) {
-            logger.error("[" + new Date() + "] => INPUTS INCORRECT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUTS INCORRECT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INPUTS INCORRECT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
             //return null;
         }
 
         Optional<Status> status = statusRepository.findByName(statusString);
         if(!status.isPresent()) {
-            logger.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
             throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateDepositStatus :: DepositServiceImpl.java");
             //return null;
         }
@@ -248,14 +243,14 @@ public class DepositServiceImpl implements DepositService {
     public ResponseEntity<Boolean> updateDestinationAddress(Long depositId, String toAddress) {
         // input checking
         if(depositId == null || toAddress == null || (toAddress != null && toAddress.isEmpty())) {
-            logger.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java ====== " +
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java ====== " +
                     "depositId = " + depositId + ", toAddress = " + toAddress);
             return ResponseEntity.badRequest().body(false);
         }
 
         Optional<Deposit> deposit = depositRepository.findById(depositId);
         if(!deposit.isPresent()) {
-            logger.error("[" + new Date() + "] => DEPOSIT NOT PRESENT >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => DEPOSIT NOT PRESENT >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 

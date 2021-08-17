@@ -1,18 +1,14 @@
 package com.dusk.duskswap.commons.services;
 
-import com.dusk.duskswap.commons.models.Invoice;
-import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.commons.models.InvoicePayment;
-import com.dusk.duskswap.commons.models.WalletTransaction;
+import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,21 +23,23 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class InvoiceServiceImpl implements InvoiceService {
 
     private String btcpayServerApi = "1c8d064550bdbabf88df49c87bfa521bc3df62ce";//"71108d2c1722443951e445849678ed01591c64f1";
     private String domainUrl = "https://ax1.duskpay.com/api/v1/stores/";//"https://09btcpay.kifipay.com/api/v1/stores/";
-    private String storeAddress = "6pRqHdao7ne75ggFmthQ8eLXMZaChmH2xzttAzgHTHXu";//"CML9V2zd6KDrkFMPLc6yTdZSznhV7GYxGEBT98ShwYer";
+    private String storeAddress = "7bywVRvk6gFFbczcQq9vokad51z5qxgZ4RVrtzXcRe1t";//"6pRqHdao7ne75ggFmthQ8eLXMZaChmH2xzttAzgHTHXu";//"CML9V2zd6KDrkFMPLc6yTdZSznhV7GYxGEBT98ShwYer";
     private ObjectMapper mapper = new ObjectMapper();
-    private Logger logger = LoggerFactory.getLogger(InvoiceServiceImpl.class);
 
     @Autowired
     private CurrencyRepository currencyRepository;
 
     @Override
     public ResponseEntity<Invoice> createInvoice(Invoice invoice) {
-        if(invoice == null)
+        if(invoice == null) {
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createInvoice :: InvoiceServiceImpl.java");
             return ResponseEntity.badRequest().body(null);
+        }
 
         try {
             // setting up connection to btcpay and post the invoice
@@ -50,7 +48,6 @@ public class InvoiceServiceImpl implements InvoiceService {
             conn.setRequestMethod("POST");
             conn.setInstanceFollowRedirects(false);
             conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
-            //conn.setRequestProperty(HttpHeaders.AUTHORIZATION, "Basic RUVHZHZvMEwwTzdvcm9XVnBkN29pN2tkN3lvYmhsV0dJTERyb2Q3MFowZA==");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();
@@ -63,8 +60,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             // reading response
             // first check if the response code is valid, if not we send back an unprocessable entity status code
-            if(conn.getResponseCode() != 200)
+            if(conn.getResponseCode() != 200) {
+                log.error("[" + new Date() + "] => CONN STATUS != 200 >>>>>>>> createInvoice :: InvoiceServiceImpl.java");
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
 
             // if status response == ok, then we read the response
             StringBuilder response = new StringBuilder();
@@ -84,15 +83,15 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         }
         catch (MalformedURLException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => MalformedURLException :: message = "+ e.getMessage() +">>>>>>>> createInvoice :: InvoiceServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         catch (ProtocolException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => ProtocolException :: message = "+ e.getMessage() +">>>>>>>> createInvoice :: InvoiceServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         catch (IOException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => IOException :: message = "+ e.getMessage() +">>>>>>>> createInvoice :: InvoiceServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -102,6 +101,10 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public Invoice getInvoice(String invoiceId) {
 
+        if(invoiceId == null || (invoiceId != null && invoiceId.isEmpty())) {
+            log.error("[" + new Date() + "] => INPUT NULL (InvoiceId) >>>>>>>> getInvoice :: InvoiceServiceImpl.java");
+            return null;
+        }
         // setting up connection to btcpay and post the invoice
         URL url = null;
         try {
@@ -116,8 +119,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             // reading response
             // first check if the response code is valid
-            if(conn.getResponseCode() != 200)
+            if(conn.getResponseCode() != 200) {
+                log.error("[" + new Date() + "] => CONN STATUS != 200 >>>>>>>> getInvoice :: InvoiceServiceImpl.java");
                 return null;
+            }
 
             // if response is not null, we return the source code of the checkout link
             StringBuilder content;
@@ -137,13 +142,13 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         }
         catch (MalformedURLException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => MalformedURLException :: message = "+ e.getMessage() +">>>>>>>> getInvoice :: InvoiceServiceImpl.java");
         }
         catch (ProtocolException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => ProtocolException :: message = "+ e.getMessage() +">>>>>>>> getInvoice :: InvoiceServiceImpl.java");
         }
         catch (IOException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => IOException :: message = "+ e.getMessage() +">>>>>>>> getInvoice :: InvoiceServiceImpl.java");
         }
 
         return null;
@@ -152,8 +157,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     public Currency getInvoiceCurrency(Invoice invoice) {
-        if(invoice == null)
+        if(invoice == null) {
+            log.error("[" + new Date() + "] => INPUT NULL (Invoice) >>>>>>>> getInvoiceCurrency :: InvoiceServiceImpl.java");
             return null;
+        }
 
         Optional<Currency> currency = currencyRepository.findByIso(invoice.getCurrency());
 
@@ -164,7 +171,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     public List<InvoicePayment> getPaymentMethods(String invoiceId, Boolean onlyAccountedPayments) {
         // input checking
         if(invoiceId == null || (invoiceId != null && invoiceId.isEmpty())) {
-            logger.error("[" + new Date() + "] => INPUT NULL (INVOICE ID) >>>>>>>> getPaymentMethods :: InvoiceServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL (INVOICE ID) >>>>>>>> getPaymentMethods :: InvoiceServiceImpl.java");
             return null;
         }
 
@@ -181,8 +188,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             // reading response
             // first check if the response code is valid
-            if(conn.getResponseCode() != 200)
+            if(conn.getResponseCode() != 200) {
+                log.error("[" + new Date() + "] => CONN STATUS != 200 >>>>>>>> getPaymentMethods :: InvoiceServiceImpl.java");
                 return null;
+            }
 
             // if response is not null, we return the source code of the checkout link
             StringBuilder content;
@@ -202,10 +211,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         }
         catch (MalformedURLException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => MalformedURLException :: message = "+ e.getMessage() +">>>>>>>> getPaymentMethods :: InvoiceServiceImpl.java");
         }
         catch (IOException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => IOException :: message = "+ e.getMessage() +">>>>>>>> getPaymentMethods :: InvoiceServiceImpl.java");
         }
 
         return null;
@@ -215,7 +224,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     public String sendCrypto(WalletTransaction walletTransaction, String cryptoCode) {
         // input checking
         if(walletTransaction == null) {
-            logger.error("[" + new Date() + "] => INPUT NULL >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
             return null;
         }
 
@@ -239,8 +248,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             // reading response
             // first check if the response code is valid
-            if(conn.getResponseCode() != 200)
+            if(conn.getResponseCode() != 200) {
+                log.error("[" + new Date() + "] => CONN STATUS != 200 >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
                 return null;
+            }
 
             // if response's status = 200, we read the response
             StringBuilder response = new StringBuilder();
@@ -256,13 +267,69 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         }
         catch (MalformedURLException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => MalformedURLException :: message = "+ e.getMessage() +">>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
         }
         catch (ProtocolException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => ProtocolException :: message = "+ e.getMessage() +">>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
         }
         catch (IOException e) {
-            e.printStackTrace();
+            log.error("[" + new Date() + "] => IOException :: message = "+ e.getMessage() +">>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
+        }
+
+        return null;
+    }
+
+
+    @Override
+    public WalletBalance getCryptoBalance(String cryptoCode) {
+        // input checking
+        if(cryptoCode == null || (cryptoCode != null && cryptoCode.isEmpty())) {
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> getCryptoBalance :: InvoiceServiceImpl.java");
+            return null;
+        }
+
+        URL url = null;
+        try {
+            url = new URL(domainUrl + storeAddress + "/payment-methods/OnChain/" + cryptoCode + "/wallet");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setInstanceFollowRedirects(false);
+            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.connect();
+
+            // reading response
+            // first check if the response code is valid
+            if(conn.getResponseCode() != 200) {
+                log.error("[" + new Date() + "] => CONN STATUS != 200 >>>>>>>> getCryptoBalance :: InvoiceServiceImpl.java");
+                return null;
+            }
+
+            // if response is not null, we return the source code of the checkout link
+            StringBuilder content;
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                String line;
+                content = new StringBuilder();
+                while ((line = in.readLine()) != null) {
+                    content.append(line);
+                    content.append(System.lineSeparator());
+                }
+            }
+
+            if(content.toString() != null && !content.toString().isEmpty()) {
+                WalletBalance walletBalance = mapper.readValue(content.toString(), WalletBalance.class);
+                return walletBalance;
+            }
+
+        }
+        catch (MalformedURLException e) {
+            log.error("[" + new Date() + "] => MalformedURLException :: message = "+ e.getMessage() +">>>>>>>> getCryptoBalance :: InvoiceServiceImpl.java");
+        }
+        catch (ProtocolException e) {
+            log.error("[" + new Date() + "] => ProtocolException :: message = "+ e.getMessage() +">>>>>>>> getCryptoBalance :: InvoiceServiceImpl.java");
+        } catch (IOException e) {
+            log.error("[" + new Date() + "] => IOException :: message = "+ e.getMessage() +">>>>>>>> getCryptoBalance :: InvoiceServiceImpl.java");
         }
 
         return null;

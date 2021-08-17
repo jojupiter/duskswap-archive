@@ -6,34 +6,32 @@ import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.repositories.VerificationCodeRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class VerificationCodeServiceImpl implements VerificationCodeService{
 
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private VerificationCodeRepository verificationCodeRepository;
-    private Logger logger = LoggerFactory.getLogger(VerificationCodeServiceImpl.class);
 
     @Override
     public VerificationCode createSigninCode(String emailOrUsername) {
         // input checking
         if(emailOrUsername == null || (emailOrUsername != null && emailOrUsername.isEmpty())) {
-            logger.error("EMAIL EMPTY OR NULL >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java ==== email = " + emailOrUsername);
+            log.error("EMAIL EMPTY OR NULL >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java ==== email = " + emailOrUsername);
             return null;
         }
         // then check if user exists
         boolean doesUserExist = userRepository.existsByEmail(emailOrUsername) || userRepository.existsByUsername(emailOrUsername);
         if(!doesUserExist) {
-            logger.error("USER DOESN'T EXISTS >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java");
+            log.error("USER DOESN'T EXISTS >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java");
             return null;
         }
 
@@ -41,7 +39,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
         Optional<User> user = userRepository.existsByEmail(emailOrUsername) ?
                             userRepository.findByEmail(emailOrUsername) : userRepository.findByUsername(emailOrUsername);
         if(!user.isPresent()) {
-            logger.error("USER DOESN'T EXISTS (result null) >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java");
+            log.error("USER DOESN'T EXISTS (result null) >>>>>>>> createSignInCode :: VerificationCodeServiceImpl.java");
             return null;
         }
 
@@ -65,7 +63,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
     public VerificationCode createSignupCode(String email) {
 
         if(email == null || (email != null && email.isEmpty())) {
-            logger.error("INPUT NULL >>>>>>>> createSignUpCode :: VerificationCodeServiceImpl.java ==== email = " + email);
+            log.error("INPUT NULL >>>>>>>> createSignUpCode :: VerificationCodeServiceImpl.java ==== email = " + email);
             return null;
         }
         VerificationCode verificationCode = null;
@@ -82,7 +80,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
     @Override
     public VerificationCode createWithdrawalCode(String email) {
         if(email == null || (email != null && email.isEmpty())) {
-            logger.error("EMAIL EMPTY OR NULL >>>>>>>> createWithdrawalCode :: VerificationCodeServiceImpl.java ==== email = " + email);
+            log.error("EMAIL EMPTY OR NULL >>>>>>>> createWithdrawalCode :: VerificationCodeServiceImpl.java ==== email = " + email);
             return null;
         }
 
@@ -104,7 +102,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
     @Override
     public VerificationCode createForgotPasswordCode(String email) {
         if(email == null || (email != null && email.isEmpty())) {
-            logger.error("EMAIL EMPTY OR NULL >>>>>>>> createForgotPasswordCode :: VerificationCodeServiceImpl.java ==== email = " + email);
+            log.error("EMAIL EMPTY OR NULL >>>>>>>> createForgotPasswordCode :: VerificationCodeServiceImpl.java ==== email = " + email);
             return null;
         }
 
@@ -129,7 +127,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
                 code == null ||
                 purpose == null || (purpose != null && purpose.isEmpty())
         ) {
-            logger.error("INPUT NULL OR EMPTY >>>>>>>> createWithdrawalCode :: VerificationCodeServiceImpl.java ===== " +
+            log.error("INPUT NULL OR EMPTY >>>>>>>> createWithdrawalCode :: VerificationCodeServiceImpl.java ===== " +
                     "email = " + email + ", code = " + code + ", purpose = " + purpose);
             return null;
         }
@@ -143,14 +141,14 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
                 email == null || (email != null && email.isEmpty()) ||
                 purpose == null || (purpose != null && purpose.isEmpty())
         ) {
-            logger.error("INPUT NULL OR EMPTY >>>>>>>> updateCode :: VerificationCodeServiceImpl.java ===== " +
+            log.error("INPUT NULL OR EMPTY >>>>>>>> updateCode :: VerificationCodeServiceImpl.java ===== " +
                     "email = " + email + ", purpose = " + purpose);
             return false;
         }
 
         Optional<VerificationCode> code = verificationCodeRepository.findByUserEmailAndPurpose(email, purpose);
         if(!code.isPresent()) {
-            logger.error("OLD CODE NOT FOUND >>>>>>>> updateCode :: VerificationCodeServiceImpl.java");
+            log.error("OLD CODE NOT FOUND >>>>>>>> updateCode :: VerificationCodeServiceImpl.java");
             return false;
         }
 

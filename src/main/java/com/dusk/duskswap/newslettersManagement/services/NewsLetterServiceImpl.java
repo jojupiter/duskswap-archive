@@ -4,8 +4,7 @@ import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.newslettersManagement.entityDto.SubscribersPage;
 import com.dusk.duskswap.newslettersManagement.models.NewsLetterSubScriber;
 import com.dusk.duskswap.newslettersManagement.repositories.NewsLetterSubscriberRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,17 +13,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class NewsLetterServiceImpl implements NewsLetterService {
 
     @Autowired
     private NewsLetterSubscriberRepository newsLetterSubscriberRepository;
-    private Logger logger = LoggerFactory.getLogger(NewsLetterServiceImpl.class);
 
     @Override
     public ResponseEntity<SubscribersPage> getAllNewsLetterSubscribers(Integer currentPage, Integer pageSize) {
@@ -72,7 +70,7 @@ public class NewsLetterServiceImpl implements NewsLetterService {
     @Override
     public Boolean doesSubscriberExists(String email) {
         if(email == null || (email != null && email.isEmpty())) {
-            logger.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> doesSubscriberExists :: NewsLetterServiceImpl.java");
+            log.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> doesSubscriberExists :: NewsLetterServiceImpl.java");
             return null;
         }
         return newsLetterSubscriberRepository.existsByEmail(email);
@@ -81,11 +79,11 @@ public class NewsLetterServiceImpl implements NewsLetterService {
     @Override
     public NewsLetterSubScriber addSubscriberToNewsLetter(String email) {
         if(email == null && (email != null && email.isEmpty())) {
-            logger.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> addSubscriberToNewsLetter :: NewsLetterServiceImpl.java");
+            log.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> addSubscriberToNewsLetter :: NewsLetterServiceImpl.java");
             return null;
         }
         if(doesSubscriberExists(email)) {
-            logger.info("[" + new Date() + "] => EMAIL ALREADY EXISTS >>>>>>>> addSubscriberToNewsLetter :: NewsLetterServiceImpl.java");
+            log.info("[" + new Date() + "] => EMAIL ALREADY EXISTS >>>>>>>> addSubscriberToNewsLetter :: NewsLetterServiceImpl.java");
             return null;
         }
         NewsLetterSubScriber newsLetterSubScriber = new NewsLetterSubScriber();
@@ -101,13 +99,13 @@ public class NewsLetterServiceImpl implements NewsLetterService {
                 email == null || (email != null && email.isEmpty()) ||
                 activated == null
         ) {
-            logger.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> addSubscriberToNewsLetter :: NewsLetterServiceImpl.java");
+            log.error("[" + new Date() + "] => EMAIL NULL OR EMPTY >>>>>>>> addSubscriberToNewsLetter :: NewsLetterServiceImpl.java");
             return ResponseEntity.badRequest().body(false);
         }
 
         Optional<NewsLetterSubScriber> newsLetterSubScriber = newsLetterSubscriberRepository.findByEmail(email);
         if(!newsLetterSubScriber.isPresent()) {
-            logger.error("[" + new Date() + "] => SUBSCRIBER NOT PRESENT >>>>>>>> activateSubscriber :: NewsLetterServiceImpl.java");
+            log.error("[" + new Date() + "] => SUBSCRIBER NOT PRESENT >>>>>>>> activateSubscriber :: NewsLetterServiceImpl.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 

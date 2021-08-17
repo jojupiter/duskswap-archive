@@ -11,14 +11,11 @@ import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
-import com.dusk.duskswap.deposit.entityDto.DepositResponseDto;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.services.DepositService;
 import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.deposit.services.DepositServiceImpl;
 import com.dusk.duskswap.usersManagement.models.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +30,7 @@ import java.util.Optional;
 @RestController
 @CrossOrigin("*")
 @RequestMapping("/deposits")
+@Slf4j
 public class DepositController {
 
     @Autowired
@@ -43,15 +41,14 @@ public class DepositController {
     private AccountService accountService;
     @Autowired
     private UtilitiesService utilitiesService;
-    private Logger logger = LoggerFactory.getLogger(DepositController.class);
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
-                                                          @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+                                                @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return depositService.getAllUserDeposits(user.get(), currentPage, pageSize);
@@ -71,7 +68,7 @@ public class DepositController {
     public ResponseEntity<?> createDeposit(@RequestBody DepositDto dto) throws Exception {
         Optional<User> user = utilitiesService.getCurrentUser();
         if(!user.isPresent()) {
-            logger.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -98,14 +95,14 @@ public class DepositController {
         // >>>>> 2. Then we verify the status of the corresponding invoice
         Invoice invoice = invoiceService.getInvoice(webhookEvent.getInvoiceId());
         if(invoice == null) {
-            logger.error("[" + new Date() + "] => CAN'T FIND INVOICE with id = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
+            log.error("[" + new Date() + "] => CAN'T FIND INVOICE with id = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
             return;
         }
 
         // >>>>> 3. We check the amount paid (even if that amount is less than the expected, we consider the deposit completed)
         List<InvoicePayment> invoicePayments = invoiceService.getPaymentMethods(invoice.getId(), true);
         if(invoicePayments == null || (invoicePayments != null && invoicePayments.isEmpty())) {
-            logger.error("[" + new Date() + "] => PAYMENT LIST EMPTY OR NULL >>>>>>>> updateDepositStatus :: DepositController.java");
+            log.error("[" + new Date() + "] => PAYMENT LIST EMPTY OR NULL >>>>>>>> updateDepositStatus :: DepositController.java");
             return;
         }
 
@@ -138,7 +135,7 @@ public class DepositController {
             );
         }
         if(!deposit.isPresent()) {
-            logger.error("[" + new Date() + "] => CAN'T FIND DEPOSIT WITH INVOICE ID = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
+            log.error("[" + new Date() + "] => CAN'T FIND DEPOSIT WITH INVOICE ID = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
             return;
         }
 
@@ -152,13 +149,13 @@ public class DepositController {
         ) {
             ExchangeAccount account = accountService.getAccountById(deposit.get().getExchangeAccount().getId());
             if(account == null) {
-                logger.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> updateDepositStatus :: DepositController.java");
+                log.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> updateDepositStatus :: DepositController.java");
                 return;
             }
 
             Currency currency = invoiceService.getInvoiceCurrency(invoice);
             if(currency == null) {
-                logger.error("[" + new Date() + "] => CAN'T FIND CORRESPONDING CURRENCY >>>>>>>> updateDepositStatus :: DepositController.java");
+                log.error("[" + new Date() + "] => CAN'T FIND CORRESPONDING CURRENCY >>>>>>>> updateDepositStatus :: DepositController.java");
                 return;
             }
 
