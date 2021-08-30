@@ -1,5 +1,9 @@
 package com.dusk.duskswap.commons.miscellaneous;
 
+import com.dusk.duskswap.commons.models.InvoicePayment;
+import com.dusk.duskswap.commons.models.Payment;
+
+import java.util.List;
 import java.util.Random;
 
 public class Utilities {
@@ -26,6 +30,12 @@ public class Utilities {
                                     unitCryptoToUsdt; // to crypto
 
         return conversionInCrypto;
+    }
+
+
+    // TODO: Realize findPayment methods (require a kind of sort algorithm)
+    public static Payment findPayment(List<InvoicePayment> invoicePayments, String transactionHash) {
+        return null;
     }
 
 }

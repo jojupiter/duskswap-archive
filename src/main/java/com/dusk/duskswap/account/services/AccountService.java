@@ -23,5 +23,7 @@ public interface AccountService {
     AmountCurrency fundAccount(ExchangeAccount account, Currency currency, String amount) throws Exception; // destined to be used by another service/controller outside this package
     AmountCurrency debitAccount(ExchangeAccount account, Currency currency, String amount) throws Exception; // destined to be used by another service/controller outside this package
 
-    boolean isBalanceSufficient(ExchangeAccount account, Long currencyId, String amount);
+    Boolean isBalanceSufficient(ExchangeAccount account, Long currencyId, String amount);
+    Boolean updateInvoiceId(ExchangeAccount account, String newInvoiceId); // true: if everything is alright, false: something went wrong
+
 }

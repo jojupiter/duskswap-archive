@@ -13,6 +13,6 @@ public interface InvoiceService {
     List<InvoicePayment> getPaymentMethods(String invoiceId, Boolean onlyAccountedPayments);
 
     WalletBalance getCryptoBalance(String cryptoCode);
-    String sendCrypto(WalletTransaction walletTransaction, String cryptoCode); // return transaction in hex (tx)
+    TransactionBlock sendCrypto(WalletTransaction walletTransaction, String cryptoCode); // return transaction in hex (tx)
 
 }

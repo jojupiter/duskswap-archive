@@ -6,11 +6,9 @@ import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
-import com.dusk.duskswap.commons.models.Level;
-import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.LevelRepository;
 import com.dusk.duskswap.commons.repositories.TransactionOptionRepository;
-import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
@@ -192,4 +190,5 @@ public class UtilitiesServiceImpl implements UtilitiesService {
         levelRepository.deleteById(levelId);
         return ResponseEntity.ok(true);
     }
+
 }

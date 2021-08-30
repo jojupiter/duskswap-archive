@@ -8,8 +8,12 @@ import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.*;
 import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
+import com.dusk.duskswap.deposit.entityDto.DepositHashCount;
+import com.dusk.duskswap.deposit.entityDto.DepositHashPage;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
 import com.dusk.duskswap.deposit.models.Deposit;
+import com.dusk.duskswap.deposit.models.DepositHash;
+import com.dusk.duskswap.deposit.repositories.DepositHashRepository;
 import com.dusk.duskswap.deposit.repositories.DepositRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
@@ -35,6 +39,8 @@ public class DepositServiceImpl implements DepositService {
 
     @Autowired
     private DepositRepository depositRepository;
+    @Autowired
+    private DepositHashRepository depositHashRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -108,8 +114,17 @@ public class DepositServiceImpl implements DepositService {
     }
 
     @Override
+    public Optional<Deposit> getDepositById(Long depositId) {
+        if(depositId == null) {
+            log.error("[" + new Date() + "] => INPUT INCORRECT (DEPOSIT ID NULL) >>>>>>>> getDepositById :: DepositServiceImpl.java");
+            return Optional.empty();
+        }
+        return depositRepository.findById(depositId);
+    }
+
+    @Override
     public Optional<Deposit> getDepositByInvoiceId(String invoiceId) {
-        if(invoiceId == null) {
+        if(invoiceId == null || (invoiceId != null &&  invoiceId.isEmpty())) {
             log.error("[" + new Date() + "] => INPUT INCORRECT (INVOICE ID NULL) >>>>>>>> getDepositByInvoiceId :: DepositServiceImpl.java");
             return Optional.empty();
         }
@@ -127,6 +142,7 @@ public class DepositServiceImpl implements DepositService {
             return ResponseEntity.badRequest().body(null);
         }
 
+        // >>>>> 1. If the amount is null, empty or negative, we set it to a default value
         if(
                 dto.getAmount() == null ||
                 (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
@@ -134,19 +150,30 @@ public class DepositServiceImpl implements DepositService {
         )
             dto.setAmount(DefaultProperties.DEPOSIT_DEFAULT_VALUE);
 
-        // First we check if the user exists and has already an exchange account
-        /*if(user.getLevel() == null) {
-            logger.error("[" + new Date() + "] => USER HAS NO CORRESPONDING LEVEL >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }*/
-
+        // >>>>> 2. we get the exchange account
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        //then, we create an invoice for the deposit
+        // >>>>> 3. We check the invoice Id in exchange account, count the number of deposit associated with it and decide whether or not to create another invoice
+        if(exchangeAccount.get().getInvoiceId() != null && !exchangeAccount.get().getInvoiceId().isEmpty()) {
+            DepositHashCount depositHashCount = countDepositHashes(exchangeAccount.get().getInvoiceId());
+            if(
+                    depositHashCount != null && depositHashCount.getTotalHashCount() != null &&
+                    (
+                            depositHashCount.getTotalHashCount() > 0 &&
+                            depositHashCount.getTotalHashCount() <= DefaultProperties.MAX_NUMBER_OF_TRANSACTION_FOR_INVOICE
+                    )
+            ) {
+                Optional<Deposit> deposit = depositRepository.findByInvoiceId(exchangeAccount.get().getInvoiceId());
+                return ResponseEntity.ok(deposit.get().getToAddress());
+            }
+
+        }
+
+        // >>>>> 4. then, we create an invoice for the deposit
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
@@ -168,29 +195,14 @@ public class DepositServiceImpl implements DepositService {
         if(invoiceResponse.getStatusCode() != HttpStatus.OK)
             return new ResponseEntity<>(null, invoiceResponse.getStatusCode());
 
-        // creation of the deposit object to be saved
+        // >>>>> 5. creation of the deposit object to be saved
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_NEW);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
-        /*Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
-        if(!pricing.isPresent()) {
-            logger.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        if(
-                Double.parseDouble(dto.getAmount()) < Double.parseDouble(pricing.get().getDepositMin()) ||
-                Double.parseDouble(dto.getAmount()) > Double.parseDouble(pricing.get().getDepositMax())
-        ) {
-            logger.error("[" + new Date() + "] => CAN'T MAKE DEPOSIT (The amount is too high/low for the authorized amount) >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }*/
-
-        // If the deposit's amount is within the authorized bounds, then we proceed to the deposit creation
+        // >>>>> 6. If the deposit's amount is within the authorized bounds, then we proceed to the deposit creation
 
         Deposit deposit = new Deposit();
         deposit.setStatus(status.get());
@@ -201,12 +213,9 @@ public class DepositServiceImpl implements DepositService {
 
         Deposit savedDeposit = depositRepository.save(deposit);
 
-        // finally return the source code of the invoice
-        //DepositResponseDto responseDto = new DepositResponseDto();
-        //responseDto.setDepositId(savedDeposit.getId());
+        // >>>>> 7. finally return the source code of the invoice
         String invoicePageSource = "";
         invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
-        //responseDto.setInvoiceSourceCode(invoicePageSource);
 
         String depositIdString = "@@" + savedDeposit.getId(); // we append this to the page's source code to make it easier for front end
 
@@ -260,4 +269,134 @@ public class DepositServiceImpl implements DepositService {
 
         return ResponseEntity.ok(true);
     }
+
+
+    // ======================================== DEPOSIT HASH =======================================================
+    @Override
+    public ResponseEntity<DepositHashPage> getAllUserDepositHashes(ExchangeAccount account, Integer currentPage, Integer pageSize) {
+        // input checking
+        if(account == null) {
+            log.error("[" + new Date() + "] => INPUT NULL (ACCOUNT) >>>>>>>> getAllUserDepositHashes :: DepositServiceImpl.java");
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        if(currentPage == null) currentPage = 0;
+        if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
+
+        Pageable pageable = PageRequest.of(currentPage, pageSize);
+        Page<DepositHash> depositHashes = depositHashRepository.findByExchangeAccount(pageable);
+        if(depositHashes.hasContent()) {
+            DepositHashPage depositHashPage = new DepositHashPage();
+            depositHashPage.setCurrentPage(depositHashes.getNumber());
+            depositHashPage.setTotalItems(depositHashes.getTotalElements());
+            depositHashPage.setTotalNumberPages(depositHashes.getTotalPages());
+            depositHashPage.setDepositHashes(depositHashes.getContent());
+
+            return ResponseEntity.ok(depositHashPage);
+        }
+
+        return ResponseEntity.ok(null);
+    }
+
+    @Override
+    public Optional<DepositHash> getDepositHashByTransaction(String transactionHash) {
+        // input checking
+        if(transactionHash == null || (transactionHash != null &&  transactionHash.isEmpty())) {
+            log.error("[" + new Date() + "] => INPUT NULL (TRANSACTION HASH) >>>>>>>> createDepositHash :: DepositServiceImpl.java");
+            return Optional.empty();
+        }
+
+        return depositHashRepository.findByTransactionHash(transactionHash);
+    }
+
+    @Override
+    public Boolean createDepositHash(List<InvoicePayment> invoicePayments, Deposit deposit) throws Exception {
+        // input checking
+        if(
+                invoicePayments == null || (invoicePayments != null && invoicePayments.isEmpty()) ||
+                deposit == null
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL (INVOICE PAYMENTS OR DEPOSIT) >>>>>>>> createDepositHash :: DepositServiceImpl.java" +
+                    " ============== invoicePayments = " + invoicePayments + ", deposit = " + deposit);
+            return false;
+        }
+
+        List<DepositHash> depositHashes = new ArrayList<>();
+
+        for(InvoicePayment invoicePayment : invoicePayments) {
+
+            for(int i = invoicePayment.getPayments().size() - 1; i >= 0; i--) {// reverse looping on payments
+                Payment payment = invoicePayment.getPayments().get(i);
+                if(depositHashRepository.existsByTransactionHash(payment.getId())) {
+                    DepositHash depositHash = new DepositHash();
+                    depositHash.setTransactionHash(payment.getId());
+                    depositHash.setAmount(payment.getValue());
+                    depositHash.setToDepositAddress(invoicePayment.getDestination());
+                    depositHash.setDeposit(deposit);
+                    depositHash.setFromDepositAddress(payment.getDestination());
+
+                    Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + payment.getStatus());
+                    if(!status.isPresent()) {
+                        log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDepositHash :: DepositServiceImpl.java");
+                        throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDepositHash :: DepositServiceImpl.java");
+                    }
+                    depositHash.setStatus(status.get());
+                    depositHashes.add(depositHash);
+                    break; // TODO: Revisit this, because we supposed here just one payment comes at time
+                }
+            }
+        }
+
+        depositHashRepository.saveAll(depositHashes);
+
+        return true;
+    }
+
+    @Override
+    public DepositHash updateDepositHashStatus(DepositHash depositHash, String statusString) {
+        // input checking
+        if(
+                depositHash == null ||
+                statusString == null || (statusString != null || statusString.isEmpty())
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL (STATUS OR DEPOSIT HASH) >>>>>>>> updateDepositHashStatus :: DepositServi ceImpl.java");
+            return null;
+        }
+
+        Optional<Status> status = statusRepository.findByName(statusString);
+        if(!status.isPresent()) {
+            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateDepositHashStatus :: DepositServiceImpl.java");
+            return null;
+        }
+
+        if(!depositHash.getStatus().getName().equals(status.get().getName())) {
+            depositHash.setStatus(status.get());
+            depositHashRepository.save(depositHash);
+        }
+
+        return null;
+    }
+
+    @Override
+    public DepositHashCount countDepositHashes(String invoiceId) {
+        if(invoiceId == null || (invoiceId != null && invoiceId.isEmpty())) {
+            log.error("[" + new Date() + "] => INPUT ERROR (INVOICE ID NULL OR EMPTY) >>>>>>>> countDepositHashes :: DepositServiceImpl.java");
+            return null;
+        }
+
+        // >>>>> 1. getting the deposit using invoiceId
+        Optional<Deposit> deposit = depositRepository.findByInvoiceId(invoiceId);
+        if(!deposit.isPresent()) {
+            log.error("[" + new Date() + "] => DEPOSIT NOT PRESENT >>>>>>>> countDepositHashes :: DepositServiceImpl.java");
+            return null;
+        }
+
+        // >>>>> 2. then we invoke count method from deposit hash repository
+        DepositHashCount depositHashCount = new DepositHashCount();
+        depositHashCount.setDeposit(deposit.get());
+        depositHashCount.setTotalHashCount(depositHashRepository.countTotalDepositHash(deposit.get().getId()));
+
+        return depositHashCount;
+    }
+
 }

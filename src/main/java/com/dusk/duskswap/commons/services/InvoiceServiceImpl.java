@@ -221,7 +221,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
-    public String sendCrypto(WalletTransaction walletTransaction, String cryptoCode) {
+    public TransactionBlock sendCrypto(WalletTransaction walletTransaction, String cryptoCode) {
         // input checking
         if(walletTransaction == null) {
             log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
@@ -263,7 +263,10 @@ public class InvoiceServiceImpl implements InvoiceService {
                 }
             }
 
-            return response.toString();
+            if(response.toString() != null && !response.toString().isEmpty()) {
+                TransactionBlock block = mapper.readValue(response.toString(), TransactionBlock.class);
+                return block;
+            }
 
         }
         catch (MalformedURLException e) {

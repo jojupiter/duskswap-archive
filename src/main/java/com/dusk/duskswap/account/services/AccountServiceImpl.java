@@ -270,7 +270,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public boolean isBalanceSufficient(ExchangeAccount account, Long currencyId, String amount) {
+    public Boolean isBalanceSufficient(ExchangeAccount account, Long currencyId, String amount) {
         // input checking
         if(account == null || currencyId == null || amount == null || (amount != null && amount.isEmpty()))
         {
@@ -291,4 +291,21 @@ public class AccountServiceImpl implements AccountService {
         return false;
     }
 
+    @Override
+    public Boolean updateInvoiceId(ExchangeAccount account, String newInvoiceId) {
+        // input checking
+        if(
+                account == null ||
+                newInvoiceId == null || (newInvoiceId != null &&  newInvoiceId.isEmpty())
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> isBalanceSufficient :: AccountServiceImpl.java  ========== Account = " + account +
+                    ", newInvoiceId = " + newInvoiceId);
+            return false;
+        }
+
+        account.setInvoiceId(newInvoiceId);
+        exchangeAccountRepository.save(account);
+
+        return true;
+    }
 }

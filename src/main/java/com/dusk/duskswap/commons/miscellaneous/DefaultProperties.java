@@ -69,8 +69,11 @@ public class DefaultProperties {
     public static final String BTCPAY_INVOICE_STATUS_MARKED = "Marked";
     public static final String BTCPAY_INVOICE_STATUS_COMPLETE = "Complete";
     public static final String BTCPAY_INVOICE_STATUS_SETTLED = "Settled";
+    public static final String BTCPAY_INVOICE_STATUS_PROCESSING = "Processing";
+    public static final String BTCPAY_INVOICE_STATUS_INVALID = "Invalid";
 
     // ========== deposits =====================
-    public static final String DEPOSIT_DEFAULT_VALUE = "0.00001";
+    public static final String DEPOSIT_DEFAULT_VALUE = "8000000000000";
+    public static final int MAX_NUMBER_OF_TRANSACTION_FOR_INVOICE = 150;
 
 }

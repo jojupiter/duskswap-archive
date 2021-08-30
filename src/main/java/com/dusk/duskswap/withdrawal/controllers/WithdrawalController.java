@@ -8,6 +8,7 @@ import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.models.WalletTransaction;
+import com.dusk.duskswap.commons.models.WalletTransactionDestination;
 import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
@@ -153,6 +154,22 @@ public class WithdrawalController {
 
         // then we debit the account
         accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), withdrawal.getAmount());
+
+        // TODO: we do the send here
+        WalletTransaction walletTransaction = new WalletTransaction();
+        walletTransaction.setFeeRate(1.0);
+        walletTransaction.setNoChange(false);
+        walletTransaction.setRbf(null);
+        walletTransaction.setSelectedInputs(null);
+        WalletTransactionDestination destination = new WalletTransactionDestination();
+        destination.setDestination(dto.getToAddress());
+        destination.setAmount(dto.getAmount());
+        destination.setSubtractFromAmount(true);
+        List<WalletTransactionDestination> destinations = new ArrayList<>();
+        destinations.add(destination);
+        walletTransaction.setDestinations(destinations);
+
+        invoiceService.sendCrypto(walletTransaction, withdrawal.getCurrency().getIso());
 
         return ResponseEntity.ok(true);
 
