@@ -11,8 +11,9 @@ import java.util.Optional;
 public interface DepositHashRepository extends PagingAndSortingRepository<DepositHash, Long> {
 
     Page<DepositHash> findAll(Pageable pageable);
-    @Query(value = "SELECT ", nativeQuery = true) // TODO: do this query
-    Page<DepositHash> findByExchangeAccount(Pageable pageable);
+    @Query(value = "SELECT * FROM deposit_hash JOIN (SELECT * FROM deposit WHERE exchange_account_id = ?1) AS depuser" +
+            " ON deposit_hash.deposit_id = depuser.id ORDER BY deposit_hash.last_update DESC;", nativeQuery = true)
+    Page<DepositHash> findByExchangeAccount(Long exchangeAccountId, Pageable pageable);
 
     Boolean existsByTransactionHash(String transactionHash);
     Optional<DepositHash> findByTransactionHash(String transactionHash);

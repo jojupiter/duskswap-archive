@@ -155,7 +155,7 @@ public class WithdrawalController {
         // then we debit the account
         accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), withdrawal.getAmount());
 
-        // TODO: we do the send here
+        // Afterwards, we send properly crypto to user
         WalletTransaction walletTransaction = new WalletTransaction();
         walletTransaction.setFeeRate(1.0);
         walletTransaction.setNoChange(false);

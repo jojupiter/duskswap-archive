@@ -117,7 +117,8 @@ public class ExchangeServiceImpl implements ExchangeService {
                         )
                 ) ||
                 user == null ||
-                exchangeAccount == null
+                exchangeAccount == null ||
+                dto.getFromCurrencyId() == dto.getToCurrencyId()
         ) {
             log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> makeExchange :: ExchangeServiceImpl.java");

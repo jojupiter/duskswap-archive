@@ -284,7 +284,7 @@ public class DepositServiceImpl implements DepositService {
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
         Pageable pageable = PageRequest.of(currentPage, pageSize);
-        Page<DepositHash> depositHashes = depositHashRepository.findByExchangeAccount(pageable);
+        Page<DepositHash> depositHashes = depositHashRepository.findByExchangeAccount(account.getId(), pageable);
         if(depositHashes.hasContent()) {
             DepositHashPage depositHashPage = new DepositHashPage();
             depositHashPage.setCurrentPage(depositHashes.getNumber());
