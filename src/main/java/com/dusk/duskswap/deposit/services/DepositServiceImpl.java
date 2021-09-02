@@ -213,7 +213,11 @@ public class DepositServiceImpl implements DepositService {
 
         Deposit savedDeposit = depositRepository.save(deposit);
 
-        // >>>>> 7. finally return the source code of the invoice
+        // >>>>> 7. after that, we update account invoice id
+        exchangeAccount.get().setInvoiceId(invoiceResponse.getBody().getId());
+        exchangeAccountRepository.save(exchangeAccount.get());
+
+        // >>>>> 8. finally return the source code of the invoice
         String invoicePageSource = "";
         invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
 
@@ -267,10 +271,6 @@ public class DepositServiceImpl implements DepositService {
         // here we update
         deposit.get().setToAddress(toAddress);
         depositRepository.save(deposit.get());
-
-        // after that, we update account invoice id
-        deposit.get().getExchangeAccount().setInvoiceId(deposit.get().getInvoiceId());
-        exchangeAccountRepository.save(deposit.get().getExchangeAccount());
 
         return ResponseEntity.ok(true);
     }
