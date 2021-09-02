@@ -7,6 +7,7 @@ public class AppProperties {
     public static final String BTCPAY_SEND_API = "1c8d064550bdbabf88df49c87bfa521bc3df62ce"; // Api to send cryptos to clients (used in withdrawals)
     public static final String BTCPAY_RECEIVE_STORE_ID = "6pRqHdao7ne75ggFmthQ8eLXMZaChmH2xzttAzgHTHXu";
     public static final String BTCPAY_SEND_STORE_ID = "7bywVRvk6gFFbczcQq9vokad51z5qxgZ4RVrtzXcRe1t";
+    public static final String BTCPAY_SERVER_DOMAIN_URL = "https://ax1.duskpay.com/api/v1/stores/";
 
     // ====================== MONGO DB CONFIGS =========================
     public static final String MONGO_DATABASE_NAME = "duskbinance";

@@ -163,7 +163,7 @@ public class DepositServiceImpl implements DepositService {
             if(
                     depositHashCount != null && depositHashCount.getTotalHashCount() != null &&
                     (
-                            depositHashCount.getTotalHashCount() > 0 &&
+                            depositHashCount.getTotalHashCount() >= 0 &&
                             depositHashCount.getTotalHashCount() <= DefaultProperties.MAX_NUMBER_OF_TRANSACTION_FOR_INVOICE
                     )
             ) {
@@ -173,7 +173,7 @@ public class DepositServiceImpl implements DepositService {
 
         }
 
-        // >>>>> 4. then, we create an invoice for the deposit
+        // >>>>> 4. then, if  we create an invoice for the deposit
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
@@ -257,15 +257,20 @@ public class DepositServiceImpl implements DepositService {
             return ResponseEntity.badRequest().body(false);
         }
 
+        // we get the corresponding deposit
         Optional<Deposit> deposit = depositRepository.findById(depositId);
         if(!deposit.isPresent()) {
             log.error("[" + new Date() + "] => DEPOSIT NOT PRESENT >>>>>>>> updateDestinationAddress :: DepositServiceImpl.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        // here we update
         deposit.get().setToAddress(toAddress);
-
         depositRepository.save(deposit.get());
+
+        // after that, we update account invoice id
+        deposit.get().getExchangeAccount().setInvoiceId(deposit.get().getInvoiceId());
+        exchangeAccountRepository.save(deposit.get().getExchangeAccount());
 
         return ResponseEntity.ok(true);
     }

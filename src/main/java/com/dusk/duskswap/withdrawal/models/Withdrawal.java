@@ -29,6 +29,9 @@ public class Withdrawal extends Auditable<String> {
     @Column(name = "dusk_fees_crypto")
     private String duskFeesCrypto; // duskswap fees in CRYPTO
 
+    @Column(name = "network_fees")
+    private String networkFees;
+
     @Column(name = "withdrawal_date")
     private Date withdrawalDate;
 

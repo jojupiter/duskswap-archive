@@ -1,5 +1,6 @@
 package com.dusk.duskswap.commons.services;
 
+import com.dusk.duskswap.application.AppProperties;
 import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -26,9 +27,6 @@ import java.util.Optional;
 @Slf4j
 public class InvoiceServiceImpl implements InvoiceService {
 
-    private String btcpayServerApi = "1c8d064550bdbabf88df49c87bfa521bc3df62ce";//"71108d2c1722443951e445849678ed01591c64f1";
-    private String domainUrl = "https://ax1.duskpay.com/api/v1/stores/";//"https://09btcpay.kifipay.com/api/v1/stores/";
-    private String storeAddress = "7bywVRvk6gFFbczcQq9vokad51z5qxgZ4RVrtzXcRe1t";//"6pRqHdao7ne75ggFmthQ8eLXMZaChmH2xzttAzgHTHXu";//"CML9V2zd6KDrkFMPLc6yTdZSznhV7GYxGEBT98ShwYer";
     private ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
@@ -43,11 +41,11 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         try {
             // setting up connection to btcpay and post the invoice
-            URL url = new URL(domainUrl + storeAddress + "/invoices");
+            URL url = new URL(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_RECEIVE_STORE_ID + "/invoices");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Authorization", "token " + AppProperties.BTCPAY_RECEIVE_API);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();
@@ -108,11 +106,11 @@ public class InvoiceServiceImpl implements InvoiceService {
         // setting up connection to btcpay and post the invoice
         URL url = null;
         try {
-            url = new URL(domainUrl + storeAddress + "/invoices/" + invoiceId);
+            url = new URL(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_RECEIVE_STORE_ID + "/invoices/" + invoiceId);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Authorization", "token " + AppProperties.BTCPAY_RECEIVE_API);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();
@@ -177,11 +175,11 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         URL url = null;
         try {
-            url = new URL(domainUrl + storeAddress + "/invoices/" + invoiceId + "/payment-methods");
+            url = new URL(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_RECEIVE_STORE_ID + "/invoices/" + invoiceId + "/payment-methods");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Authorization", "token " + AppProperties.BTCPAY_RECEIVE_API);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();
@@ -230,11 +228,11 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         URL url = null;
         try {
-            url = new URL(domainUrl + storeAddress + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions");
+            url = new URL(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_SEND_STORE_ID + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Authorization", "token " + AppProperties.BTCPAY_SEND_API);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();
@@ -293,11 +291,11 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         URL url = null;
         try {
-            url = new URL(domainUrl + storeAddress + "/payment-methods/OnChain/" + cryptoCode + "/wallet");
+            url = new URL(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_SEND_STORE_ID + "/payment-methods/OnChain/" + cryptoCode + "/wallet");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("Authorization", "token " + btcpayServerApi);
+            conn.setRequestProperty("Authorization", "token " + AppProperties.BTCPAY_SEND_API);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
             conn.connect();

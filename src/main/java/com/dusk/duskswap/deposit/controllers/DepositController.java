@@ -64,7 +64,7 @@ public class DepositController {
         return depositService.getAllDeposits(currentPage, pageSize);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/deposit-hash/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserDepositHashes(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                      @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
@@ -199,6 +199,7 @@ public class DepositController {
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
             }
             accountService.fundAccount(account, deposit.get().getCurrency(), depositHash.get().getAmount());
+            return ResponseEntity.ok(true);
         }
 
         return ResponseEntity.ok(false);
