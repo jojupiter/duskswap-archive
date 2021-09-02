@@ -1,0 +1,14 @@
+package com.dusk.externalAPIs.blockstream.models;
+
+import lombok.Data;
+
+@Data
+public class Vout {
+
+    private String scriptpubkey;
+    private String scriptpubkey_asm;
+    private String scriptpubkey_type;
+    private String scriptpubkey_address;
+    private Double value;
+
+}
