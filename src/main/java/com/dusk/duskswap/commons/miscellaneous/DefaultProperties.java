@@ -73,7 +73,18 @@ public class DefaultProperties {
     public static final String BTCPAY_INVOICE_STATUS_INVALID = "Invalid";
 
     // ========== deposits =====================
-    public static final String DEPOSIT_DEFAULT_VALUE = "8000000000000";
+    public static final String DEPOSIT_DEFAULT_VALUE = "800000000";
     public static final int MAX_NUMBER_OF_TRANSACTION_FOR_INVOICE = 150;
+
+    // ========== block explorer ================
+    public static final int DEFAULT_BLOCK_TARGET = 3;
+    public static final double MAX_BTC_SAT_PER_BYTES = 8;
+
+    // ========= transaction size estimation ==========
+    public static final int BTC_TRANSACTION_SIZE_MAX = 250; // for a normal transaction it's about 226vb(1 input: 148, 1 output: 68, overhead: 10 >> formula: size = nb_in * input + nb_out * output + overhead) but we take a maximum in order to not having problem
+    public static final int DASH_TRANSACTION_SIZE_MAX = 0;
+    public static final int ETH_TRANSACTION_SIZE_MAX = 0;
+    public static final int LTC_TRANSACTION_SIZE_MAX = 0;
+    public static final int DOGE_TRANSACTION_SIZE_MAX = 0;
 
 }

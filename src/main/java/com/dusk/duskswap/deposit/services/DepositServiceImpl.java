@@ -18,6 +18,8 @@ import com.dusk.duskswap.deposit.repositories.DepositRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@Slf4j
+//@Slf4j
 public class DepositServiceImpl implements DepositService {
 
     @Autowired
@@ -53,6 +55,7 @@ public class DepositServiceImpl implements DepositService {
     private CurrencyRepository currencyRepository;
     @Autowired
     private InvoiceService invoiceService;
+    Logger log = LoggerFactory.getLogger(DepositServiceImpl.class);
 
     @Override
     public ResponseEntity<DepositPage> getAllUserDeposits(User user, Integer currentPage, Integer pageSize) {
@@ -153,12 +156,13 @@ public class DepositServiceImpl implements DepositService {
         // >>>>> 2. we get the exchange account
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
-            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            log.debug("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. We check the invoice Id in exchange account, count the number of deposit associated with it and decide whether or not to create another invoice
         if(exchangeAccount.get().getInvoiceId() != null && !exchangeAccount.get().getInvoiceId().isEmpty()) {
+            log.error("IN CONDITION 1 >>>>>>");
             DepositHashCount depositHashCount = countDepositHashes(exchangeAccount.get().getInvoiceId());
             if(
                     depositHashCount != null && depositHashCount.getTotalHashCount() != null &&
@@ -167,6 +171,7 @@ public class DepositServiceImpl implements DepositService {
                             depositHashCount.getTotalHashCount() <= DefaultProperties.MAX_NUMBER_OF_TRANSACTION_FOR_INVOICE
                     )
             ) {
+                log.debug("IN CONDITION 2 >>>>>>");
                 Optional<Deposit> deposit = depositRepository.findByInvoiceId(exchangeAccount.get().getInvoiceId());
                 return ResponseEntity.ok(deposit.get().getToAddress());
             }
@@ -179,6 +184,8 @@ public class DepositServiceImpl implements DepositService {
             log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+
+        log.info("INVOICE CREATION DTO AMOUNT =>>>>>>" + dto.getAmount());
 
         Invoice invoice = new Invoice();
         invoice.setAmount(dto.getAmount());
@@ -332,7 +339,7 @@ public class DepositServiceImpl implements DepositService {
 
             for(int i = invoicePayment.getPayments().size() - 1; i >= 0; i--) {// reverse looping on payments
                 Payment payment = invoicePayment.getPayments().get(i);
-                if(depositHashRepository.existsByTransactionHash(payment.getId())) {
+                if(!depositHashRepository.existsByTransactionHash(payment.getId())) { // if no payment with that id, then create a new deposit hash for it
                     DepositHash depositHash = new DepositHash();
                     depositHash.setTransactionHash(payment.getId());
                     depositHash.setAmount(payment.getValue());
@@ -347,7 +354,7 @@ public class DepositServiceImpl implements DepositService {
                     }
                     depositHash.setStatus(status.get());
                     depositHashes.add(depositHash);
-                    break; // TODO: Revisit this, because we supposed here just one payment comes at time
+                    break;
                 }
             }
         }

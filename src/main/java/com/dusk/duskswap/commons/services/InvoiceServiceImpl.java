@@ -4,6 +4,7 @@ import com.dusk.duskswap.application.AppProperties;
 import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Autowired
     private CurrencyRepository currencyRepository;
+
+    public InvoiceServiceImpl() {
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES); // to avoid error when we have an unknown property
+    }
 
     @Override
     public ResponseEntity<Invoice> createInvoice(Invoice invoice) {

@@ -1,5 +1,7 @@
 package com.dusk.duskswap.administration.controllers;
 
+import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.entityDto.PricingDto;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.Pricing;
@@ -21,6 +23,8 @@ public class AdministrationController {
     private UtilitiesService utilitiesService;
     @Autowired
     private PricingService pricingService;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     // ============================== Levels ========================================
     @PreAuthorize("hasRole('ADMIN')")
@@ -82,6 +86,55 @@ public class AdministrationController {
     @DeleteMapping("/pricing/delete")
     public ResponseEntity<Boolean> deletePricing(@RequestParam(name = "pricingId") Long pricingId) {
         return pricingService.deletePricing(pricingId);
+    }
+
+    // ================================= Available funds ==========================================
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/balance/initialize")
+    public ResponseEntity<?> initializeBalances() {
+        return overallBalanceService.initializeBalances();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/balance/create")
+    public ResponseEntity<?> createBalance(@RequestParam(name = "currencyId") Long currencyId) {
+        return overallBalanceService.createBalanceFor(currencyId);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/balance/increase")
+    public ResponseEntity<?> increaseOverallAmount(
+            @RequestParam(name = "amount") String amountToIncrease,
+            @RequestParam(name = "currencyId") Long currencyId,
+            @RequestParam(name = "depositOrWithdrawal") Integer depositOrWithdrawal
+    ) {
+        return overallBalanceService.increaseAmount(amountToIncrease, currencyId, depositOrWithdrawal);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/balance/decrease")
+    public ResponseEntity<?> decreaseOverallAmount(
+            @RequestParam(name = "amount") String amountToDecrease,
+            @RequestParam(name = "currencyId") Long currencyId,
+            @RequestParam(name = "depositOrWithdrawal") Integer depositOrWithdrawal
+    ) {
+        return overallBalanceService.decreaseAmount(amountToDecrease, currencyId, depositOrWithdrawal);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/balance/update")
+    public ResponseEntity<?> updateBalance(
+            @RequestParam(name = "amount") String amount,
+            @RequestParam(name = "currencyId") Long currencyId,
+            @RequestParam(name = "depositOrWithdrawal") Integer depositOrWithdrawal
+    ) {
+        return overallBalanceService.updateBalanceFor(currencyId, amount, depositOrWithdrawal);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/balance/all")
+    public ResponseEntity<List<OverallBalance>> getAllBalances() {
+        return overallBalanceService.getAllBalances();
     }
 
 }

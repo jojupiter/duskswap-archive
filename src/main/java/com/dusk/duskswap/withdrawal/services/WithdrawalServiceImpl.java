@@ -4,8 +4,10 @@ import com.dusk.binanceExchangeRates.factories.BinanceRateFactory;
 import com.dusk.binanceExchangeRates.repositories.BinanceRateRepository;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
+import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.models.Status;
@@ -58,6 +60,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private BinanceRateFactory binanceRateFactory;
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @Override
     public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(User user, Integer currentPage, Integer pageSize) {
@@ -138,22 +142,21 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         if(!pricing.isPresent()) {
             log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            //return null;
         }
+
+        // we check if the amount respects the boundaries in pricing
         if(
                 Double.parseDouble(wdto.getAmount()) > Double.parseDouble(pricing.get().getWithdrawalMax()) ||
                 Double.parseDouble(wdto.getAmount()) < Double.parseDouble(pricing.get().getWithdrawalMin())
         ) {
             log.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            //return null;
         }
         // >>>>> 3. we get the status "confirmed"
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            //return null;
         }
 
         // ============================== fees calculation ================================
@@ -166,6 +169,14 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             duskFees = Double.parseDouble(pricing.get().getWithdrawalFees());
         }
 
+        // once having fees we check if it will be possible to perform the withdrawal with the available amount we have
+        Double estimatedFees = Utilities.estimateNetworkFees(currency.get().getIso());
+        Double availableAmount = Double.parseDouble(overallBalanceService.getAvailableBalanceFor(currency.get(), 1));
+        if(availableAmount <= estimatedFees + duskFees + Double.parseDouble(wdto.getAmount())) {
+            log.error("[" + new Date() + "] => DUSK INSUFFICIENT BALANCE >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => DUSK INSUFFICIENT BALANCE >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
+        }
+
         Withdrawal withdrawal = new Withdrawal();
         withdrawal.setWithdrawalDate(new Date());
         withdrawal.setAmount(wdto.getAmount());
@@ -174,7 +185,23 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdrawal.setExchangeAccount(exchangeAccount);
         withdrawal.setDuskFeesCrypto(Double.toString(duskFees));
 
+        return withdrawal;
+    }
+
+    @Override
+    public Withdrawal saveWithdrawal(Withdrawal withdrawal) {
+        // input checking
+        if(withdrawal == null) {
+            log.error("[" + new Date() + "] => WITHDRAWAL OBJECT NULL >>>>>>>> saveWithdrawal :: WithdrawalServiceImpl.java");
+            return null;
+        }
         return withdrawalRepository.save(withdrawal);
     }
 
+    @Override
+    public void deleteWithdrawal(Long withdrawalId) {
+        if(withdrawalId == null)
+            return;
+        withdrawalRepository.deleteById(withdrawalId);
+    }
 }

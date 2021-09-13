@@ -60,4 +60,20 @@ public class Utilities {
         return foundPayment;
     }
 
+    public static Double estimateNetworkFees(String cryptoIso) {
+        // input checking
+        if(cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty())) {
+            log.error("[" + new Date() + "] => cryptoIso NULL OR EMPTY >>>>>>>> estimateNetworkFees :: DepositServiceImpl.java");
+            return null;
+        }
+
+        if(cryptoIso.toLowerCase().equals("btc") || cryptoIso.toLowerCase().equals("bitcoin")) {
+            return DefaultProperties.MAX_BTC_SAT_PER_BYTES *
+                   DefaultProperties.BTC_TRANSACTION_SIZE_MAX *
+                   Math.pow(10, -8);
+        }
+
+        return null;
+    }
+
 }

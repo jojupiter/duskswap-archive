@@ -16,6 +16,9 @@ import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.models.DepositHash;
 import com.dusk.duskswap.deposit.services.DepositService;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.externalAPIs.apiInterfaces.interfaces.BlockExplorerOperations;
+import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
+import com.dusk.externalAPIs.blockstream.models.Transaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -44,6 +47,8 @@ public class DepositController {
     private AccountService accountService;
     @Autowired
     private UtilitiesService utilitiesService;
+    @Autowired
+    private BlockExplorerOperations blockExplorerOperations;
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
@@ -109,8 +114,12 @@ public class DepositController {
     public void receivePayment(@RequestHeader("BTCPay-Sig") String btcpaySig,
                                @RequestBody WebhookEvent webhookEvent) throws Exception {
 
+        // header checking
+        //TODO: check the hashmac 256 of the header
+
         // >>>>> 1. we find the deposit with the corresponding invoiceId and the total deposit hash count associated with that invoice
         DepositHashCount hashCount = depositService.countDepositHashes(webhookEvent.getInvoiceId());
+
         if(hashCount == null) {
             log.error("[" + new Date() + "] => DEPOSIT HASH COUNT NOT PRESENT >>>>>>>> receivePayment :: DepositController.java");
             return;
@@ -179,6 +188,13 @@ public class DepositController {
 
         // here we get the payment
         Payment correspondingPayment = Utilities.findPayment(invoicePayments, transactionHash);
+        if(correspondingPayment == null) {
+            log.error("[" + new Date() + "] => CAN'T FIND PAYMENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // we check the transaction information
+        /*TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(correspondingPayment.getId(), deposit.get().getCurrency().getIso());*/
 
         String paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + correspondingPayment.getStatus();
         //we only update status whenever deposit hash status != btcpay payment status
@@ -204,89 +220,5 @@ public class DepositController {
 
         return ResponseEntity.ok(false);
     }
-
-    /*@PostMapping(value = "/update-status", produces = "application/json")
-    @Transactional
-    public void updateDepositStatus(@RequestHeader("BTCPay-Sig") String btcpaySig,
-                                    @RequestBody WebhookEvent webhookEvent) throws Exception {
-        // >>>>> 1. first we check the input and the invoice id
-        if(
-                 webhookEvent == null ||
-                (webhookEvent != null && (webhookEvent.getInvoiceId().equals("") || webhookEvent.getInvoiceId() == null))
-        )
-            return;
-
-        // >>>>> 2. Then we verify the status of the corresponding invoice
-        Invoice invoice = invoiceService.getInvoice(webhookEvent.getInvoiceId());
-        if(invoice == null) {
-            log.error("[" + new Date() + "] => CAN'T FIND INVOICE with id = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
-            return;
-        }
-
-        // >>>>> 3. We check the amount paid (even if that amount is less than the expected, we consider the deposit completed)
-        List<InvoicePayment> invoicePayments = invoiceService.getPaymentMethods(invoice.getId(), true);
-        if(invoicePayments == null || (invoicePayments != null && invoicePayments.isEmpty())) {
-            log.error("[" + new Date() + "] => PAYMENT LIST EMPTY OR NULL >>>>>>>> updateDepositStatus :: DepositController.java");
-            return;
-        }
-
-        Double amountPaid = 0.0;
-        for(InvoicePayment invoicePayment: invoicePayments) {
-            if(invoicePayment.getTotalPaid() != null && !invoicePayment.getTotalPaid().isEmpty())
-                amountPaid += Double.parseDouble(invoicePayment.getTotalPaid());
-        }
-
-        // >>>>> 4. We update the deposit status if it has changed
-        Optional<Deposit> deposit = depositService.getDepositByInvoiceId(webhookEvent.getInvoiceId());
-        if(deposit.isPresent()) {
-            // if status == complete, we save it as "Settled" in deposit. ("Settled" for us means that the deposit is done)
-            String newDepositStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + invoice.getStatus();
-
-            // if the payment is either partial or over or even settled, we set the deposit status as "Settled"
-            if(
-                    invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_SETTLED) ||
-                    invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_COMPLETE) ||
-                    invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_LATE) ||
-                    invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_OVER) ||
-                    invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_PARTIAL)
-            )
-                newDepositStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED;
-
-            depositService.updateDepositStatus(
-                    deposit.get(),
-                    newDepositStatus,
-                    Double.toString(amountPaid)
-            );
-        }
-        if(!deposit.isPresent()) {
-            log.error("[" + new Date() + "] => CAN'T FIND DEPOSIT WITH INVOICE ID = " + webhookEvent.getInvoiceId() + " >>>>>>>> updateDepositStatus :: DepositController.java");
-            return;
-        }
-
-        // >>>>> 5. if the status is "Settled" or the additional status is paid over, late or partial, then we update the account balance
-        if(
-                invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_SETTLED) ||
-                invoice.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_COMPLETE) ||
-                invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_LATE) ||
-                invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_OVER) ||
-                invoice.getAdditionalStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_PAID_PARTIAL)
-        ) {
-            ExchangeAccount account = accountService.getAccountById(deposit.get().getExchangeAccount().getId());
-            if(account == null) {
-                log.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> updateDepositStatus :: DepositController.java");
-                return;
-            }
-
-            Currency currency = invoiceService.getInvoiceCurrency(invoice);
-            if(currency == null) {
-                log.error("[" + new Date() + "] => CAN'T FIND CORRESPONDING CURRENCY >>>>>>>> updateDepositStatus :: DepositController.java");
-                return;
-            }
-
-            accountService.fundAccount(account, currency, Double.toString(amountPaid));
-        }
-
-    }*/
-
 
 }

@@ -2,10 +2,14 @@ package com.dusk.duskswap.withdrawal.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
+import com.dusk.duskswap.commons.miscellaneous.Utilities;
+import com.dusk.duskswap.commons.models.TransactionBlock;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.models.WalletTransaction;
 import com.dusk.duskswap.commons.models.WalletTransactionDestination;
@@ -17,6 +21,8 @@ import com.dusk.duskswap.withdrawal.entityDto.WithdrawalDto;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalPage;
 import com.dusk.duskswap.withdrawal.models.Withdrawal;
 import com.dusk.duskswap.withdrawal.services.WithdrawalService;
+import com.dusk.externalAPIs.apiInterfaces.interfaces.BlockExplorerOperations;
+import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +56,10 @@ public class WithdrawalController {
     private VerificationCodeService verificationCodeService;
     @Autowired
     private UtilitiesService utilitiesService;
+    @Autowired
+    private BlockExplorerOperations blockExplorerOperations;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -140,8 +150,6 @@ public class WithdrawalController {
             return new ResponseEntity<>(CodeErrors.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // TODO: checking the available balance of the given crypto currency
-
         // then we create the withdrawal
         Withdrawal withdrawal = withdrawalService.createWithdrawal(dto, user.get(), account);
         if(withdrawal == null) {
@@ -152,36 +160,56 @@ public class WithdrawalController {
         // next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
-        // then we debit the account
-        accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), withdrawal.getAmount());
+        // we get the actual fees used in the transaction (max between what the Api send to us and the default max value we set)
+        Double networkFees = Math.max(
+                DefaultProperties.MAX_BTC_SAT_PER_BYTES,
+                blockExplorerOperations.getEstimatedFees(withdrawal.getCurrency().getIso(),
+                DefaultProperties.DEFAULT_BLOCK_TARGET)
+        );
 
         // Afterwards, we send properly crypto to user
         WalletTransaction walletTransaction = new WalletTransaction();
-        walletTransaction.setFeeRate(1.0);
+        walletTransaction.setFeeRate(networkFees);
         walletTransaction.setNoChange(false);
         walletTransaction.setRbf(null);
         walletTransaction.setSelectedInputs(null);
         WalletTransactionDestination destination = new WalletTransactionDestination();
         destination.setDestination(dto.getToAddress());
         destination.setAmount(dto.getAmount());
-        destination.setSubtractFromAmount(true);
+        destination.setSubtractFromAmount(true); // we take fees outside the amount we want to send to user
         List<WalletTransactionDestination> destinations = new ArrayList<>();
         destinations.add(destination);
         walletTransaction.setDestinations(destinations);
 
-        invoiceService.sendCrypto(walletTransaction, withdrawal.getCurrency().getIso());
+        TransactionBlock block = invoiceService.sendCrypto(walletTransaction, withdrawal.getCurrency().getIso());
+        if(block == null) {
+            log.error("[" + new Date() + "] => ERROR: CAN'T MAKE SEND CRYPTO >>>>>>>> confirm :: WithdrawalController.java");
+            withdrawalService.deleteWithdrawal(withdrawal.getId());
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(block.getTransactionHash(), withdrawal.getCurrency().getIso());
+        Double totalAmountToDebit = Double.parseDouble(withdrawal.getAmount()) + transactionInfos.getFees();
+
+        // after that, we save the withdrawal with all the fees
+        withdrawal.setNetworkFees(Double.toString(networkFees));
+        withdrawal.setTransactionHash(block.getTransactionHash());
+        Withdrawal savedWithdrawal = withdrawalService.saveWithdrawal(withdrawal);
+
+        // then we debit the account
+        accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), Double.toString(totalAmountToDebit));
+
+        // after that we decrease the overall withdrawal balance
+        OverallBalance overallBalance = overallBalanceService.decreaseAmount(Double.toString(totalAmountToDebit), withdrawal.getCurrency(), 1);
+        if(overallBalance == null) {
+            log.error("[" + new Date() + "] => ERROR: CAN'T DECREASE OVERALL WITHDRAWAL BALANCE >>>>>>>> confirm :: WithdrawalController.java");
+            withdrawalService.deleteWithdrawal(withdrawal.getId());
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         return ResponseEntity.ok(true);
 
     }
-
-    /*@PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @PostMapping(value = "/send", produces = "application/json")
-    public String sendCrypto(@RequestBody WalletTransaction walletTransaction,
-                             @RequestParam(name = "cryptoCode") String cryptoCode
-    ) {
-        return invoiceService.sendCrypto(walletTransaction, cryptoCode);
-    }*/
 
 
 }

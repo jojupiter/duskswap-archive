@@ -5,6 +5,7 @@ import com.dusk.duskswap.account.models.AmountCurrencyKey;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.AmountCurrencyRepository;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.LevelRepository;
@@ -43,6 +44,8 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     private AmountCurrencyRepository amountCurrencyRepository;
     @Autowired
     private ExchangeAccountRepository exchangeAccountRepository;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @Override
     public List<Currency> getAllCurrencies() {
@@ -126,6 +129,9 @@ public class UtilitiesServiceImpl implements UtilitiesService {
             }
             amountCurrencyRepository.saveAll(amountCurrencies);
         }
+
+        // we add general balance for the new currency
+        overallBalanceService.createBalanceFor(createdCurrency);
 
         return ResponseEntity.ok(createdCurrency);
     }

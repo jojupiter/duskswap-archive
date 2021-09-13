@@ -11,7 +11,7 @@ public class Transaction {
     private Integer locktime;
     private Integer size;
     private Double weight;
-    private Double fee;
+    private Double fee; // in sat/vb
     private List<Vin> vin;
     private List<Vout> vout;
     private TransactionStatus status;

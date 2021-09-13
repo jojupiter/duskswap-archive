@@ -8,6 +8,8 @@ public class AppProperties {
     public static final String BTCPAY_RECEIVE_STORE_ID = "6pRqHdao7ne75ggFmthQ8eLXMZaChmH2xzttAzgHTHXu";
     public static final String BTCPAY_SEND_STORE_ID = "7bywVRvk6gFFbczcQq9vokad51z5qxgZ4RVrtzXcRe1t";
     public static final String BTCPAY_SERVER_DOMAIN_URL = "https://ax1.duskpay.com/api/v1/stores/";
+    public static final String BTCPAY_DEPOSIT_WEBHOOK_INVOICE_CREATED = "WmBN8Y4e2o1rha9xoaxac9";
+    public static final String BTCPAY_DEPOSIT_WEBHOOK_INVOICE_SETTLED = "WmBN8Y4e2o1rha9xoaxac9";
 
     // ====================== MONGO DB CONFIGS =========================
     public static final String MONGO_DATABASE_NAME = "duskbinance";
