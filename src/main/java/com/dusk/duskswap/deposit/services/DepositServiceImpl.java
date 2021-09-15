@@ -107,8 +107,8 @@ public class DepositServiceImpl implements DepositService {
         if(deposits.hasContent()) {
             DepositPage depositPage = new DepositPage();
             depositPage.setCurrentPage(deposits.getNumber());
-            depositPage.setTotalItems(depositPage.getTotalItems());
-            depositPage.setTotalNumberPages(depositPage.getTotalNumberPages());
+            depositPage.setTotalItems(deposits.getTotalElements());
+            depositPage.setTotalNumberPages(deposits.getTotalPages());
             depositPage.setDeposits(deposits.getContent());
 
             return ResponseEntity.ok(depositPage);
@@ -297,6 +297,7 @@ public class DepositServiceImpl implements DepositService {
 
         Pageable pageable = PageRequest.of(currentPage, pageSize);
         Page<DepositHash> depositHashes = depositHashRepository.findByExchangeAccount(account.getId(), pageable);
+        log.info("DEPOSIT HASHES >>>> " + depositHashes);
         if(depositHashes.hasContent()) {
             DepositHashPage depositHashPage = new DepositHashPage();
             depositHashPage.setCurrentPage(depositHashes.getNumber());
