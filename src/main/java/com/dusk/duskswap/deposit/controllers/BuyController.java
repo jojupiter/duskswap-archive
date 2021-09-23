@@ -2,11 +2,11 @@ package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
-import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.BuyDto;
 import com.dusk.duskswap.deposit.entityDto.BuyPage;
 import com.dusk.duskswap.deposit.services.BuyService;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,7 +26,7 @@ public class BuyController {
     @Autowired
     private BuyService buyService;
     @Autowired
-    private UtilitiesService utilitiesService;
+    private UserService userService;
     @Autowired
     private AccountService accountService;
 
@@ -40,9 +40,24 @@ public class BuyController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public  ResponseEntity<?> getAllUserBuy(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
-                                                  @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+                                            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        return buyService.getAllBuyByUser(user.get(), currentPage, pageSize);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/user-all", produces = "application/json", params = "userId")
+    public  ResponseEntity<?> getAllUserBuy(@RequestParam(name = "userId") Long userId,
+                                            @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+
+        Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);

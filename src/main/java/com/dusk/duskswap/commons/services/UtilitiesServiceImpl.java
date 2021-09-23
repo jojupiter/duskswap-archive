@@ -136,18 +136,6 @@ public class UtilitiesServiceImpl implements UtilitiesService {
         return ResponseEntity.ok(createdCurrency);
     }
 
-    // =======================================================================================
-    @Override
-    public Optional<User> getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken || authentication == null)
-            return Optional.empty();
-        Long userId = ((UserDetailsImpl)authentication.getPrincipal()).getId();
-        if(userId == null)
-            return Optional.empty();
-        return userRepository.findById(userId);
-    }
-
     // =====================================================================================
     @Override
     public ResponseEntity<List<Level>> getAllLevels() {

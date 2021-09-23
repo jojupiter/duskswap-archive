@@ -4,6 +4,7 @@ import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Misc;
+import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.*;
 import com.dusk.duskswap.commons.services.InvoiceService;
@@ -341,18 +342,20 @@ public class DepositServiceImpl implements DepositService {
                 Payment payment = invoicePayment.getPayments().get(i);
                 if(!depositHashRepository.existsByTransactionHash(payment.getId())) { // if no payment with that id, then create a new deposit hash for it
                     DepositHash depositHash = new DepositHash();
-                    depositHash.setTransactionHash(payment.getId());
+                    depositHash.setTransactionHash(Utilities.extractTransactionHash(payment.getId(), deposit.getCurrency().getIso()));
                     depositHash.setAmount(payment.getValue());
                     depositHash.setToDepositAddress(invoicePayment.getDestination());
                     depositHash.setDeposit(deposit);
                     depositHash.setFromDepositAddress(payment.getDestination());
+                    depositHash.setIsValid(true);
 
                     Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + payment.getStatus());
                     if(!status.isPresent()) {
-                        log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDepositHash :: DepositServiceImpl.java");
-                        throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDepositHash :: DepositServiceImpl.java");
+                        statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_PROCESSING);
                     }
                     depositHash.setStatus(status.get());
+                    if(payment.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_INVALID)) // if payment is invalid, we set deposit hash as invalid
+                        depositHash.setIsValid(false);
                     depositHashes.add(depositHash);
                     break;
                 }
@@ -369,9 +372,9 @@ public class DepositServiceImpl implements DepositService {
         // input checking
         if(
                 depositHash == null ||
-                statusString == null || (statusString != null || statusString.isEmpty())
+                statusString == null || (statusString != null && statusString.isEmpty())
         ) {
-            log.error("[" + new Date() + "] => INPUT NULL (STATUS OR DEPOSIT HASH) >>>>>>>> updateDepositHashStatus :: DepositServi ceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL (STATUS OR DEPOSIT HASH) >>>>>>>> updateDepositHashStatus :: DepositServiceImpl.java");
             return null;
         }
 
@@ -381,12 +384,20 @@ public class DepositServiceImpl implements DepositService {
             return null;
         }
 
-        if(!depositHash.getStatus().getName().equals(status.get().getName())) {
-            depositHash.setStatus(status.get());
-            depositHashRepository.save(depositHash);
+        if(
+                statusString.equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_PROCESSING) &&
+                depositHash.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_PROCESSING) // this line is to avoiding unnecessary call to DB to update status
+        ) {
+            log.info("(INFO) [" + new Date() + "] => STATUS STILL PROCESSING >>>>>>>> updateDepositHashStatus :: DepositServiceImpl.java");
+            return null;
         }
 
-        return null;
+        if(statusString.equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED)) {// if deposit hash is in settled status, set isValid to false
+            depositHash.setIsValid(false);
+        }
+
+        depositHash.setStatus(status.get());
+        return depositHashRepository.save(depositHash);
     }
 
     @Override

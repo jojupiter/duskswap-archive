@@ -16,8 +16,6 @@ public interface UtilitiesService {
     ResponseEntity<Boolean> enableCurrency(Long currencyId, Boolean isSupported);
     ResponseEntity<Currency> createCurrency(Currency currency);
 
-    Optional<User> getCurrentUser();
-
     ResponseEntity<Level> createLevel(Level level);
     ResponseEntity<List<Level>> getAllLevels();
     ResponseEntity<Level> updateLevel(Long levelId, Level newLevel);

@@ -1,12 +1,19 @@
 package com.dusk.duskswap.commons.miscellaneous;
 
+import org.apache.commons.codec.binary.Hex;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.zip.GZIPInputStream;
+
 
 public class Misc {
 
@@ -34,4 +41,23 @@ public class Misc {
         return sb.toString().split("btcDue")[0];
     }
 
+    public static String encodeHmacSHA256message(String key, String message) {
+        Mac sha256_HMAC = null;
+        try {
+            sha256_HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            sha256_HMAC.init(secret_key);
+
+            return Hex.encodeHexString(sha256_HMAC.doFinal(message.getBytes(StandardCharsets.UTF_8)));
+        }
+        catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        catch (InvalidKeyException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+
+    }
 }

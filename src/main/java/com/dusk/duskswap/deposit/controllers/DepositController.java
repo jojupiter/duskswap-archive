@@ -2,23 +2,24 @@ package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
-import com.dusk.duskswap.commons.models.*;
+import com.dusk.duskswap.commons.models.InvoicePayment;
+import com.dusk.duskswap.commons.models.Payment;
+import com.dusk.duskswap.commons.models.WebhookEvent;
 import com.dusk.duskswap.commons.services.InvoiceService;
-import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.entityDto.DepositHashCount;
-import com.dusk.duskswap.deposit.entityDto.DepositHashPage;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
 import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.models.DepositHash;
 import com.dusk.duskswap.deposit.services.DepositService;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.BlockExplorerOperations;
 import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
-import com.dusk.externalAPIs.blockstream.models.Transaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,8 +31,6 @@ import javax.transaction.Transactional;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
-import static com.dusk.duskswap.commons.miscellaneous.Utilities.findPayment;
 
 @RestController
 @CrossOrigin("*")
@@ -46,15 +45,30 @@ public class DepositController {
     @Autowired
     private AccountService accountService;
     @Autowired
-    private UtilitiesService utilitiesService;
+    private UserService userService;
     @Autowired
     private BlockExplorerOperations blockExplorerOperations;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserDeposits(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                 @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return depositService.getAllUserDeposits(user.get(), currentPage, pageSize);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/user-all", produces = "application/json", params = "userId")
+    public ResponseEntity<?> getAllUserDeposits(@RequestParam(name = "userId") Long userId,
+                                                @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                                @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+        Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -73,7 +87,7 @@ public class DepositController {
     @GetMapping(value = "/deposit-hash/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserDepositHashes(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                      @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDepositHashes :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -89,11 +103,33 @@ public class DepositController {
 
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/deposit-hash/user-all", produces = "application/json", params = "userId")
+    public ResponseEntity<?> getAllUserDepositHashes(@RequestParam(name = "userId") Long userId,
+                                                     @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                                     @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+        Optional<User> user = userService.getUser(userId);
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDepositHashes :: DepositController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        ExchangeAccount account = accountService.getAccountByUser(user.get());
+        if(account == null) {
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> getAllUserDepositHashes :: DepositController.java");
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        return depositService.getAllUserDepositHashes(account, currentPage, pageSize);
+
+    }
+
+
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/create")
     @Transactional
     public ResponseEntity<?> createDeposit(@RequestBody DepositDto dto) throws Exception {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -141,7 +177,7 @@ public class DepositController {
                 hashCount.getTotalHashCount() >= 0 &&
                 hashCount.getTotalHashCount() <= DefaultProperties.MAX_NUMBER_OF_TRANSACTION_FOR_INVOICE + 1
         )
-        depositService.createDepositHash(invoicePayments, hashCount.getDeposit());
+            depositService.createDepositHash(invoicePayments, hashCount.getDeposit());
 
     }
 
@@ -160,7 +196,8 @@ public class DepositController {
             return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
         }
 
-        Optional<User> user = utilitiesService.getCurrentUser();
+        // ===================================== Getting necessary information =========================================
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -178,6 +215,10 @@ public class DepositController {
             log.error("[" + new Date() + "] => DEPOSIT HASH NOT PRESENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.DEPOSIT_HASH_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+        if(!depositHash.get().getIsValid()) { // if it's not, return an error
+            log.error("[" + new Date() + "] => DEPOSIT HASH NO MORE VALID >>>>>>>> checkDepositHashStatus :: DepositController.java");
+            return new ResponseEntity<>(CodeErrors.DEPOSIT_HASH_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         // >>>>> 3. if depositHash exists, the we can check the status of the payment
         List<InvoicePayment> invoicePayments = invoiceService.getPaymentMethods(deposit.get().getInvoiceId(), true);
@@ -186,19 +227,23 @@ public class DepositController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // here we get the payment
-        Payment correspondingPayment = Utilities.findPayment(invoicePayments, transactionHash);
-        if(correspondingPayment == null) {
-            log.error("[" + new Date() + "] => CAN'T FIND PAYMENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
+        // ========================================== Getting and updating the status ====================================================
+        String paymentStatus = null;
 
-        // we check the transaction information
-        /*TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(correspondingPayment.getId(), deposit.get().getCurrency().getIso());*/
+        // >>>>> 4. we check the transaction information
+        TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(depositHash.get().getTransactionHash(), deposit.get().getCurrency().getIso());
+        Boolean isNumberOfConfirmationSufficient = null;
+        if(transactionInfos != null)
+            isNumberOfConfirmationSufficient = Utilities.checkNetworkConfirmations(deposit.get().getCurrency().getIso(), transactionInfos.getNConfirmations());
 
-        String paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + correspondingPayment.getStatus();
-        //we only update status whenever deposit hash status != btcpay payment status
-        if(!correspondingPayment.getStatus().equals(paymentStatus)) {
+        if(transactionInfos != null && isNumberOfConfirmationSufficient != null) { // here we check directly the blockchain to know if the number of confirmation is good enough
+            if (isNumberOfConfirmationSufficient) {
+                paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED;
+            }
+            else {
+                paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_PROCESSING;
+            }
+
             DepositHash updatedDepositHash = depositService.updateDepositHashStatus(depositHash.get(), paymentStatus);
             if(updatedDepositHash == null) {
                 log.error("[" + new Date() + "] => DIDN'T UPDATE DEPOSIT HASH STATUS >>>>>>>> checkDepositHashStatus :: DepositController.java");
@@ -206,15 +251,40 @@ public class DepositController {
             }
         }
 
-        // >>>>> 4. If the status is "Settled", then we fund the user's account
-         if(correspondingPayment.getStatus().equals(DefaultProperties.BTCPAY_INVOICE_STATUS_SETTLED)) {
+        else {
+            // here we get the payment among the invoice payments
+            Payment correspondingPayment = Utilities.findPayment(invoicePayments, transactionHash);
+            if(correspondingPayment == null) {
+                log.error("[" + new Date() + "] => CAN'T FIND PAYMENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
+                return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+
+            paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + correspondingPayment.getStatus();
+            //we only update status whenever deposit hash status != btcpay payment status
+            if(!correspondingPayment.getStatus().equals(paymentStatus)) {
+                DepositHash updatedDepositHash = depositService.updateDepositHashStatus(depositHash.get(), paymentStatus);
+                if(updatedDepositHash == null) {
+                    log.error("[" + new Date() + "] => DIDN'T UPDATE DEPOSIT HASH STATUS >>>>>>>> checkDepositHashStatus :: DepositController.java");
+                    return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
+            }
+
+        }
+
+        // ========================================== Funding the account =============================================
+
+        // >>>>> 5. If the status is "Settled", then we fund the user's account
+         if(paymentStatus.equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED)) {
             // first we get the exchange account
             ExchangeAccount account = accountService.getAccountByUser(user.get());
             if(account == null) {
                 log.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> checkDepositHashStatus :: DepositController.java");
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
             }
+            // we fund the account
             accountService.fundAccount(account, deposit.get().getCurrency(), depositHash.get().getAmount());
+            // and then increase the overall balance of the system
+            overallBalanceService.increaseAmount(depositHash.get().getAmount(), deposit.get().getCurrency(), 0);
             return ResponseEntity.ok(true);
         }
 

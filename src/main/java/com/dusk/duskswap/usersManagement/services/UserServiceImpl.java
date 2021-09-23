@@ -9,6 +9,7 @@ import com.dusk.duskswap.usersManagement.controllers.AuthController;
 import com.dusk.duskswap.usersManagement.models.Enterprise;
 import com.dusk.duskswap.usersManagement.models.Role;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.models.UserDetailsImpl;
 import com.dusk.duskswap.usersManagement.repositories.EnterpriseRepository;
 import com.dusk.duskswap.usersManagement.repositories.RoleRepository;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
@@ -16,9 +17,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -113,13 +118,35 @@ public class UserServiceImpl implements UserService {
 
     //======================== USER SERVICES =====================================
     @Override
+    public Optional<User> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof AnonymousAuthenticationToken || authentication == null)
+            return Optional.empty();
+        Long userId = ((UserDetailsImpl)authentication.getPrincipal()).getId();
+        if(userId == null)
+            return Optional.empty();
+        return userRepository.findById(userId);
+    }
+
+
+    @Override
     public ResponseEntity<User> getUserById(Long id) {
         if(id == null) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getUserById :: UserServiceImpl.java");
-            return null;
+            return ResponseEntity.badRequest().body(null);
         }
         return ResponseEntity.ok(userRepository.findById(id).get());
     }
+
+    @Override
+    public Optional<User> getUser(Long id) {
+        if(id == null) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getUser :: UserServiceImpl.java");
+            return null;
+        }
+        return userRepository.findById(id);
+    }
+
     @Override
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());

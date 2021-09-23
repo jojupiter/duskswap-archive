@@ -12,5 +12,6 @@ public class CodeErrors {
     public static final int UNABLE_TO_FUND_ACCOUNT = 1007;
     public static final int DEPOSIT_NOT_EXISTING = 1008;
     public static final int DEPOSIT_HASH_NOT_EXISTING = 1009;
+    public static final int DEPOSIT_HASH_INVALID = 1010;
 
 }

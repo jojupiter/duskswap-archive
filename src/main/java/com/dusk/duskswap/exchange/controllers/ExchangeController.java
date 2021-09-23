@@ -2,13 +2,14 @@ package com.dusk.duskswap.exchange.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
-import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.exchange.entityDto.ExchangeDto;
 import com.dusk.duskswap.exchange.entityDto.ExchangePage;
 import com.dusk.duskswap.exchange.models.Exchange;
 import com.dusk.duskswap.exchange.services.ExchangeService;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,14 +32,32 @@ public class ExchangeController {
     @Autowired
     private AccountService accountService;
     @Autowired
-    private UtilitiesService utilitiesService;
+    private UserService userService;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserExchanges(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
-                                                            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+                                                 @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         // >>>>>>> 1. we get the user
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserExchange :: ExchangeController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>>>> 2. we then apply the corresponding method
+        return exchangeService.getAllUserExchanges(user.get(), currentPage, pageSize);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/user-all", produces = "application/json", params = "userId")
+    public ResponseEntity<?> getAllUserExchanges(@RequestParam(name = "userId") Long userId,
+                                                 @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                                 @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+        // >>>>>>> 1. we get the user
+        Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserExchange :: ExchangeController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -51,17 +70,17 @@ public class ExchangeController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
     public ResponseEntity<ExchangePage> getAllExchanges(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
-                                                          @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+                                                        @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         return exchangeService.getAllExchanges(currentPage, pageSize);
     }
 
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/create", produces = "application/json")
     public ResponseEntity<?> makeExchange(@RequestBody ExchangeDto dto) throws Exception {
         // >>>>>>> 1. we get the user
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -84,11 +103,13 @@ public class ExchangeController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>>> 4. when the exchange is created, we debit the account (from_amount)
+        // >>>>>> 4. when the exchange is created, we debit the account (from_amount) + also debit the overall amount for that currency
         accountService.debitAccount(exchangeAccount, createdExchange.getFromCurrency(), dto.getFromAmount());
+        overallBalanceService.decreaseAmount(dto.getFromAmount(), createdExchange.getFromCurrency(), 0);
 
         // >>>>>> 5. then we fund the account (to_amount)
         accountService.fundAccount(exchangeAccount, createdExchange.getToCurrency(), createdExchange.getToAmount()/*dto.getToAmount()*/);
+        overallBalanceService.increaseAmount(createdExchange.getToAmount(),  createdExchange.getToCurrency(), 0);
 
         return ResponseEntity.ok(true);
 

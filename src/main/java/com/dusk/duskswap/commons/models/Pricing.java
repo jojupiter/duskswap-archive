@@ -56,4 +56,11 @@ public class Pricing {
     @Column(name = "exchange_max")
     private String exchangeMax;
 
+    @Column(name = "transferFees")
+    private String transferFees;
+    @Column(name = "transferMin")
+    private String transferMin;
+    @Column(name = "transferMax")
+    private String transferMax;
+
 }

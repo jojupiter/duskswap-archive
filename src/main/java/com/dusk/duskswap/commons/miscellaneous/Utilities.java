@@ -41,7 +41,7 @@ public class Utilities {
                 invoicePayments == null || (invoicePayments != null && invoicePayments.isEmpty()) ||
                 transactionHash == null || (transactionHash != null && transactionHash.isEmpty())
         ) {
-            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> createDeposit :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> findPayment :: Utilities.java");
             return null;
         }
 
@@ -63,7 +63,7 @@ public class Utilities {
     public static Double estimateNetworkFees(String cryptoIso) {
         // input checking
         if(cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty())) {
-            log.error("[" + new Date() + "] => cryptoIso NULL OR EMPTY >>>>>>>> estimateNetworkFees :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => cryptoIso NULL OR EMPTY >>>>>>>> estimateNetworkFees :: Utilities.java");
             return null;
         }
 
@@ -74,6 +74,67 @@ public class Utilities {
         }
 
         return null;
+    }
+
+    public static Boolean checkNetworkConfirmations(String cryptoIso, Long nConfirmations) {
+        if(
+                cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty()) ||
+                nConfirmations == null
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> checkNetworkConfirmations :: Utilities.java " +
+                    "====== cryptoIso = " + cryptoIso + ", nConfirmations = " + nConfirmations);
+            return null;
+        }
+
+        if(
+                (cryptoIso.toLowerCase().equals("btc") || cryptoIso.toLowerCase().equals("bitcoin")) &&
+                nConfirmations >= DefaultProperties.BTC_REQUIRED_CONFIRMATIONS
+        )
+            return true;
+        if(
+                (cryptoIso.toLowerCase().equals("eth") || cryptoIso.toLowerCase().equals("ethereum")) &&
+                nConfirmations >= DefaultProperties.ETH_REQUIRED_CONFIRMATIONS
+        )
+            return true;
+        if(
+                (cryptoIso.toLowerCase().equals("ltc") || cryptoIso.toLowerCase().equals("litecoin")) &&
+                nConfirmations >= DefaultProperties.LTC_REQUIRED_CONFIRMATIONS
+        )
+            return true;
+        if(cryptoIso.toLowerCase().equals("dash") && nConfirmations >= DefaultProperties.DASH_REQUIRED_CONFIRMATIONS)
+            return true;
+        if(
+                (cryptoIso.toLowerCase().equals("doge") || cryptoIso.toLowerCase().equals("dogecoin")) &&
+                nConfirmations >= DefaultProperties.DOGE_REQUIRED_CONFIRMATIONS
+        )
+            return true;
+        if(
+                (cryptoIso.toLowerCase().equals("shib") || cryptoIso.toLowerCase().equals("shiba inu")) &&
+                nConfirmations >= DefaultProperties.SHIB_REQUIRED_CONFIRMATIONS
+        )
+            return true;
+
+        return false;
+    }
+
+
+    public static String extractTransactionHash(String btcpayTxId, String cryptoIso) {
+        if(
+                cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty()) ||
+                btcpayTxId == null || (btcpayTxId != null && btcpayTxId.isEmpty())
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> extractTransactionHash :: Utilities.java " +
+                    "====== cryptoIso = " + cryptoIso + ", btcpayTxId = " + btcpayTxId);
+            return null;
+        }
+
+        String hash = null;
+
+        if(cryptoIso.toLowerCase().equals("btc") || cryptoIso.toLowerCase().equals("bitcoin"))
+            hash = btcpayTxId.split("-")[0];
+        if(cryptoIso.toLowerCase().equals("xmr") || cryptoIso.toLowerCase().equals("monero"))
+            hash = btcpayTxId.split(":")[0];
+        return hash;
     }
 
 }

@@ -9,16 +9,14 @@ import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.VerificationCode;
-import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPage;
 import com.dusk.duskswap.withdrawal.models.Sell;
 import com.dusk.duskswap.withdrawal.services.SellService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -45,7 +43,7 @@ public class SellController {
     @Autowired
     private AccountService accountService;
     @Autowired
-    private UtilitiesService utilitiesService;
+    private UserService userService;
     @Autowired
     private VerificationCodeService verificationCodeService;
     @Autowired
@@ -63,7 +61,7 @@ public class SellController {
             return ResponseEntity.badRequest().body(null);
         }
         // >>>>> 1. getting the current authenticated user
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -110,7 +108,7 @@ public class SellController {
     @GetMapping(value = "/ask-code", produces = "application/json")
     public ResponseEntity<Boolean> askCode() {
         // first we get the current authenticated user
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> askCode :: SellController.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -136,9 +134,23 @@ public class SellController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserSales(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
-                                                      @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+                                             @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return sellService.getAllSales(user.get(), currentPage, pageSize);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/user-all", produces = "application/json", params = "userId")
+    public ResponseEntity<?> getAllUserSales(@RequestParam(name = "userId") Long userId,
+                                             @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                             @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+
+        Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);

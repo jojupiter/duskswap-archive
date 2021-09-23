@@ -20,7 +20,9 @@ public interface UserService {
     void deleteEnterprise(Long id);
 
     //======================== USER SERVICES =====================================
+    Optional<User> getCurrentUser();
     ResponseEntity<User> getUserById(Long id);
+    Optional<User> getUser(Long id);
     ResponseEntity<List<User>> getAllUsers();
     User addUser(@Valid User user);
     ResponseEntity<User> updateUser(Long id, @Valid User newUser);

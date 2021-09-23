@@ -37,8 +37,6 @@ public class UserController {
     @Autowired
     private EmailService emailService;
     @Autowired
-    private UtilitiesService utilitiesService;
-    @Autowired
     private JwtUtils jwtUtils;
 
     //================== USER MANAGEMENT =======================
@@ -51,7 +49,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping(value = "/update", produces = "application/json")
     public ResponseEntity<?> updateUser(@RequestBody User newUser, @RequestParam(name = "oldPassword") String oldPassword) {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> updateUser :: UserController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -59,8 +57,7 @@ public class UserController {
         return userService.updateUser(user.get(), newUser, oldPassword);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    @PutMapping(value = "/check-email", produces = "application/json")
+    @PostMapping(value = "/check-email", produces = "application/json")
     public ResponseEntity<Boolean> checkEmail(@RequestParam(name = "email") String email) {
         // input checking
         if(email == null) {
@@ -130,7 +127,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping(value = "/suspend", produces = "application/json")
     public ResponseEntity<?> suspendUser() {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> suspendUser :: UserController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -166,7 +163,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/current", produces = "application/json")
     public ResponseEntity<User> getCurrentUser() {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             return new ResponseEntity<>(HttpStatus.UNPROCESSABLE_ENTITY);
         }
@@ -198,7 +195,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping("/enterprises/update/user")
     public ResponseEntity<?> updateEnterprise(@Valid @RequestBody Enterprise newEnterprise) {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> updateEnterprise :: UserController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -221,7 +218,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping(value = "/enterprises/token", produces = "application/json")
     public ResponseEntity<?> getEnterpriseByOwner() {
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getEnterpriseByOwner :: UserController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);

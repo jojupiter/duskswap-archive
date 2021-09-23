@@ -27,10 +27,10 @@ public class Exchange extends Auditable<String> {
     private String duskFees; // unit: from currency (fees are taken on the initial input currency, so the fromCurrency)
 
     @Column(name = "from_currency_price_usdt")
-    private String fromCurrencyPriceInUsdt;
+    private String fromCurrencyPriceInUsdt; // used to keep history price
 
     @Column(name = "to_currency_price_usdt")
-    private String toCurrencyPriceInUsdt;
+    private String toCurrencyPriceInUsdt; // used to keep history price
 
     @ManyToOne
     @JoinColumn(name = "from_currency_id", referencedColumnName = "id")
