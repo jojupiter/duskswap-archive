@@ -117,7 +117,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
     @Override
     @Transactional
-    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount) throws Exception {
+    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount) throws Exception { // in this, we create the withdrawal without saving it. It will be saved later is the caller's code using the saveWithdrawal function
         // input checking
         if(wdto == null ||
                 (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()) )

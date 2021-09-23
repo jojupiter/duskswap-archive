@@ -8,15 +8,14 @@ import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
-import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.TransactionBlock;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.models.WalletTransaction;
 import com.dusk.duskswap.commons.models.WalletTransactionDestination;
 import com.dusk.duskswap.commons.services.InvoiceService;
-import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
 import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalDto;
 import com.dusk.duskswap.withdrawal.entityDto.WithdrawalPage;
 import com.dusk.duskswap.withdrawal.models.Withdrawal;
@@ -24,8 +23,6 @@ import com.dusk.duskswap.withdrawal.services.WithdrawalService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.BlockExplorerOperations;
 import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,7 +52,7 @@ public class WithdrawalController {
     @Autowired
     private VerificationCodeService verificationCodeService;
     @Autowired
-    private UtilitiesService utilitiesService;
+    private UserService userService;
     @Autowired
     private BlockExplorerOperations blockExplorerOperations;
     @Autowired
@@ -73,7 +70,21 @@ public class WithdrawalController {
     public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                             @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return withdrawalService.getAllUserWithdrawals(user.get(), currentPage, pageSize);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/user-all", produces = "application/json", params = "userId")
+    public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(@RequestParam(name = "userId") Long userId,
+                                                                @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+                                                                @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
+
+        Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -86,7 +97,7 @@ public class WithdrawalController {
     @GetMapping(value = "/ask-code", produces = "application/json")
     public ResponseEntity<Boolean> askCode() {
         // first we get the current authenticated user
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> askCode :: WithdrawalController.java");
             return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -127,7 +138,7 @@ public class WithdrawalController {
             return ResponseEntity.badRequest().body(null);
         }
         // then we get the current authenticated user
-        Optional<User> user = utilitiesService.getCurrentUser();
+        Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -157,14 +168,10 @@ public class WithdrawalController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
-        verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
-
         // we get the actual fees used in the transaction (max between what the Api send to us and the default max value we set)
         Double networkFees = Math.max(
                 DefaultProperties.MAX_BTC_SAT_PER_BYTES,
-                blockExplorerOperations.getEstimatedFees(withdrawal.getCurrency().getIso(),
-                DefaultProperties.DEFAULT_BLOCK_TARGET)
+                blockExplorerOperations.getEstimatedFees(withdrawal.getCurrency().getIso(), DefaultProperties.DEFAULT_BLOCK_TARGET)
         );
 
         // Afterwards, we send properly crypto to user
@@ -188,9 +195,12 @@ public class WithdrawalController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        log.info("TRANSACTION BLOCK =======> " + block);
+
         TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(block.getTransactionHash(), withdrawal.getCurrency().getIso());
         Double totalAmountToDebit = Double.parseDouble(withdrawal.getAmount()) + transactionInfos.getFees();
 
+        log.info("TRANSACTION INFOS =======> " + transactionInfos);
         // after that, we save the withdrawal with all the fees
         withdrawal.setNetworkFees(Double.toString(networkFees));
         withdrawal.setTransactionHash(block.getTransactionHash());
@@ -206,6 +216,9 @@ public class WithdrawalController {
             withdrawalService.deleteWithdrawal(withdrawal.getId());
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+
+        // next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
+        verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
         return ResponseEntity.ok(true);
 
