@@ -1,6 +1,8 @@
 package com.dusk.duskswap.commons.controller;
 
+import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.services.PricingService;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.commons.models.Currency;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,8 @@ public class UtilitiesController {
 
     @Autowired
     private UtilitiesService utilitiesService;
+    @Autowired
+    private PricingService pricingService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all-currencies")
@@ -59,5 +63,13 @@ public class UtilitiesController {
     public ResponseEntity<Boolean> enableCurrency(@RequestParam(name = "currencyId") Long currencyId) {
         return utilitiesService.enableCurrency(currencyId, true);
     }
+
+// ============================== PRICINGS ===========================================
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/pricing/currency")
+    public ResponseEntity<List<Pricing>> getAllPricingByCurrency(@RequestParam(name = "currencyId") Long currencyId) {
+        return pricingService.getAllPricingForCurrency(currencyId);
+    }
+
 
 }

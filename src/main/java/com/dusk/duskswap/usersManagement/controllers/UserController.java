@@ -89,7 +89,6 @@ public class UserController {
         return ResponseEntity.ok(true);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping(value = "/update-password", produces = "application/json")
     public ResponseEntity<String> updatePassword(@RequestBody PasswordUpdateDto dto) {
         // input checking
