@@ -32,6 +32,7 @@ public interface UserService {
     ResponseEntity<User> adminSuspendUser(Long id); // status: USER_SUSPENDED_BY_SUPERADMIN
     ResponseEntity<User> activateUser(Long id); // status: USER_ACTIVATED
     ResponseEntity<User> disableUser(Long id); // status: USER_DISABLED
+    ResponseEntity<List<User>> getUserByUsernameOrEmail(String usernameOrEmail);
     Optional<User> getUserByUsername(String username);
     Optional<User> getUserByEmail(String email);
     Boolean existsByUsername(String username);

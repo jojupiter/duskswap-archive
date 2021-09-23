@@ -207,8 +207,10 @@ public class UserServiceImpl implements UserService {
             user.get().setEncryptedPassword(newUser.getEncryptedPassword());
 
         // >>>>> 4. we then modify all the values
-        if(newUser.getUsername() != null && !newUser.getUsername().isEmpty())
-            user.get().setUsername(newUser.getUsername());
+        if(newUser.getUsername() != null && !newUser.getUsername().isEmpty()) {
+            if(!existsByUsername(newUser.getUsername()))
+                user.get().setUsername(newUser.getUsername());
+        }
         if(newUser.getTel() != null && !newUser.getTel().isEmpty())
             user.get().setTel(newUser.getTel());
         if(newUser.getFirstName() != null && !newUser.getFirstName().isEmpty())
@@ -245,8 +247,10 @@ public class UserServiceImpl implements UserService {
             user.setEncryptedPassword(newUser.getEncryptedPassword());
 
         // >>>>> 4. we then modify all the values
-        if(newUser.getUsername() != null && !newUser.getUsername().isEmpty())
-            user.setUsername(newUser.getUsername());
+        if(newUser.getUsername() != null && !newUser.getUsername().isEmpty()) {
+            if(!existsByUsername(newUser.getUsername()))
+                user.setUsername(newUser.getUsername());
+        }
         if(newUser.getTel() != null && !newUser.getTel().isEmpty())
             user.setTel(newUser.getTel());
         if(newUser.getFirstName() != null && !newUser.getFirstName().isEmpty())
@@ -357,6 +361,17 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user.get());
 
         return ResponseEntity.ok(user.get());
+    }
+
+    @Override
+    public ResponseEntity<List<User>> getUserByUsernameOrEmail(String usernameOrEmail) {
+        // input checking
+        if(usernameOrEmail == null || (usernameOrEmail != null && usernameOrEmail.isEmpty())) {
+            log.error("[" + new Date() + "] => USERNAME OR EMAIL NULL OR EMPTY >>>>>>>> usernameOrEmail :: UserServiceImpl.java");
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        return ResponseEntity.ok(userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail));
     }
 
     @Override

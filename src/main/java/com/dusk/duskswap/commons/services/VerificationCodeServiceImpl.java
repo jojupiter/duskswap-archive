@@ -100,6 +100,25 @@ public class VerificationCodeServiceImpl implements VerificationCodeService{
     }
 
     @Override
+    public VerificationCode createTransferCode(String email) {
+        if(email == null || (email != null && email.isEmpty())) {
+            log.error("EMAIL EMPTY OR NULL >>>>>>>> createTransferCode :: VerificationCodeServiceImpl.java");
+            return null;
+        }
+        Optional<VerificationCode> currentVerificationCode = verificationCodeRepository.findByUserEmailAndPurpose(email, DefaultProperties.VERIFICATION_TRANSFER_PURPOSE);
+        if(currentVerificationCode.isPresent()) {
+            currentVerificationCode.get().setCode(Utilities.generateVerificationCode());
+            return verificationCodeRepository.save(currentVerificationCode.get());
+        }
+        VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setCode(Utilities.generateVerificationCode());
+        verificationCode.setPurpose(DefaultProperties.VERIFICATION_TRANSFER_PURPOSE);
+        verificationCode.setUserEmail(email);
+
+        return verificationCodeRepository.save(verificationCode);
+    }
+
+    @Override
     public VerificationCode createForgotPasswordCode(String email) {
         if(email == null || (email != null && email.isEmpty())) {
             log.error("EMAIL EMPTY OR NULL >>>>>>>> createForgotPasswordCode :: VerificationCodeServiceImpl.java ==== email = " + email);

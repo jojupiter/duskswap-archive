@@ -24,6 +24,9 @@ public class OverallBalance {
     @Column(name = "withdrawal_balance")
     private String withdrawalBalance; // amount of all crypto or fiat available for sale or withdraw
 
+    @Column(name = "totalEarnings")
+    private String totalEarnings; // total earnings of duskswap
+
     @ManyToOne
     @JoinColumn(name = "currency_id", referencedColumnName = "id")
     private Currency currency;

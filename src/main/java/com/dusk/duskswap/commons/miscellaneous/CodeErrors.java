@@ -13,5 +13,6 @@ public class CodeErrors {
     public static final int DEPOSIT_NOT_EXISTING = 1008;
     public static final int DEPOSIT_HASH_NOT_EXISTING = 1009;
     public static final int DEPOSIT_HASH_INVALID = 1010;
+    public static final int JWT_TOKEN_INVALID = 1011;
 
 }

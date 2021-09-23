@@ -78,6 +78,17 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    public void sendTransferEmail(Email email) {
+        email.setSubject("Confirmation du transfert");
+        email.setMessageTitle("Confirmez la tranfert");
+        email.setMessageSubTitle("Votre code de transfert est:");
+        email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
+        email.setMessageFooter("Pour confirmer le transfert , veuillez copier et collez ce code  dans le champ requis du formulaire de connexion.");
+
+        sendEmail(email);
+    }
+
+    @Override
     public void sendForgotPasswordEmail(Email email) {
         email.setSubject("Réinitialisation du mot de passe");
         email.setMessageTitle("Code de réinitialisation");

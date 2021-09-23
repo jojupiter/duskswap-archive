@@ -90,7 +90,7 @@ public class UserController {
     }
 
     @PutMapping(value = "/update-password", produces = "application/json")
-    public ResponseEntity<String> updatePassword(@RequestBody PasswordUpdateDto dto) {
+    public ResponseEntity<Boolean> updatePassword(@RequestBody PasswordUpdateDto dto) {
         // input checking
         if(
                 dto == null ||
@@ -103,24 +103,24 @@ public class UserController {
                 )
         ) {
             log.error("[" + new Date() + "] => INPUT NULL (dto = " + dto + ") >>>>>>>> updateString :: UserController.java");
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(false);
         }
 
         // >>>>> 1. getting the user
         Optional<User> user = userService.getUserByEmail(dto.getEmail());
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => EMAIL DOESN'T EXIST >>>>>>>> checkEmail :: UserController.java");
-            return new ResponseEntity(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. updating user password
         User user1 = userService.updateUserPassword(user.get(), dto.getNewPassword());
         if(user1 == null) {
             log.error("[" + new Date() + "] => EMAIL DOESN'T EXIST >>>>>>>> checkEmail :: UserController.java");
-            return new ResponseEntity(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity(false, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        return ResponseEntity.ok("Updated Successfully!");
+        return ResponseEntity.ok(true);
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
@@ -174,6 +174,13 @@ public class UserController {
     public User getUserByUsername(@RequestParam(name = "username") String username)
     {
         return userService.getUserByUsername(username).get();
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @GetMapping(value = "/username-email", produces = "application/json")
+    public ResponseEntity<List<User>> getUserByUsernameOrEmail(@RequestParam(name = "usernameOrEmail") String usernameOrEmail)
+    {
+        return userService.getUserByUsernameOrEmail(usernameOrEmail);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
