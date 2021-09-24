@@ -315,11 +315,21 @@ public class DepositServiceImpl implements DepositService {
     public Optional<DepositHash> getDepositHashByTransaction(String transactionHash) {
         // input checking
         if(transactionHash == null || (transactionHash != null &&  transactionHash.isEmpty())) {
-            log.error("[" + new Date() + "] => INPUT NULL (TRANSACTION HASH) >>>>>>>> createDepositHash :: DepositServiceImpl.java");
+            log.error("[" + new Date() + "] => INPUT NULL (TRANSACTION HASH) >>>>>>>> getDepositHashByTransaction :: DepositServiceImpl.java");
             return Optional.empty();
         }
 
         return depositHashRepository.findByTransactionHash(transactionHash);
+    }
+
+    @Override
+    public Optional<DepositHash> getDepositHashById(Long depositHashId) {
+        // input checking
+        if(depositHashId == null) {
+            log.error("[" + new Date() + "] => INPUT NULL (DEPOSIT HASH ID) >>>>>>>> getDepositHashById :: DepositServiceImpl.java");
+            return Optional.empty();
+        }
+        return depositHashRepository.findById(depositHashId);
     }
 
     @Override
@@ -344,10 +354,10 @@ public class DepositServiceImpl implements DepositService {
                     DepositHash depositHash = new DepositHash();
                     depositHash.setTransactionHash(Utilities.extractTransactionHash(payment.getId(), deposit.getCurrency().getIso()));
                     depositHash.setAmount(payment.getValue());
-                    depositHash.setToDepositAddress(invoicePayment.getDestination());
+                    depositHash.setToDepositAddress(payment.getDestination());
                     depositHash.setDeposit(deposit);
-                    depositHash.setFromDepositAddress(payment.getDestination());
                     depositHash.setIsValid(true);
+                    depositHash.setCryptoIso(deposit.getCurrency().getIso());
 
                     Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + payment.getStatus());
                     if(!status.isPresent()) {

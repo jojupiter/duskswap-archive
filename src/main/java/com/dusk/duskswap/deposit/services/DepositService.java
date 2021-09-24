@@ -26,6 +26,7 @@ public interface DepositService {
 
     ResponseEntity<DepositHashPage> getAllUserDepositHashes(ExchangeAccount account, Integer currentPage, Integer pageSize);
     Optional<DepositHash> getDepositHashByTransaction(String transactionHash);
+    Optional<DepositHash> getDepositHashById(Long depositHashId);
     Boolean createDepositHash(List<InvoicePayment> invoicePayments, Deposit deposit) throws Exception;
     DepositHash updateDepositHashStatus(DepositHash depositHash, String statusString);
     DepositHashCount countDepositHashes(String invoiceId);

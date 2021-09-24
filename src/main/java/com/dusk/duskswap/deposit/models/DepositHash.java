@@ -32,6 +32,9 @@ public class DepositHash extends Auditable<String> {
     @Column(name = "is_valid")
     private Boolean isValid; // a deposit hash is valid until we have take it in to consideration when funding the user's account. This is used to avoid cases where we could increase the user's account multiple times for the same deposit hash
 
+    @Column(name = "crypto_iso")
+    private String cryptoIso;
+
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")
     private Status status;

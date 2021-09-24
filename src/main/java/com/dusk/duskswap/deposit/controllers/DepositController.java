@@ -184,15 +184,12 @@ public class DepositController {
     @PostMapping(value = "/check-hash-status", produces = "application/json")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @Transactional
-    public ResponseEntity<?> checkDepositHashStatus(@RequestParam(name = "depositId") Long depositId,
-                                                    @RequestParam(name = "tx") String transactionHash) throws Exception {
+    public ResponseEntity<?> checkDepositHashStatus(@RequestParam(name = "depositHashId") Long depositHashId) throws Exception {
         // input checking
         if(
-                depositId == null ||
-                transactionHash == null || (transactionHash != null && transactionHash.isEmpty())
+                depositHashId == null
         ) {
-            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> checkDepositHashStatus :: DepositController.java" +
-                    " ======= depositId = " + depositId + ", tx = " + transactionHash);
+            log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> checkDepositHashStatus :: DepositController.java");
             return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
         }
 
@@ -203,14 +200,8 @@ public class DepositController {
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 1. we get the deposit associated with depositId
-        Optional<Deposit> deposit = depositService.getDepositById(depositId);
-        if(!deposit.isPresent()) {
-            log.error("[" + new Date() + "] => DEPOSIT NOT PRESENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.DEPOSIT_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        // >>>>> 2. we get the depositHash associated with transactionHash
-        Optional<DepositHash> depositHash = depositService.getDepositHashByTransaction(transactionHash);
+        // >>>>> 1. we get the depositHash associated with transactionHash
+        Optional<DepositHash> depositHash = depositService.getDepositHashById(depositHashId);
         if(!depositHash.isPresent()) {
             log.error("[" + new Date() + "] => DEPOSIT HASH NOT PRESENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
             return new ResponseEntity<>(CodeErrors.DEPOSIT_HASH_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -220,8 +211,8 @@ public class DepositController {
             return new ResponseEntity<>(CodeErrors.DEPOSIT_HASH_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 3. if depositHash exists, the we can check the status of the payment
-        List<InvoicePayment> invoicePayments = invoiceService.getPaymentMethods(deposit.get().getInvoiceId(), true);
+        // >>>>> 2. if depositHash exists, the we can check the status of the payment
+        List<InvoicePayment> invoicePayments = invoiceService.getPaymentMethods(depositHash.get().getDeposit().getInvoiceId(), true);
         if(invoicePayments == null || (invoicePayments != null && invoicePayments.isEmpty())) {
             log.error("[" + new Date() + "] => INVOICE PAYMENTS UNAVAILABLE >>>>>>>> checkDepositHashStatus :: DepositController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -230,11 +221,11 @@ public class DepositController {
         // ========================================== Getting and updating the status ====================================================
         String paymentStatus = null;
 
-        // >>>>> 4. we check the transaction information
-        TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(depositHash.get().getTransactionHash(), deposit.get().getCurrency().getIso());
+        // >>>>> 3. we check the transaction information
+        TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(depositHash.get().getTransactionHash(), depositHash.get().getDeposit().getCurrency().getIso());
         Boolean isNumberOfConfirmationSufficient = null;
         if(transactionInfos != null)
-            isNumberOfConfirmationSufficient = Utilities.checkNetworkConfirmations(deposit.get().getCurrency().getIso(), transactionInfos.getNConfirmations());
+            isNumberOfConfirmationSufficient = Utilities.checkNetworkConfirmations(depositHash.get().getDeposit().getCurrency().getIso(), transactionInfos.getNConfirmations());
 
         if(transactionInfos != null && isNumberOfConfirmationSufficient != null) { // here we check directly the blockchain to know if the number of confirmation is good enough
             if (isNumberOfConfirmationSufficient) {
@@ -244,6 +235,7 @@ public class DepositController {
                 paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_PROCESSING;
             }
 
+            depositHash.get().setFromDepositAddress(transactionInfos.getInAddress());
             DepositHash updatedDepositHash = depositService.updateDepositHashStatus(depositHash.get(), paymentStatus);
             if(updatedDepositHash == null) {
                 log.error("[" + new Date() + "] => DIDN'T UPDATE DEPOSIT HASH STATUS >>>>>>>> checkDepositHashStatus :: DepositController.java");
@@ -253,7 +245,7 @@ public class DepositController {
 
         else {
             // here we get the payment among the invoice payments
-            Payment correspondingPayment = Utilities.findPayment(invoicePayments, transactionHash);
+            Payment correspondingPayment = Utilities.findPayment(invoicePayments, depositHash.get().getTransactionHash());
             if(correspondingPayment == null) {
                 log.error("[" + new Date() + "] => CAN'T FIND PAYMENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -273,7 +265,7 @@ public class DepositController {
 
         // ========================================== Funding the account =============================================
 
-        // >>>>> 5. If the status is "Settled", then we fund the user's account
+        // >>>>> 4. If the status is "Settled", then we fund the user's account
          if(paymentStatus.equals(DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED)) {
             // first we get the exchange account
             ExchangeAccount account = accountService.getAccountByUser(user.get());
@@ -282,9 +274,9 @@ public class DepositController {
                 return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
             }
             // we fund the account
-            accountService.fundAccount(account, deposit.get().getCurrency(), depositHash.get().getAmount());
+            accountService.fundAccount(account, depositHash.get().getDeposit().getCurrency(), depositHash.get().getAmount());
             // and then increase the overall balance of the system
-            overallBalanceService.increaseAmount(depositHash.get().getAmount(), deposit.get().getCurrency(), 0);
+            overallBalanceService.increaseAmount(depositHash.get().getAmount(), depositHash.get().getDeposit().getCurrency(), 0);
             return ResponseEntity.ok(true);
         }
 
