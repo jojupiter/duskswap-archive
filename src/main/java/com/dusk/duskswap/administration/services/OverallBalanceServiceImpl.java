@@ -50,6 +50,24 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
     }
 
     @Override
+    public Optional<OverallBalance> getBalanceFor(Currency currency) {
+        if(currency == null) {
+            log.error("[" + new Date() + "] => CURRENCY NULL >>>>>>>> getBalanceFor :: OverallBalanceServiceImpl.java");
+            return Optional.empty();
+        }
+        return overallBalanceRepository.findByCurrency(currency);
+    }
+
+    @Override
+    public OverallBalance saveBalance(OverallBalance overallBalance) {
+        if(overallBalance == null) {
+            log.error("[" + new Date() + "] => OVER ALL BALANCE NULL >>>>>>>> saveBalance :: OverallBalanceServiceImpl.java");
+            return null;
+        }
+        return overallBalanceRepository.save(overallBalance);
+    }
+
+    @Override
     public ResponseEntity<List<OverallBalance>> getAllBalances() {
         return ResponseEntity.ok(overallBalanceRepository.findAll());
     }
@@ -247,6 +265,7 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
                         OverallBalance overallBalance = new OverallBalance();
                         overallBalance.setWithdrawalBalance("0.0");
                         overallBalance.setDepositBalance("0.0");
+                        overallBalance.setTotalEarnings("0.0");
                         overallBalance.setCurrency(currency);
 
                         overallBalances.add(overallBalance);
@@ -282,6 +301,7 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
         OverallBalance overallBalance = new OverallBalance();
         overallBalance.setWithdrawalBalance("0.0");
         overallBalance.setDepositBalance("0.0");
+        overallBalance.setTotalEarnings("0.0");
         overallBalance.setCurrency(currency.get());
 
         return ResponseEntity.ok(overallBalanceRepository.save(overallBalance));
@@ -304,6 +324,7 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
         OverallBalance overallBalance = new OverallBalance();
         overallBalance.setWithdrawalBalance("0.0");
         overallBalance.setDepositBalance("0.0");
+        overallBalance.setTotalEarnings("0.0");
         overallBalance.setCurrency(currency);
 
         return overallBalanceRepository.save(overallBalance);
@@ -345,4 +366,5 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
 
         return new ResponseEntity<>("CHOICE NOT AVAILABLE", HttpStatus.UNPROCESSABLE_ENTITY);
     }
+
 }

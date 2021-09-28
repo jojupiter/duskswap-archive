@@ -75,7 +75,7 @@ public class SellController {
         }
         if(!accountService.isBalanceSufficient(account, sellDto.getFromCurrencyId(), sellDto.getAmount())) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_AMOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. here we verify if the provided code is correct

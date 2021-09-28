@@ -79,7 +79,7 @@ public class DefaultProperties {
 
     // ========== block explorer ================
     public static final int DEFAULT_BLOCK_TARGET = 3;
-    public static final double MAX_BTC_SAT_PER_BYTES = 5;
+    public static final double MAX_BTC_SAT_PER_BYTES = 2;
 
     // ========= transaction size estimation ==========
     public static final int BTC_TRANSACTION_SIZE_MAX = 250; // for a normal transaction it's about 226vb(1 input: 148, 1 output: 68, overhead: 10 >> formula: size = nb_in * input + nb_out * output + overhead) but we take a maximum in order to not having problem

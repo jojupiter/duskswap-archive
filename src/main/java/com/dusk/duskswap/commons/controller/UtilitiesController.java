@@ -41,6 +41,12 @@ public class UtilitiesController {
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @GetMapping("/currency")
+    public Currency getCurrencyById(@RequestParam(name = "currencyId") Long currencyId) {
+        return utilitiesService.getCurrencyById(currencyId).get();
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/supported-transaction-opts")
     public List<TransactionOption> getAllSupportedTransactionOptions() {
         return utilitiesService.getAllSupportedTransactionOptions();
@@ -62,6 +68,13 @@ public class UtilitiesController {
     @PutMapping("/currencies/activate")
     public ResponseEntity<Boolean> enableCurrency(@RequestParam(name = "currencyId") Long currencyId) {
         return utilitiesService.enableCurrency(currencyId, true);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/currencies/update")
+    public ResponseEntity<Currency> updateCurrency(@RequestParam(name = "currencyId") Long currencyId,
+                                                   @RequestParam(name = "newCurrency") Currency newCurrency) {
+        return utilitiesService.updateCurrency(currencyId, newCurrency);
     }
 
 // ============================== PRICINGS ===========================================

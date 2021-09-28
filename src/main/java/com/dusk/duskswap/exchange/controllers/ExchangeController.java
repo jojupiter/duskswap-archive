@@ -93,7 +93,7 @@ public class ExchangeController {
         }
         if(!accountService.isBalanceSufficient(exchangeAccount, dto.getFromCurrencyId(), dto.getFromAmount())) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.jav");
-            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_AMOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>>> 3. then we attempt to create the exchange
         Exchange createdExchange = exchangeService.makeExchange(dto, user.get(), exchangeAccount);

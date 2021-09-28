@@ -1,5 +1,6 @@
 package com.dusk.externalAPIs.apiInterfaces.interfaces;
 
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
 import com.dusk.externalAPIs.blockstream.models.Transaction;
 import com.dusk.externalAPIs.blockstream.services.BlockStreamService;
@@ -20,7 +21,7 @@ public class BlockExplorerOperationsImpl implements  BlockExplorerOperations {
                 txId == null || (txId != null && txId.isEmpty()) ||
                 cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty())
         ) {
-            log.error("[" + new Date() + "] => txId null >>>>>>>> BlockExplorerOperationsImpl :: BlockStreamService.java" +
+            log.error("[" + new Date() + "] => txId null >>>>>>>> getTransaction :: BlockExplorerOperationsImpl.java" +
                     " ===== txId = " + txId + ", cryptoIso = " + cryptoIso);
             return null;
         }
@@ -50,21 +51,45 @@ public class BlockExplorerOperationsImpl implements  BlockExplorerOperations {
     }
 
     @Override
-    public Double getEstimatedFees(String cryptoIso, Integer blockTarget) {
+    public Double getEstimatedFees(String cryptoIso, Double feeRate) {
         // input checking
-        if(cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty()) || blockTarget == 0) {
-            log.error("[" + new Date() + "] => txId null >>>>>>>> BlockExplorerOperationsImpl :: BlockStreamService.java");
+        if(
+                cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty()) ||
+                feeRate == null || (feeRate != null && feeRate == 0)
+        ) {
+            log.error("[" + new Date() + "] => txId null >>>>>>>> getEstimatedFees :: BlockExplorerOperationsImpl.java");
+            return null;
+        }
+
+        // According to each cryptoIso, we apply a method
+        if(cryptoIso.toLowerCase().equals("btc") || cryptoIso.toLowerCase().equals("bitcoin")) {// for bitcoin
+                return  feeRate *
+                        Math.pow(10, -8) *
+                        DefaultProperties.BTC_TRANSACTION_SIZE_MAX; // in btc
+        }
+        return null;
+    }
+
+    @Override
+    public Double getEstimatedFeeRate(String cryptoIso) {
+        // input checking
+        if(cryptoIso == null || (cryptoIso != null && cryptoIso.isEmpty())) {
+            log.error("[" + new Date() + "] => txId null >>>>>>>> getEstimatedFeeRate :: BlockExplorerOperationsImpl.java");
             return null;
         }
 
         // According to each cryptoIso, we apply a method
         if(cryptoIso.toLowerCase().equals("btc") || cryptoIso.toLowerCase().equals("bitcoin")) {// for bitcoin
             Map<String, String> fees = BlockStreamService.getFeesEstimation();
-            for(int i = blockTarget; i >= 1; i--) {
+            if(fees == null) {
+                return DefaultProperties.MAX_BTC_SAT_PER_BYTES;
+            }
+            for(int i = DefaultProperties.BTC_REQUIRED_CONFIRMATIONS; i >= 1; i--) {
                 if(fees.containsKey(Integer.toString(i)))
-                    return Double.parseDouble(fees.get(Integer.toString(i))) * Math.pow(10, -8); // in btc/vb
+                    return Double.parseDouble(fees.get(Integer.toString(i))); // in sat/vb
             }
         }
+
         return null;
     }
 }

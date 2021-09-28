@@ -48,6 +48,13 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     private OverallBalanceService overallBalanceService;
 
     @Override
+    public Optional<Currency> getCurrencyById(Long currencyId) {
+        if(currencyId == null)
+            return Optional.empty();
+        return currencyRepository.findById(currencyId);
+    }
+
+    @Override
     public List<Currency> getAllCurrencies() {
         return currencyRepository.findAll();
     }
@@ -134,6 +141,37 @@ public class UtilitiesServiceImpl implements UtilitiesService {
         overallBalanceService.createBalanceFor(createdCurrency);
 
         return ResponseEntity.ok(createdCurrency);
+    }
+
+    @Override
+    public ResponseEntity<Currency> updateCurrency(Long currencyId, Currency newCurrency) {
+        if(currencyId == null || newCurrency == null) {
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> updateCurrency :: UtilitiesServiceImpl.java" +
+                    " ==== currencyId = " + currencyId + ", newCurrency = " + newCurrency);
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        Optional<Currency> currency = currencyRepository.findById(currencyId);
+        if(!currency.isPresent()) {
+            log.error("[" + new Date() + "] => CURRENCY DOESN'T EXIST >>>>>>>> updateCurrency :: UtilitiesServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(newCurrency.getId() != null && newCurrency.getId() != currencyId) {
+            log.error("[" + new Date() + "] => ERROR: TRYING TO CHANGE CURRENCY ID >>>>>>>> updateCurrency :: UtilitiesServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(!newCurrency.getIso().equals(currency.get().getIso()))
+            currency.get().setIso(newCurrency.getIso());
+        if(!newCurrency.getIsSupported().equals(currency.get().getIsSupported()))
+            currency.get().setIsSupported(newCurrency.getIsSupported());
+        if(!newCurrency.getName().equals(currency.get().getName()))
+            currency.get().setName(newCurrency.getName());
+        if(!newCurrency.getType().equals(currency.get().getType()))
+            currency.get().setType(currency.get().getType());
+
+        return ResponseEntity.ok(currencyRepository.save(currency.get()));
     }
 
     // =====================================================================================

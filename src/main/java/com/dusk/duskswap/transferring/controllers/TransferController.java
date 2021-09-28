@@ -2,12 +2,17 @@ package com.dusk.duskswap.transferring.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.repositories.PricingRepository;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
+import com.dusk.duskswap.transferring.entityDtos.TransferDto;
+import com.dusk.duskswap.transferring.entityDtos.TransferResponse;
+import com.dusk.duskswap.transferring.models.Transfer;
 import com.dusk.duskswap.transferring.services.TransferService;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.services.UserService;
@@ -41,6 +46,8 @@ public class TransferController {
     private VerificationCodeService verificationCodeService;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -121,6 +128,101 @@ public class TransferController {
         emailService.sendTransferEmail(email);
 
         return ResponseEntity.ok(true);
+
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PostMapping(value = "/confirm", produces = "application/json")
+    public ResponseEntity<?> makeTransfer(@RequestBody TransferDto dto) throws Exception {
+        // input checking
+        if(
+                dto == null ||
+                (
+                     dto != null &&
+                     (
+                             dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
+                             dto.getCurrencyId() == null ||
+                             dto.getUserId() == null
+                     )
+                )
+        ) {
+            log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> makeTransfer :: TransferController.java " +
+                    "====== dto = " + dto);
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        // >>>>> 1. we get the current logged in user and the recipient
+        Optional<User> sender = userService.getCurrentUser();
+        if(!sender.isPresent()) {
+            log.error("[" + new Date() + "] => SENDER NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.JWT_TOKEN_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Optional<User> recipient = userService.getUser(dto.getUserId());
+        if(!recipient.isPresent()) {
+            log.error("[" + new Date() + "] => RECIPIENT NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 3. then we get their account
+        ExchangeAccount senderAccount = accountService.getAccountByUser(sender.get());
+        if(senderAccount == null) {
+            log.error("[" + new Date() + "] => SENDER ACCOUNT NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        ExchangeAccount recipientAccount = accountService.getAccountByUser(recipient.get());
+        if(recipientAccount == null) {
+            log.error("[" + new Date() + "] => RECIPIENT ACCOUNT NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 4. we can now create the transfer object without saving it in DB
+        Transfer transfer = transferService.createTransfer(sender.get(), senderAccount, recipientAccount, dto.getCurrencyId(), dto.getAmount());
+        if(transfer == null) {
+            log.error("[" + new Date() + "] => CAN'T MAKE THE TRANSFER >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 5. we check if the sender and duskswap have enough balance to execute the transfer
+        Double totalTransferAmount = Double.parseDouble(dto.getAmount()) + Double.parseDouble(transfer.getFees());
+        if(!accountService.isBalanceSufficient(senderAccount, dto.getCurrencyId(), Double.toString(totalTransferAmount))) {
+            log.error("[" + new Date() + "] => SENDER " + sender.get().getEmail() + " HAS INSUFFICIENT BALANCE >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        Optional<OverallBalance> overallBalance = overallBalanceService.getBalanceFor(transfer.getCurrency());
+        if(!overallBalance.isPresent()) {
+            log.error("[" + new Date() + "] => OVERALL BALANCE NOT PRESENT FOR CURRENCY :" + transfer.getCurrency().getIso() + ">>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(Double.parseDouble(overallBalance.get().getDepositBalance()) <= totalTransferAmount) {
+            log.error("[" + new Date() + "] => OVERALL BALANCE NOT SUFFICIENT FOR CURRENCY :" + transfer.getCurrency().getIso() + " (" +
+                    " balance = " + overallBalance.get().getDepositBalance() + ", totalTransferAmount = " + totalTransferAmount + ")>>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 6. we save the transfer
+        Transfer savedTransfer = transferService.saveTransfer(transfer);
+
+        // >>>>> 7. we debit and fund accounts
+        accountService.debitAccount(senderAccount, savedTransfer.getCurrency(), Double.toString(totalTransferAmount));
+        accountService.fundAccount(recipientAccount, savedTransfer.getCurrency(), transfer.getAmount());
+
+        if(Double.parseDouble(transfer.getFees()) > 0.0) { // we take fees in overall deposit balance and put it in total earnings
+            Double newTotalEarningsDusk = Double.parseDouble(overallBalance.get().getTotalEarnings()) + Double.parseDouble(transfer.getFees());
+            Double newDepositBalance = Double.parseDouble(overallBalance.get().getDepositBalance()) - Double.parseDouble(transfer.getFees());
+            overallBalance.get().setTotalEarnings(Double.toString(newTotalEarningsDusk));
+            overallBalance.get().setDepositBalance(Double.toString(newDepositBalance));
+            overallBalanceService.saveBalance(overallBalance.get());
+        }
+
+        // >>>>> 8. finally we return the transfer response object
+        TransferResponse transferResponse = new TransferResponse();
+        transferResponse.setAmount(transfer.getAmount());
+        transferResponse.setRecipientEmail(recipient.get().getEmail());
+        transferResponse.setFees(transfer.getFees());
+
+        return ResponseEntity.ok(transferResponse);
 
     }
 

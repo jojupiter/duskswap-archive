@@ -3,10 +3,12 @@ package com.dusk.duskswap.commons.services;
 import com.dusk.duskswap.application.AppProperties;
 import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -231,55 +234,34 @@ public class InvoiceServiceImpl implements InvoiceService {
             return null;
         }
 
-        URL url = null;
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("application/json");
         try {
-            url = new URL(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_SEND_STORE_ID + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("Authorization", "token " + AppProperties.BTCPAY_SEND_API);
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
-            conn.connect();
+            RequestBody body = RequestBody.create(mapper.writeValueAsString(walletTransaction).getBytes(StandardCharsets.UTF_8));
+            Request request = new Request.Builder()
+                    .url(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_SEND_STORE_ID + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions")
+                    .method("POST", body)
+                    .addHeader("Authorization", "token " + AppProperties.BTCPAY_SEND_API)
+                    .addHeader("Content-Type", "application/json")
+                    .build();;
 
-            // here we write the request's body
-            String walletTransactionString = mapper.writeValueAsString(walletTransaction);
-            try(OutputStream os = conn.getOutputStream()) {
-                byte[] input = walletTransactionString.getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
-
-            // reading response
-            // first check if the response code is valid
-            if(conn.getResponseCode() != 200) {
-                log.error("[" + new Date() + "] => CONN STATUS != 200 >>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
-                return null;
-            }
-
-            // if response's status = 200, we read the response
-            StringBuilder response = new StringBuilder();
-
-            try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"))) {
-                String responseLine = null;
-                while ((responseLine = br.readLine()) != null) {
-                    response.append(responseLine.trim());
-                }
-            }
-
-            if(response.toString() != null && !response.toString().isEmpty()) {
-                TransactionBlock block = mapper.readValue(response.toString(), TransactionBlock.class);
+            Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
+            log.info("RESPONSE BODY >>>>>> " + responseBody);
+            TransactionBlock block = null;
+            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
+                block = mapper.readValue(responseBody, TransactionBlock.class);
                 return block;
             }
 
         }
-        catch (MalformedURLException e) {
-            log.error("[" + new Date() + "] => MalformedURLException :: message = "+ e.getMessage() +">>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
-        }
-        catch (ProtocolException e) {
-            log.error("[" + new Date() + "] => ProtocolException :: message = "+ e.getMessage() +">>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
+        catch (JsonProcessingException e) {
+            log.error("[" + new Date() + "] => INSUFFICIENT FUND BTCPAY >>>>>>>> sendCrypto :: InvoiceServiceImpl.java" +
+                    " ===== message = " + e.getMessage());
+            return null;
         }
         catch (IOException e) {
-            log.error("[" + new Date() + "] => IOException :: message = "+ e.getMessage() +">>>>>>>> sendCrypto :: InvoiceServiceImpl.java");
+            e.printStackTrace();
         }
 
         return null;

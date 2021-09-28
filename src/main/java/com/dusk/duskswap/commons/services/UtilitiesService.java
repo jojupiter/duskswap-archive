@@ -9,12 +9,14 @@ import java.util.Optional;
 
 public interface UtilitiesService {
 
+    Optional<Currency> getCurrencyById(Long currencyId);
     List<Currency> getAllCurrencies();
     List<Currency> getAllSupportedCurrencies();
     List<Currency> getAllSupportedCryptoCurrencies();
     List<TransactionOption> getAllSupportedTransactionOptions();
     ResponseEntity<Boolean> enableCurrency(Long currencyId, Boolean isSupported);
     ResponseEntity<Currency> createCurrency(Currency currency);
+    ResponseEntity<Currency> updateCurrency(Long currencyId, Currency newCurrency);
 
     ResponseEntity<Level> createLevel(Level level);
     ResponseEntity<List<Level>> getAllLevels();

@@ -3,10 +3,10 @@ package com.dusk.duskswap.transferring.entityDtos;
 import lombok.Data;
 
 @Data
-public class TransferDto {
+public class TransferResponse {
 
-    private Long userId; // recipient
-    private Long currencyId;
+    private String recipientEmail;
     private String amount;
+    private String fees;
 
 }

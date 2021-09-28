@@ -132,7 +132,7 @@ public class AdministrationController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/balance/all")
+    @GetMapping("/balance/all")
     public ResponseEntity<List<OverallBalance>> getAllBalances() {
         return overallBalanceService.getAllBalances();
     }

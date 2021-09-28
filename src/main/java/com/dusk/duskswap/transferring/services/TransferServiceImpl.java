@@ -32,8 +32,6 @@ public class TransferServiceImpl implements TransferService {
     @Autowired
     private TransferRepository transferRepository;
     @Autowired
-    private AmountCurrencyRepository amountCurrencyRepository;
-    @Autowired
     private StatusRepository statusRepository;
     @Autowired
     private CurrencyRepository currencyRepository;
@@ -88,7 +86,7 @@ public class TransferServiceImpl implements TransferService {
 
     @Transactional
     @Override
-    public Transfer makeTransfer(User user, ExchangeAccount fromAccount, ExchangeAccount toAccount, Long currencyId, String amount) throws Exception {
+    public Transfer createTransfer(User sender, ExchangeAccount fromAccount, ExchangeAccount toAccount, Long currencyId, String amount) throws Exception {
         // input checking
         if(
                 fromAccount == null ||
@@ -96,13 +94,13 @@ public class TransferServiceImpl implements TransferService {
                 currencyId == null ||
                 amount == null || (amount != null && amount.isEmpty()) || (amount != null && !amount.isEmpty() && Double.parseDouble(amount) <= 0)
         ) {
-            log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> makeTransfer :: TransferServiceImpl.java " +
+            log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> createTransfer :: TransferServiceImpl.java " +
                     "====== fromAccount = " + fromAccount + ", toAccount = " + toAccount + ", currencyId = " + currencyId +", amount = " + amount);
             return null;
         }
 
-        if(user.getLevel() == null) {
-            log.error("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> makeTransfer :: TransferServiceImpl.java");
+        if(sender.getLevel() == null) {
+            log.error("[" + new Date() + "] => USER'S LEVEL NOT PRESENT >>>>>>>> createTransfer :: TransferServiceImpl.java");
             return null;
         }
 
@@ -110,29 +108,22 @@ public class TransferServiceImpl implements TransferService {
         // >>>>> 1. we get the currency
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
-            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> makeTransfer :: TransferServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createTransfer :: TransferServiceImpl.java");
             return null;
         }
         // >>>>> 2. we get the transfer pricing
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(sender.getLevel(), currency.get());
         if(!pricing.isPresent()) {
-            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> makeTransfer :: TransferServiceImpl.java");
+            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createTransfer :: TransferServiceImpl.java");
             return null;
         }
-        // >>>>> 3. we get the amount currency of the sender
-        Optional<AmountCurrency> fromAmountCurrency = amountCurrencyRepository.findByAccountAndCurrencyId(fromAccount.getId(), currency.get().getId());
-        if(!fromAmountCurrency.isPresent()) {
-            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeTransfer :: TransferServiceImpl.java");
-            return null;
-        }
-
-        // >>>>> 4. we check if the transfer is possible according to the pricing
+        // >>>>> 4. we check if the transfer is possible according to the pricing and the user's balance
         if(
                 Double.parseDouble(amount) > Double.parseDouble(pricing.get().getTransferMax()) ||
                 Double.parseDouble(amount) < Double.parseDouble(pricing.get().getTransferMin())
         ) {
             log.error("[" + new Date() + "] => AMOUNT OUT OF BOUNDS [" + pricing.get().getTransferMin()+ "," + pricing.get().getTransferMax() +" ]" +
-                    " WITH amount = " + amount + " >>>>>>>> makeTransfer :: TransferServiceImpl.java");
+                    " WITH amount = " + amount + " >>>>>>>> createTransfer :: TransferServiceImpl.java");
             return null;
         }
 
@@ -146,13 +137,7 @@ public class TransferServiceImpl implements TransferService {
         else if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX))
             duskFees = Double.parseDouble(pricing.get().getTransferFees());
 
-        // >>>>> 5. we test if the sender has enough balance to make this transfer (balance > amount_transfer + fees to make transfer)
-        if(Double.parseDouble(amount) + duskFees < Double.parseDouble(fromAmountCurrency.get().getAmount())) {
-            log.error("[" + new Date() + "] => AMOUNT CURRENCY NOT PRESENT >>>>>>>> makeTransfer :: TransferServiceImpl.java");
-            return null;
-        }
-
-        // >>>>> 6. Transfer creation
+        // >>>>> 5. Transfer creation
         Transfer transfer = new Transfer();
         transfer.setAmount(amount);
         transfer.setCurrency(currency.get());
@@ -160,8 +145,16 @@ public class TransferServiceImpl implements TransferService {
         transfer.setToAccount(toAccount);
         transfer.setFees(Double.toString(duskFees));
 
-        return transferRepository.save(transfer);
+        return transfer;
 
     }
 
+    @Override
+    public Transfer saveTransfer(Transfer transfer) {
+        if(transfer == null) {
+            log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> saveTransfer :: TransferServiceImpl.java");
+            return null;
+        }
+        return transferRepository.save(transfer);
+    }
 }
