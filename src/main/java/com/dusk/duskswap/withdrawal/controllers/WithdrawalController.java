@@ -192,7 +192,7 @@ public class WithdrawalController {
             return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        log.info("estimated fee rate = " + estimatedFeeRate + ", estimated fees = " + estimatedFeesGivenByAPI + "" +
+        log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") estimated fee rate = " + estimatedFeeRate + ", estimated fees = " + estimatedFeesGivenByAPI + "" +
                 ", estimated user expenses = " + estimatedTotalUserExpense);
 
         // ============================== Performing the send transaction =================================
@@ -218,7 +218,7 @@ public class WithdrawalController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        log.info("TRANSACTION BLOCK =======> " + block);
+        log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") TRANSACTION BLOCK =======> " + block);
 
         // ============================== Saving of the withdrawal =====================================
         // >>>>> 9. we get the actual network fees used in send transaction
@@ -232,7 +232,7 @@ public class WithdrawalController {
         withdrawal.setTransactionHash(block.getTransactionHash());
         Withdrawal savedWithdrawal = withdrawalService.saveWithdrawal(withdrawal);
 
-        log.info("actual network fees = " + actualNetworkFees + ", total amount to debit = " + totalAmountToDebit);
+        log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") actual network fees = " + actualNetworkFees + ", total amount to debit = " + totalAmountToDebit);
         // ================================= Updating the balances =====================================
         // >>>>> 11. we first debit the user's account
         accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), Double.toString(totalAmountToDebit));

@@ -92,7 +92,7 @@ public class DefaultProperties {
     // ======== required network confirmations ========
     public static final int BTC_REQUIRED_CONFIRMATIONS = 6;
     public static final int DASH_REQUIRED_CONFIRMATIONS = 6;
-    public static final int ETH_REQUIRED_CONFIRMATIONS = 6;
+    public static final int ETH_REQUIRED_CONFIRMATIONS = 2;
     public static final int LTC_REQUIRED_CONFIRMATIONS = 6;
     public static final int DOGE_REQUIRED_CONFIRMATIONS = 6;
     public static final int SHIB_REQUIRED_CONFIRMATIONS = 6;

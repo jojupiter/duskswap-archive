@@ -85,9 +85,17 @@ public class BlockExplorerOperationsImpl implements  BlockExplorerOperations {
                 return DefaultProperties.MAX_BTC_SAT_PER_BYTES;
             }
             for(int i = DefaultProperties.BTC_REQUIRED_CONFIRMATIONS; i >= 1; i--) {
-                if(fees.containsKey(Integer.toString(i)))
-                    return Double.parseDouble(fees.get(Integer.toString(i))); // in sat/vb
+                if(fees.containsKey(Integer.toString(i))) {
+                    if(Double.parseDouble(fees.get(Integer.toString(i))) <= 0)
+                        return DefaultProperties.MAX_BTC_SAT_PER_BYTES;
+                    return Math.min(
+                            Double.parseDouble(fees.get(Integer.toString(i))),
+                            DefaultProperties.MAX_BTC_SAT_PER_BYTES
+                    ); // in sat/vb
+                }
             }
+            // if no value found, just return the default max btc sat/b value
+            return DefaultProperties.MAX_BTC_SAT_PER_BYTES;
         }
 
         return null;
