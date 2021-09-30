@@ -2,13 +2,14 @@ package com.dusk.externalAPIs.cinetpay.models;
 
 import lombok.Data;
 
-@Data
-public class PaymentInitSuccess {
+import java.util.List;
 
-    private String code;
+@Data
+public class AuthError {
+
+    private Integer code;
     private String message;
     private String description;
-    private PaymentInitSuccessData data;
-    private String api_response_id;
+    private List<Object> data;
 
 }

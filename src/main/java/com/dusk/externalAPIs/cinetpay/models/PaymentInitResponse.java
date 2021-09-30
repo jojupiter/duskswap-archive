@@ -3,11 +3,12 @@ package com.dusk.externalAPIs.cinetpay.models;
 import lombok.Data;
 
 @Data
-public class Verification {
+public class PaymentInitResponse {
 
     private String code;
     private String message;
+    private String description;
+    private PaymentInitResponseData data;
     private String api_response_id;
-    private VerificationData data;
 
 }

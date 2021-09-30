@@ -243,7 +243,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                     .method("POST", body)
                     .addHeader("Authorization", "token " + AppProperties.BTCPAY_SEND_API)
                     .addHeader("Content-Type", "application/json")
-                    .build();;
+                    .build();
 
             Response response = client.newCall(request).execute();
             String responseBody = response.body().string();
