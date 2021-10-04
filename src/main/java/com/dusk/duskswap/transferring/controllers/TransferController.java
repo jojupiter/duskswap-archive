@@ -7,6 +7,7 @@ import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.repositories.PricingRepository;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
@@ -142,7 +143,7 @@ public class TransferController {
                      (
                              dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) ||
                              dto.getCurrencyId() == null ||
-                             dto.getUserId() == null
+                             dto.getRecipientUserId() == null
                      )
                 )
         ) {
@@ -157,10 +158,16 @@ public class TransferController {
             log.error("[" + new Date() + "] => SENDER NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
             return new ResponseEntity<>(CodeErrors.JWT_TOKEN_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        Optional<User> recipient = userService.getUser(dto.getUserId());
+        Optional<User> recipient = userService.getUser(dto.getRecipientUserId());
         if(!recipient.isPresent()) {
             log.error("[" + new Date() + "] => RECIPIENT NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 2. check the code
+        if(!verificationCodeService.isCodeCorrect(sender.get().getEmail(), dto.getCode(), DefaultProperties.VERIFICATION_TRANSFER_PURPOSE)) {
+            log.error("[" + new Date() + "] => CODE PROVIDED INCORRECT >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. then we get their account

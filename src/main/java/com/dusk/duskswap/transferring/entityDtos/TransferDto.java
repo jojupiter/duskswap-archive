@@ -5,7 +5,8 @@ import lombok.Data;
 @Data
 public class TransferDto {
 
-    private Long userId; // recipient
+    private Long recipientUserId;
+    private Integer code;
     private Long currencyId;
     private String amount;
 
