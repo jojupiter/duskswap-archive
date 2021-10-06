@@ -48,7 +48,7 @@ public class CinetpayPaymentServiceImpl implements CinetpayPaymentService {
         }
 
         OkHttpClient client = new OkHttpClient().newBuilder().build();
-        MediaType mediaType = MediaType.parse("application/json");
+
         try {
             RequestBody body = RequestBody.create(mapper.writeValueAsString(init).getBytes(StandardCharsets.UTF_8));
             Request request = new Request.Builder()
@@ -92,7 +92,7 @@ public class CinetpayPaymentServiceImpl implements CinetpayPaymentService {
         }
 
         OkHttpClient client = new OkHttpClient().newBuilder().build();
-        MediaType mediaType = MediaType.parse("application/json");
+
         try {
             RequestBody formBody = new FormBody.Builder()
                     .add("apikey", apiKey)

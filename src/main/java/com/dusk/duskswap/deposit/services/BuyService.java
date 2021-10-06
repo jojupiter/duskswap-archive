@@ -8,12 +8,16 @@ import com.dusk.duskswap.deposit.models.Buy;
 import com.dusk.duskswap.usersManagement.models.User;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Optional;
+
 public interface BuyService {
 
     ResponseEntity<BuyPage> getAllBuy(Integer currentPage, Integer pageSize);
     ResponseEntity<BuyPage> getAllBuyByUser(User user, Integer currentPage, Integer pageSize);
 
-    Buy createBuy(User user, BuyDto dto, String payToken, String notifToken, String apiFees) throws Exception; // api fees in XAF
-    Buy updateBuy(String notifToken, String statusString) throws Exception; // here we calculate fees and the amount that should be attributed
+    Optional<Buy> getByTransactionId(String transactionId);
+    Buy createBuy(User user, BuyDto dto, String payToken, String apiFees) throws Exception; // api fees in XAF
+    Buy confirmBuy(Buy buy) throws Exception; // here we calculate fees and the amount that should be attributed
+    Buy updateBuyStatus(Buy buy, String statusString);
 
 }

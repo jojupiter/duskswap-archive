@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface BuyRepository extends PagingAndSortingRepository<Buy, Long> {
     Optional<Buy> findByPayToken(String payToken);
     Optional<Buy> findByNotifToken(String notifToken);
+    Optional<Buy> findByTransactionId(String transactionId);
 
     Page<Buy> findByExchangeAccount(ExchangeAccount exchangeAccount, Pageable pageable);
     Page<Buy> findAll(Pageable pageable);

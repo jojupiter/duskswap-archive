@@ -32,7 +32,7 @@ public class Buy extends Auditable<String> {
     private String duskFees; // duskswap fees in FIAT (including mobile money | other fees)
 
     @Column(name = "dusk_fees_crypto")
-    private String duskFeesCrypto; // duskswap fees in CRYPTO
+    private String duskFeesCrypto; // duskswap fees in CRYPTO (equivalent of duskFees in crypto)
 
     @Column(name = "api_fees")
     private String apiFees; // OM, MOMO, or even banking API if we have in FIAT
@@ -45,6 +45,9 @@ public class Buy extends Auditable<String> {
 
     @Column(name = "buy_date")
     private Date buyDate;
+
+    @Column(name = "transaction_id")
+    private String transactionId;
 
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")

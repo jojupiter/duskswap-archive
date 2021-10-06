@@ -66,7 +66,8 @@ public class WebSecurityConfig  extends WebSecurityConfigurerAdapter {
                 "/deposits/received-payment",
                 "/newsletters/add-subscriber",
                 "/users/check-email",
-                "/users/update-password").permitAll()
+                "/users/update-password",
+                "/buy/check-status").permitAll()
                 .anyRequest().authenticated();
 
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

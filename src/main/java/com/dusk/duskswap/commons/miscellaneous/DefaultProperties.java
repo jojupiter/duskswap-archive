@@ -18,6 +18,7 @@ public class DefaultProperties {
     public static final String STATUS_TRANSACTION_CONFIRMED = "TRANSACTION_CONFIRMED";
     public static final String STATUS_TRANSACTION_IN_CONFIRMATION = "TRANSACTION_IN_CONFIRMATION";
     public static final String STATUS_TRANSACTION_INITIATED = "TRANSACTION_INITIATED";
+    public static final String STATUS_TRANSACTION_INVALID = "TRANSACTION_INVALID";
     public static final String STATUS_TRANSACTION_CRYPTO_NEW = "TRANSACTION_CRYPTO_New";
     public static final String STATUS_TRANSACTION_CRYPTO_EXPIRED = "TRANSACTION_CRYPTO_Expired";
     public static final String STATUS_TRANSACTION_CRYPTO_PROCESSING = "TRANSACTION_CRYPTO_Processing";

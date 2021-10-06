@@ -55,9 +55,19 @@ public class BuyServiceImpl implements BuyService {
 
     @Transactional
     @Override
-    public Buy createBuy(User user, BuyDto dto, String payToken, String notifToken, String apiFees) throws Exception{
+    public Buy createBuy(User user, BuyDto dto, String payToken, String apiFees) throws Exception{
         // input checking
-        if(dto == null) {
+        if(
+                dto == null ||
+                (
+                    dto != null &&
+                            (
+                                dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) || (dto.getAmount() != null && Double.parseDouble(dto.getAmount()) <= 0) ||
+                                dto.getToCurrencyId() == null ||
+                                dto.getTransactionOptId() == null
+                            )
+                )
+        ) {
             log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> createBuy :: BuyServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> createBuy :: BuyServiceImpl.java");
             //return null;
@@ -88,7 +98,7 @@ public class BuyServiceImpl implements BuyService {
         }
 
         // >>>>> 4. Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
-        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_IN_CONFIRMATION);
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_INITIATED);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
             throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -114,13 +124,13 @@ public class BuyServiceImpl implements BuyService {
 
         // After getting the necessary elements, we create the buy command
         Buy buy = new Buy();
-        buy.setNotifToken(notifToken);
         buy.setPayToken(payToken);
         buy.setExchangeAccount(exchangeAccount.get());
         buy.setTransactionOption(transactionOption.get());
         buy.setToCurrency(currency.get());
         buy.setStatus(status.get());
-        buy.setApiFees(apiFees);
+        Double apiFeesInFiat = Double.parseDouble(apiFees) * Double.parseDouble(dto.getAmount());
+        buy.setApiFees(Double.toString(apiFeesInFiat));
         buy.setTotalAmount(dto.getAmount());
 
         return buyRepository.save(buy);
@@ -128,54 +138,53 @@ public class BuyServiceImpl implements BuyService {
 
     @Transactional
     @Override
-    public Buy updateBuy(String notifToken, String statusString) throws Exception {
+    public Buy confirmBuy(Buy buy) throws Exception {
         // input checking
-        if(
-                notifToken == null || (notifToken != null && notifToken.isEmpty()) ||
-                statusString == null || (statusString != null && notifToken.isEmpty())
-        ) {
-            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+        if(buy == null) {
+            log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
 
-        // >>>>> 1. we get the saved buy according to its notif token
-        Optional<Buy> buy = buyRepository.findByNotifToken(notifToken);
-        if(!buy.isPresent()) {
-            log.error("[" + new Date() + "] => BUY NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => BUY NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            //return null;
+        // >>>>> 1. we check if the current status is confirmed or invalid before continuing
+        if(
+                buy.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED) ||
+                buy.getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_INVALID)
+        ) {
+            log.error("[" + new Date() + "] => STATUS ALREADY CONFIRMED OR INVALID >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => STATUS ALREADY CONFIRMED OR INVALID >>>>>>>> confirmBuy :: BuyServiceImpl.java");
         }
+
         // >>>>> 2. and we get the corresponding status too
-        Optional<Status> status = statusRepository.findByName(statusString);
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
         if(!status.isPresent()) {
-            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
 
         // =============================== price calculation ==================================
         // >>>>> 3. Get the pricing
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(buy.get().getExchangeAccount().getUser().getLevel(),
-                                                                             buy.get().getToCurrency());
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(buy.getExchangeAccount().getUser().getLevel(),
+                                                                             buy.getToCurrency());
         if(!pricing.isPresent()) {
-            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
 
         // >>>>> 4. get the conversion of the destination currency in USDT (example: btc -> usdt)
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(buy.get().getToCurrency().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(buy.getToCurrency().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(currencyBinanceClassName == null)
         {
-            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ buy.get().getToCurrency().getIso() + " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ buy.get().getToCurrency().getIso() + " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ buy.getToCurrency().getIso() + " - USDT) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ buy.getToCurrency().getIso() + " - USDT) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
         BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
         if(usdtRate == null) {
-            log.error("[" + new Date() + "] => BINANCE RATE NULL ("+ buy.get().getToCurrency().getIso()+ " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ buy.get().getToCurrency().getIso()+ " - USDT) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            log.error("[" + new Date() + "] => BINANCE RATE NULL ("+ buy.getToCurrency().getIso()+ " - USDT) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ buy.getToCurrency().getIso()+ " - USDT) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
 
@@ -183,14 +192,14 @@ public class BuyServiceImpl implements BuyService {
         Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
         if(currencyBinanceClassName == null)
         {
-            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
         BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
         if(usdtRate == null) {
-            log.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            log.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
             //return null;
         }
 
@@ -199,14 +208,14 @@ public class BuyServiceImpl implements BuyService {
         Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
 
         // >>>>> 7. we then calculate the fees in xaf
-        if(buy.get().getApiFees() == null) {
-            buy.get().setApiFees("0.0");
+        if(buy.getApiFees() == null) {
+            buy.setApiFees("0.0");
         }
         Double duskFeesInXaf = 0.0;
         Double duskFeesInCrypto = 0.0;
         if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
             // here we take percentage of the initial amount
-            duskFeesInCrypto = Double.parseDouble(buy.get().getTotalAmount()) * Double.parseDouble(pricing.get().getBuyFees());
+            duskFeesInCrypto = Double.parseDouble(buy.getTotalAmount()) * Double.parseDouble(pricing.get().getBuyFees());
             duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
                     cryptoToUsdt,
                     (1.0 / eurToUsdt)
@@ -224,23 +233,52 @@ public class BuyServiceImpl implements BuyService {
 
         // >>>>> 8. we calculate the amount the user will be allocated
         //  basically, allocated amount = conversion to Crypto (initial amount (supplied in parameter) in xaf - dusk fees in xaf - api fees in xaf)
-        Double amountCryptoToBeAllocatedInXaf = Utilities.convertXafToCrypto(
-                Double.parseDouble(buy.get().getTotalAmount()) -
+        Double amountCryptoToBeAllocated = Utilities.convertXafToCrypto(
+                Double.parseDouble(buy.getTotalAmount()) -
                         duskFeesInXaf -
-                        Double.parseDouble(buy.get().getApiFees()),
+                        Double.parseDouble(buy.getApiFees()),
                 cryptoToUsdt,
                 eurToUsdt
         );
         // =====================================================================================
 
         // >>>>> 9. finally we proceed to the update
-        buy.get().setBuyDate(new Date());
-        buy.get().setStatus(status.get());
-        buy.get().setAmountCrypto(Double.toString(amountCryptoToBeAllocatedInXaf));
-        buy.get().setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
-        buy.get().setDuskFees(Double.toString(duskFeesInXaf));
+        buy.setBuyDate(new Date());
+        buy.setStatus(status.get());
+        buy.setAmountCrypto(Double.toString(amountCryptoToBeAllocated));
+        buy.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
+        buy.setDuskFees(Double.toString(duskFeesInXaf));
 
-        return buyRepository.save(buy.get());
+        return buyRepository.save(buy);
+    }
+
+    @Override
+    public Buy updateBuyStatus(Buy buy, String statusString) {
+        if(
+                buy == null ||
+                statusString == null || (statusString != null && statusString.isEmpty())
+        ) {
+            log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> updateBuyStatus :: BuyServiceImpl.java" +
+                    " ========= buy = " + buy + ", statusString = " + statusString);
+            return null;
+        }
+
+        Optional<Status> status = statusRepository.findByName(statusString);
+        if(!status.isPresent()) {
+            log.error("[" + new Date() + "] => UNABLE TO FIND STATUS >>>>>>>> updateBuyStatus :: BuyServiceImpl.java");
+            return null;
+        }
+        buy.setStatus(status.get());
+
+        return buyRepository.save(buy);
+    }
+
+    @Override
+    public Optional<Buy> getByTransactionId(String transactionId) {
+        if(transactionId == null || (transactionId != null && transactionId.isEmpty()))
+            return Optional.empty();
+
+        return buyRepository.findByTransactionId(transactionId);
     }
 
     @Override
