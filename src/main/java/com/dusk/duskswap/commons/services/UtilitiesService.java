@@ -14,6 +14,7 @@ public interface UtilitiesService {
     List<Currency> getAllSupportedCurrencies();
     List<Currency> getAllSupportedCryptoCurrencies();
     List<TransactionOption> getAllSupportedTransactionOptions();
+    Optional<TransactionOption> getTransactionOption(Long transactionOptId);
     ResponseEntity<Boolean> enableCurrency(Long currencyId, Boolean isSupported);
     ResponseEntity<Currency> createCurrency(Currency currency);
     ResponseEntity<Currency> updateCurrency(Long currencyId, Currency newCurrency);

@@ -36,7 +36,7 @@ public class MobileMoneyOperationsImpl implements MobileMoneyOperations {
         init.setAmount(request.getAmount());
         init.setApikey(CinetpayParams.API_KEY);
         init.setSite_id(CinetpayParams.SITE_ID);
-        init.setChannels(request.getOperator());
+        init.setChannels(request.getChannels());
         init.setCurrency(request.getCurrencyIso());
         init.setCustomer_id(request.getCustomerId());
         init.setCustomer_surname(request.getCustomerFirstName());

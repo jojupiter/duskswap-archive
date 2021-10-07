@@ -13,6 +13,8 @@ public interface BuyRepository extends PagingAndSortingRepository<Buy, Long> {
     Optional<Buy> findByNotifToken(String notifToken);
     Optional<Buy> findByTransactionId(String transactionId);
 
+    Boolean existsByTransactionId(String transactionId);
+
     Page<Buy> findByExchangeAccount(ExchangeAccount exchangeAccount, Pageable pageable);
     Page<Buy> findAll(Pageable pageable);
 

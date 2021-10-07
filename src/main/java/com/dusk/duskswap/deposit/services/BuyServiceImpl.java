@@ -53,9 +53,17 @@ public class BuyServiceImpl implements BuyService {
     @Autowired
     private BinanceRateRepository binanceRateRepository;
 
+    @Override
+    public Boolean existsByTxId(String txId) {
+        if(txId == null)
+            return null;
+
+        return buyRepository.existsByTransactionId(txId);
+    }
+
     @Transactional
     @Override
-    public Buy createBuy(User user, BuyDto dto, String payToken, String apiFees) throws Exception{
+    public Buy createBuy(User user, BuyDto dto, String payToken, String apiFees, String txId) throws Exception{
         // input checking
         if(
                 dto == null ||
@@ -132,6 +140,7 @@ public class BuyServiceImpl implements BuyService {
         Double apiFeesInFiat = Double.parseDouble(apiFees) * Double.parseDouble(dto.getAmount());
         buy.setApiFees(Double.toString(apiFeesInFiat));
         buy.setTotalAmount(dto.getAmount());
+        buy.setTransactionId(txId);
 
         return buyRepository.save(buy);
     }
@@ -213,9 +222,15 @@ public class BuyServiceImpl implements BuyService {
         }
         Double duskFeesInXaf = 0.0;
         Double duskFeesInCrypto = 0.0;
+        Double initialAmountFiatToCrypto = 0.0;
+
         if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
             // here we take percentage of the initial amount
-            duskFeesInCrypto = Double.parseDouble(buy.getTotalAmount()) * Double.parseDouble(pricing.get().getBuyFees());
+            initialAmountFiatToCrypto = Utilities.convertXafToCrypto(Double.parseDouble(buy.getTotalAmount()),
+                    cryptoToUsdt,
+                    eurToUsdt
+            );
+            duskFeesInCrypto = initialAmountFiatToCrypto * Double.parseDouble(pricing.get().getBuyFees());
             duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
                     cryptoToUsdt,
                     (1.0 / eurToUsdt)

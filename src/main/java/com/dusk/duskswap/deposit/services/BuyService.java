@@ -16,7 +16,8 @@ public interface BuyService {
     ResponseEntity<BuyPage> getAllBuyByUser(User user, Integer currentPage, Integer pageSize);
 
     Optional<Buy> getByTransactionId(String transactionId);
-    Buy createBuy(User user, BuyDto dto, String payToken, String apiFees) throws Exception; // api fees in XAF
+    Buy createBuy(User user, BuyDto dto, String payToken, String apiFees, String txId) throws Exception; // api fees in XAF
+    Boolean existsByTxId(String txId);
     Buy confirmBuy(Buy buy) throws Exception; // here we calculate fees and the amount that should be attributed
     Buy updateBuyStatus(Buy buy, String statusString);
 

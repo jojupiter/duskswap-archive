@@ -20,7 +20,7 @@ public class MobileMoneyPaymentRequest {
     private String customerFirstName;
     private String customerLastName;
     private String customerCountry;
-    private String operator;
+    private String channels;
     private String lang;
 
 }

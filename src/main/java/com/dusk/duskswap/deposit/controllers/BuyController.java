@@ -3,6 +3,9 @@ package com.dusk.duskswap.deposit.controllers;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.BuyDto;
 import com.dusk.duskswap.deposit.entityDto.BuyPage;
 import com.dusk.duskswap.deposit.models.Buy;
@@ -10,7 +13,7 @@ import com.dusk.duskswap.deposit.services.BuyService;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.MobileMoneyOperations;
-import com.dusk.externalAPIs.cinetpay.constants.CinetpayParams;
+import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentRequest;
 import com.dusk.externalAPIs.cinetpay.models.VerificationResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +39,8 @@ public class BuyController {
     private AccountService accountService;
     @Autowired
     private MobileMoneyOperations mobileMoneyOperations;
+    @Autowired
+    private UtilitiesService utilitiesService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -75,7 +80,51 @@ public class BuyController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/buy-request", produces = "application/json")
-    public ResponseEntity<String> buyRequest(BuyDto dto) { // this method create a buy command and return notification url
+    public ResponseEntity<?> buyRequest(BuyDto dto) {
+        // input checking
+        if(
+                dto == null ||
+                (
+                    dto != null &&
+                            (
+                                dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) || (dto.getAmount() != null && !dto.getAmount().isEmpty() && Double.parseDouble(dto.getAmount()) <= 0) ||
+                                dto.getTransactionOptId() == null ||
+                                dto.getToCurrencyId() == null
+                            )
+                )
+        ) {
+            log.error("[" + new Date() + "] => INPUT ERROR >>>>>>>> buyRequest :: BuyController.java " +
+                    " ===== dto = " + dto);
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptId());
+        if(!transactionOption.isPresent()) {
+
+        }
+
+        Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getToCurrencyId());
+        if(!currency.isPresent()) {
+
+        }
+
+        MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
+        request.setAmount(dto.getAmount());
+        request.setLang("fr");
+        request.setCustomerId(Long.toString(user.get().getId()));
+        request.setCustomerFirstName(user.get().getFirstName());
+        request.setCustomerLastName(user.get().getLastName());
+        request.setCurrencyIso("XAF");
+        request.setChannels("MOBILE_MONEY");
+
+
+        //Buy buy = buyService.createBuy();
         return null;
     }
 

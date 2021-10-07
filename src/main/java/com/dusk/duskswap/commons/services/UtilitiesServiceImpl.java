@@ -75,6 +75,13 @@ public class UtilitiesServiceImpl implements UtilitiesService {
     }
 
     @Override
+    public Optional<TransactionOption> getTransactionOption(Long transactionOptId) {
+        if(transactionOptId == null)
+            return Optional.empty();
+        return transactionOptionRepository.findById(transactionOptId);
+    }
+
+    @Override
     public ResponseEntity<Boolean> enableCurrency(Long currencyId, Boolean isSupported) {
         // input checking
         if(currencyId == null || isSupported == null) {
