@@ -11,5 +11,6 @@ public class MobileMoneyPaymentResponse {
     private String message;
     private String description;
     private String status;
+    private String apiFees;
 
 }

@@ -3,6 +3,7 @@ package com.dusk.duskswap.deposit.controllers;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
+import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.services.UtilitiesService;
@@ -14,6 +15,7 @@ import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.MobileMoneyOperations;
 import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentRequest;
+import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentResponse;
 import com.dusk.externalAPIs.cinetpay.models.VerificationResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -106,23 +108,37 @@ public class BuyController {
 
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
-
+            log.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
-
+            log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
         request.setAmount(dto.getAmount());
-        request.setLang("fr");
         request.setCustomerId(Long.toString(user.get().getId()));
-        request.setCustomerFirstName(user.get().getFirstName());
+        if(user.get().getFirstName() == null || (user.get().getFirstName() != null && user.get().getFirstName().isEmpty()))
+            request.setCustomerFirstName(user.get().getEmail());
+        else
+            request.setCustomerFirstName(user.get().getFirstName());
         request.setCustomerLastName(user.get().getLastName());
-        request.setCurrencyIso("XAF");
-        request.setChannels("MOBILE_MONEY");
+        String txId = "";
+        do {
+            txId = Utilities.generateUUID();
+        }
+        while (buyService.existsByTxId(txId));
+        request.setTransactionId(txId);
+        request.setMetadata("User" + user.get().getId());
 
+        // Generation of the payment URL
+        MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request);
+        if(response == null) {
+
+        }
 
         //Buy buy = buyService.createBuy();
         return null;

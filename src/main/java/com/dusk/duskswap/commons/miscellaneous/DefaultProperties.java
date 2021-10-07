@@ -1,6 +1,8 @@
 package com.dusk.duskswap.commons.miscellaneous;
 
 public class DefaultProperties {
+    // ========== server ===============
+    public static final String SERVER_BASE_URL = "https://dbloc2.duskpay.com";
     // ========== roles ==================
     public static final String ROLE_USER = "ROLE_USER";
     public static final String ROLE_SECRETARY = "ROLE_SECRETARY";
@@ -97,5 +99,10 @@ public class DefaultProperties {
     public static final int LTC_REQUIRED_CONFIRMATIONS = 6;
     public static final int DOGE_REQUIRED_CONFIRMATIONS = 6;
     public static final int SHIB_REQUIRED_CONFIRMATIONS = 6;
+
+    // ========== Mobile payment apis used =============
+    public static final String CINETPAY_API = "CINETPAY";
+    public static final String ORANGE_MONEY = "OM";
+    public static final String MTN_MOBILE_MONEY = "MOMO";
 
 }

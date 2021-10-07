@@ -22,5 +22,6 @@ public class MobileMoneyPaymentRequest {
     private String customerCountry;
     private String channels;
     private String lang;
+    private String apiUsed;
 
 }

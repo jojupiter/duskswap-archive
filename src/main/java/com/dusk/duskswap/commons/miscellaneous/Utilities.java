@@ -7,12 +7,24 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @Slf4j
 public class Utilities {
 
     public static int generateVerificationCode() {
         return new Random().nextInt(900000) + 100000;
+    }
+
+    public static String generateUUID() {
+        UUID uuid = UUID.randomUUID();
+        String uuidAsString = uuid.toString();
+        String finalString = "";
+        for(String s : uuidAsString.split("-")) {
+            finalString += s;
+        }
+
+        return finalString;
     }
 
     public static Double convertUSdtToXaf(Double cryptoAmount, Double unitPriceCryptoUsdt, Double unitUsdtToEur) {

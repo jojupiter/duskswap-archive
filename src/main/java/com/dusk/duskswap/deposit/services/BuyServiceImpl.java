@@ -55,8 +55,10 @@ public class BuyServiceImpl implements BuyService {
 
     @Override
     public Boolean existsByTxId(String txId) {
-        if(txId == null)
+        if(txId == null) {
+            log.error("[" + new Date() + "] => txId NULL >>>>>>>> existsByTxId :: BuyServiceImpl.java");
             return null;
+        }
 
         return buyRepository.existsByTransactionId(txId);
     }
