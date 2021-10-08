@@ -1,7 +1,6 @@
 package com.dusk.externalAPIs.apiInterfaces.interfaces;
 
-import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentRequest;
-import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentResponse;
+import com.dusk.externalAPIs.apiInterfaces.models.*;
 import com.dusk.externalAPIs.cinetpay.constants.CinetpayParams;
 import com.dusk.externalAPIs.cinetpay.models.PaymentInit;
 import com.dusk.externalAPIs.cinetpay.models.PaymentInitResponse;
@@ -23,6 +22,7 @@ public class MobileMoneyOperationsImpl implements MobileMoneyOperations {
     @Autowired
     private CinetpayPaymentService cinetpayPaymentService;
 
+    // ========================= payment =============================
     @Override
     public MobileMoneyPaymentResponse performPayment(MobileMoneyPaymentRequest request) {
         // input checking
@@ -97,4 +97,24 @@ public class MobileMoneyOperationsImpl implements MobileMoneyOperations {
         return response;
     }
 
+    // ============================= Transfer ======================================
+    @Override
+    public AuthResponse authenticate(AuthRequest request) {
+        return null;
+    }
+
+    @Override
+    public Double getTransferBalance(String token, String lang) {
+        return null;
+    }
+
+    @Override
+    public MobileMoneyTransferResponse performTransfer(MobileMoneyTransferInfo info) {
+        return null;
+    }
+
+    @Override
+    public MobileMoneyTransferInfo getTransferInformation(String token, String transactionId, String lang) {
+        return null;
+    }
 }

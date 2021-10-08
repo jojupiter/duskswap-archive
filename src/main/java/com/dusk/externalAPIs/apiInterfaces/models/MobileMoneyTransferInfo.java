@@ -3,7 +3,7 @@ package com.dusk.externalAPIs.apiInterfaces.models;
 import lombok.Data;
 
 @Data
-public class MobileMoneyTransferInfos {
+public class MobileMoneyTransferInfo {
 
     private String phonePrefix;
     private String phone;

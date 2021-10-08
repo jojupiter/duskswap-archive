@@ -7,10 +7,7 @@ import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
-import com.dusk.duskswap.commons.models.Currency;
-import com.dusk.duskswap.commons.models.Pricing;
-import com.dusk.duskswap.commons.models.Status;
-import com.dusk.duskswap.commons.models.TransactionOption;
+import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import com.dusk.duskswap.commons.repositories.PricingRepository;
 import com.dusk.duskswap.commons.repositories.StatusRepository;
@@ -65,7 +62,8 @@ public class BuyServiceImpl implements BuyService {
 
     @Transactional
     @Override
-    public Buy createBuy(User user, BuyDto dto, String payToken, String apiFees, String txId) throws Exception{
+    public Buy createBuy(User user, ExchangeAccount account, BuyDto dto,
+                         String payToken, String apiFees, String txId) throws Exception{
         // input checking
         if(
                 dto == null ||
@@ -83,15 +81,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // >>>>> 1. here we get the corresponding exchange account and verify if exists
-        Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
-        if(!exchangeAccount.isPresent()) {
-            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
-            //return null;
-        }
-
-        // >>>>> 2. then, we get the currency
+        // >>>>> 1. then, we get the currency
         Optional<Currency> currency = currencyRepository.findById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -99,7 +89,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // >>>>> 3. next, we get the transaction option
+        // >>>>> 2. next, we get the transaction option
         Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -107,7 +97,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // >>>>> 4. Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
+        // >>>>> 3. Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_INITIATED);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -115,7 +105,7 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // >>>>> 5. Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
+        // >>>>> 4. Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
         if(!pricing.isPresent()) {
             log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -132,10 +122,10 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // After getting the necessary elements, we create the buy command
+        // >>>>> . After getting the necessary elements, we create the buy command
         Buy buy = new Buy();
         buy.setPayToken(payToken);
-        buy.setExchangeAccount(exchangeAccount.get());
+        buy.setExchangeAccount(account);
         buy.setTransactionOption(transactionOption.get());
         buy.setToCurrency(currency.get());
         buy.setStatus(status.get());
@@ -352,6 +342,60 @@ public class BuyServiceImpl implements BuyService {
 
         return ResponseEntity.ok(null);
 
+    }
+
+    @Override
+    public Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount) {
+        if(
+                user == null ||
+                        currency == null ||
+                        amount == null || (amount != null && amount.isEmpty()) || (amount != null && !amount.isEmpty() && Double.parseDouble(amount) < 0)
+        ) {
+
+        }
+
+        // >>>>> 3. Get the pricing
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency);
+        if(!pricing.isPresent()) {
+            log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            return null;
+        }
+
+        // >>>>> 4. get the conversion of the destination currency in USDT (example: btc -> usdt)
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(currency.getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+        if(currencyBinanceClassName == null)
+        {
+            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL ("+ currency.getIso() + " - USDT) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            return null;
+        }
+        BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
+        if(usdtRate == null) {
+            log.error("[" + new Date() + "] => BINANCE RATE NULL ("+ currency.getIso()+ " - USDT) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            return null;
+        }
+
+        // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
+        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
+        if(currencyBinanceClassName == null)
+        {
+            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            return null;
+        }
+        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
+        if(usdtRate == null) {
+            log.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
+            return null;
+        }
+
+        // >>>>> 6. we get these conversions in variables
+        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
+        Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
+
+        return Utilities.convertXafToCrypto(
+                Double.parseDouble(amount),
+                cryptoToUsdt,
+                eurToUsdt
+        );
     }
 
 }

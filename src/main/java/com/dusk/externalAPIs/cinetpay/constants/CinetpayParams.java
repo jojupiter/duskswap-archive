@@ -16,5 +16,6 @@ public class CinetpayParams {
     public static final String CINETPAY_TRANSFER_FEES_CM = "0.02";
     public static String NOTIFICATION_URL = DefaultProperties.SERVER_BASE_URL + "/buy/check-status";
     public static String DEFAULT_PAYMENT_DESCRIPTION = "Paiement sur Duskswap";
+    public static String TRANSFER_PASSWORD = "";
 
 }

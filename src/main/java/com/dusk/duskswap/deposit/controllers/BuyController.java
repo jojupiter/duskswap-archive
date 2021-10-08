@@ -1,6 +1,9 @@
 package com.dusk.duskswap.deposit.controllers;
 
+import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
@@ -43,6 +46,8 @@ public class BuyController {
     private MobileMoneyOperations mobileMoneyOperations;
     @Autowired
     private UtilitiesService utilitiesService;
+    @Autowired
+    private OverallBalanceService overallBalanceService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -107,6 +112,12 @@ public class BuyController {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+        // >>>>> 2. the exchange account of that user
+        ExchangeAccount account = accountService.getAccountByUser(user.get());
+        if(account == null) {
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
         // >>>>> 2. the payment mean the user wants to use
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
@@ -120,7 +131,28 @@ public class BuyController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // TODO: verify the overall amount of crypto we have before performing any other thing
+        // ============================== checking duskswap balance ==================================
+        /*Optional<OverallBalance> balance = overallBalanceService.getBalanceFor(currency.get());
+        if(balance == null) {
+            log.error("[" + new Date() + "] => OVERALL BALANCE NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        Double estimatedAmountOfCryptoToBeReceived = buyService.estimateAmountInCryptoToBeReceived(
+                user.get(),
+                account,
+                currency.get(),
+                dto.getAmount()
+        );
+        if(estimatedAmountOfCryptoToBeReceived == null) {
+            log.error("[" + new Date() + "] => UNABLE TO ESTIMATED CONVERSION AMOUNT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(estimatedAmountOfCryptoToBeReceived >= Double.parseDouble(balance.get().getDepositBalance())) {
+            log.error("[" + new Date() + "] => UNABLE TO ESTIMATED CONVERSION AMOUNT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }*/
+
         // ========================= Performing the payment request via API ============================
         // >>>>> 4. payment request object creation based on user's inputs
         MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
@@ -148,7 +180,7 @@ public class BuyController {
 
         // ========================= saving the transaction into a new buy object ============================
         // >>>>> 6. now we create and save the buy
-        Buy buy = buyService.createBuy(user.get(), dto, response.getPaymentToken(), response.getApiFees(), txId);
+        Buy buy = buyService.createBuy(user.get(), account, dto, response.getPaymentToken(), response.getApiFees(), txId);
         if(buy == null) {
             log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -171,13 +203,9 @@ public class BuyController {
             return;
         }
 
-        // >>>>> 2. then we check if the status is already "confirmed" or "invalid"
-        if(
-                buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED) ||
-                buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_INVALID)
-        ) {
-            log.info("[" + new Date() + "] => BUY ALREADY CONFIRMED OR INVALID >>>>>>>> checkStatus :: BuyController.java" +
-                    " ===== Current status = " + buy.get().getStatus().getName());
+        // >>>>> 2. then we check if the status is already "confirmed"
+        if(buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED)) {
+            log.info("[" + new Date() + "] => BUY ALREADY CONFIRMED >>>>>>>> checkStatus :: BuyController.java");
             return;
         }
 
