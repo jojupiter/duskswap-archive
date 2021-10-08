@@ -82,7 +82,7 @@ public class BuyController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/buy-request", produces = "application/json")
-    public ResponseEntity<?> buyRequest(BuyDto dto) {
+    public ResponseEntity<?> buyRequest(BuyDto dto) throws Exception {
         // input checking
         if(
                 dto == null ||
@@ -100,24 +100,29 @@ public class BuyController {
             return ResponseEntity.badRequest().body(null);
         }
 
+        // ========================== Getting the necessary elements =============================
+        // >>>>> 1. the current logged in user
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-
+        // >>>>> 2. the payment mean the user wants to use
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptId());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-
+        // >>>>> 3. the crypto currency the user wants to buy
         Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        // TODO: verify the overall amount of crypto we have before performing any other thing
+        // ========================= Performing the payment request via API ============================
+        // >>>>> 4. payment request object creation based on user's inputs
         MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
         request.setAmount(dto.getAmount());
         request.setCustomerId(Long.toString(user.get().getId()));
@@ -134,14 +139,21 @@ public class BuyController {
         request.setTransactionId(txId);
         request.setMetadata("User" + user.get().getId());
 
-        // Generation of the payment URL
+        // >>>>> 5. generation of the payment URL
         MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request);
         if(response == null) {
-
+            log.error("[" + new Date() + "] => CANNOT PERFORM PAYMENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        //Buy buy = buyService.createBuy();
-        return null;
+        // ========================= saving the transaction into a new buy object ============================
+        // >>>>> 6. now we create and save the buy
+        Buy buy = buyService.createBuy(user.get(), dto, response.getPaymentToken(), response.getApiFees(), txId);
+        if(buy == null) {
+            log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -152,25 +164,31 @@ public class BuyController {
         if(transactionId == null)
             return;
 
-        // we get the corresponding buy object
+        // >>>>> 1. we get the corresponding buy object
         Optional<Buy> buy = buyService.getByTransactionId(transactionId);
         if(!buy.isPresent()) {
             log.error("[" + new Date() + "] => CANNOT FIND CORRESPONDING BUY >>>>>>>> checkStatus :: BuyController.java");
             return;
         }
 
-        // then we check if the status is already "confirmed"
-        if(buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED)) {
-            log.info("[" + new Date() + "] => BUY ALREADY CONFIRMED >>>>>>>> checkStatus :: BuyController.java");
+        // >>>>> 2. then we check if the status is already "confirmed" or "invalid"
+        if(
+                buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED) ||
+                buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_INVALID)
+        ) {
+            log.info("[" + new Date() + "] => BUY ALREADY CONFIRMED OR INVALID >>>>>>>> checkStatus :: BuyController.java" +
+                    " ===== Current status = " + buy.get().getStatus().getName());
             return;
         }
 
+        // >>>>> 3. here we check the status of the payment on cinetpay server
         VerificationResponse verificationResponse = mobileMoneyOperations.checkPaymentStatus(buy.get().getPayToken());
         if(verificationResponse == null) {
             log.error("[" + new Date() + "] => VERIFICATION RESPONSE NULL >>>>>>>> checkStatus :: BuyController.java");
             return;
         }
 
+        // >>>>> 4. if everything is good, we update the buy object
         Buy savedBuy =  buyService.confirmBuy(buy.get());
         log.info("[" + new Date() + "] => CONFIRMED BUY : " + savedBuy + " >>>>>>>> checkStatus :: BuyController.java");
 
