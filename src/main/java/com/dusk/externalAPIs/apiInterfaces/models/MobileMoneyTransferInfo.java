@@ -19,5 +19,6 @@ public class MobileMoneyTransferInfo {
     private String status;
     private String operator;
     private String validationDate;
-
+    private Boolean isConfirmed; // this is used to know if a transfer is completely done
+    private Boolean isInvalid; // to know when a transfer is invalid
 }

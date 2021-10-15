@@ -64,7 +64,7 @@ public class SellServiceImpl implements SellService {
     private JwtUtils jwtUtils;
 
     @Override
-    public ResponseEntity<SellPage> getAllSales(User user, Integer currentPage, Integer pageSize) {
+    public ResponseEntity<SellPage> getAllSell(User user, Integer currentPage, Integer pageSize) {
         // input checking
         if(user == null) {
             log.error("[" + new Date() + "] => INPUT (user) NULL >>>>>>>> getAllSales :: SellServiceImpl.java");
@@ -95,7 +95,7 @@ public class SellServiceImpl implements SellService {
     }
 
     @Override
-    public ResponseEntity<SellPage> getAllSales(Integer currentPage, Integer pageSize) {
+    public ResponseEntity<SellPage> getAllSell(Integer currentPage, Integer pageSize) {
         if(currentPage == null) currentPage = 0;
         if(pageSize == null) pageSize = DefaultProperties.DEFAULT_PAGE_SIZE;
 
@@ -115,7 +115,7 @@ public class SellServiceImpl implements SellService {
 
     @Override
     @Transactional
-    public Sell createSale(SellDto dto, User user, ExchangeAccount account) throws Exception {
+    public Sell createSell(SellDto dto, String usdXaf, User user, ExchangeAccount account) throws Exception {
         // input checking
         if(dto == null || user == null || account == null) {
             log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
@@ -149,10 +149,9 @@ public class SellServiceImpl implements SellService {
             //return null;
         }
         // >>>>> 3. get the transaction option (OM, MOMO, ...)
-        Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
+        Optional<TransactionOption> transactionOption = transactionOptionRepository.findByIso(dto.getTransactionOptIso());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             //return null;
         }
         // >>>>> 4. get the conversion of the initial currency in USDT (example: btc -> usdt)
@@ -169,22 +168,11 @@ public class SellServiceImpl implements SellService {
             throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
             //return null;
         }
-        // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
-        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
-        if(currencyBinanceClassName == null)
-        {
-            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
-        }
-        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
-        if(usdtRate == null) {
-            log.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
-        }
+
+        // >>>>> 5. we convert usdXaf to number
+        Double usdToXaf = Double.parseDouble(usdXaf);
+
         // >>>>> 6. we get these conversions in variables
-        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
         Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
 
         // ================================== price calculation =========================================
@@ -198,7 +186,7 @@ public class SellServiceImpl implements SellService {
             duskFeesInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(pricing.get().getSellFees());
             duskFeesInFiat = Utilities.convertUSdtToXaf( duskFeesInCrypto,
                     cryptoToUsdt,
-                    (1.0 / eurToUsdt)
+                    usdToXaf
             );
         }
         if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
@@ -206,7 +194,7 @@ public class SellServiceImpl implements SellService {
             duskFeesInCrypto = Double.parseDouble(pricing.get().getSellFees());
             duskFeesInFiat = Utilities.convertUSdtToXaf( duskFeesInCrypto,
                     cryptoToUsdt,
-                    (1.0 / eurToUsdt)
+                    usdToXaf
             );
         }
 
@@ -215,7 +203,7 @@ public class SellServiceImpl implements SellService {
         Double amountToBeReceivedInFiat = Utilities.convertUSdtToXaf(
             Double.parseDouble(dto.getAmount()) - duskFeesInCrypto,
                 cryptoToUsdt,
-                (1.0 / eurToUsdt)
+                usdToXaf
         );
 
         // >>>>> 9. finally, we create the sell object and we save it in the DB
@@ -228,22 +216,54 @@ public class SellServiceImpl implements SellService {
         sell.setTel(dto.getTel());
         sell.setCurrency(fromCurrency.get());
         sell.setCryptoPriceInUsdt(usdtRate.getTicks().getClose());
-        sell.setEurToUsdtPrice(eurUsdtRate.getTicks().getClose());
+        sell.setUsdtToFiat(usdXaf);
         sell.setTransactionOption(transactionOption.get());
         sell.setExchangeAccount(account);
-        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
+        Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_INITIATED);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
         }
+        sell.setStatus(status.get());
+        return sell;
+    }
+
+    @Override
+    public Sell saveSell(Sell sell) {
+        if(sell == null)
+            return null;
+        return sellRepository.save(sell);
+    }
+
+    @Override
+    public Sell updateSellStatus(Sell sell, String statusString) {
+        if(
+                sell == null ||
+                statusString == null || (statusString != null && statusString.isEmpty())
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> updateSaleStatus :: SellServiceImpl.java" +
+                    " ====== sell = " + sell + ", statusString = " + statusString);
+            return null;
+        }
+
+        Optional<Status> status = statusRepository.findByName(statusString);
+        if(!status.isPresent()) {
+            log.error("[" + new Date() + "] => STATUS NOT FOUND >>>>>>>> updateSaleStatus :: SellServiceImpl.java");
+            return null;
+        }
+
         sell.setStatus(status.get());
         return sellRepository.save(sell);
     }
 
+    @Override
+    public Optional<Sell> getSellByTransactionId(String transactionId) {
+        if(transactionId == null || (transactionId != null && transactionId.isEmpty()))
+            return Optional.empty();
+        return sellRepository.findByTransactionId(transactionId);
+    }
 
     @Override
-    public ResponseEntity<String> getAllSaleProfits() {
+    public ResponseEntity<String> getAllSellProfits() {
         List<Sell> sells = sellRepository.findAll();
         if(sells == null || (sells != null && sells.isEmpty()))
             return ResponseEntity.ok("0.0");
@@ -255,7 +275,7 @@ public class SellServiceImpl implements SellService {
     }
 
     @Override
-    public ResponseEntity<String> getAllSaleProfitsBefore(Date date) {
+    public ResponseEntity<String> getAllSellProfitsBefore(Date date) {
         List<Sell> sells = sellRepository.findBySellDateBefore(date);
         if(sells == null || (sells != null && sells.isEmpty()))
             return ResponseEntity.ok("0.0");
@@ -267,7 +287,7 @@ public class SellServiceImpl implements SellService {
     }
 
     @Override
-    public ResponseEntity<String> getAllSaleProfitsAfter(Date date) {
+    public ResponseEntity<String> getAllSellProfitsAfter(Date date) {
         List<Sell> sells = sellRepository.findBySellDateAfter(date);
         if(sells == null || (sells != null && sells.isEmpty()))
             return ResponseEntity.ok("0.0");
@@ -279,7 +299,7 @@ public class SellServiceImpl implements SellService {
     }
 
     @Override
-    public ResponseEntity<String> getAllSaleProfitsBetween(Date startDate, Date endDate) {
+    public ResponseEntity<String> getAllSellProfitsBetween(Date startDate, Date endDate) {
         List<Sell> sells = sellRepository.findBySellDateBetween(startDate, endDate);
         if(sells == null || (sells != null && sells.isEmpty()))
             return ResponseEntity.ok("0.0");

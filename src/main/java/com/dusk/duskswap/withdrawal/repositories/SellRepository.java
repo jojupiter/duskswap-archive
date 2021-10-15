@@ -9,6 +9,7 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 public interface SellRepository extends PagingAndSortingRepository<Sell, Long> {
 
@@ -18,5 +19,6 @@ public interface SellRepository extends PagingAndSortingRepository<Sell, Long> {
     List<Sell> findBySellDateAfter(Date date);
     List<Sell> findBySellDateBefore(Date date);
     List<Sell> findBySellDateBetween(Date startDate, Date endDate);
+    Optional<Sell> findByTransactionId(String transactionId);
 
 }

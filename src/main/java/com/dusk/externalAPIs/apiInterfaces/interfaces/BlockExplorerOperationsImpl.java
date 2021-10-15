@@ -1,7 +1,7 @@
 package com.dusk.externalAPIs.apiInterfaces.interfaces;
 
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
-import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
+import com.dusk.externalAPIs.apiInterfaces.models.CryptoTransactionInfo;
 import com.dusk.externalAPIs.blockstream.models.Transaction;
 import com.dusk.externalAPIs.blockstream.services.BlockStreamService;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import java.util.Map;
 public class BlockExplorerOperationsImpl implements  BlockExplorerOperations {
 
     @Override
-    public TransactionInfos getTransaction(String txId, String cryptoIso) {
+    public CryptoTransactionInfo getTransaction(String txId, String cryptoIso) {
         // input checking
         if(
                 txId == null || (txId != null && txId.isEmpty()) ||
@@ -30,20 +30,20 @@ public class BlockExplorerOperationsImpl implements  BlockExplorerOperations {
             Transaction transaction = null;
             transaction = BlockStreamService.getTransaction(txId);
             if(transaction != null) {
-                TransactionInfos transactionInfos = new TransactionInfos();
-                transactionInfos.setCryptoIso(cryptoIso);
-                transactionInfos.setFees(transaction.getFee() * Math.pow(10, -8)); // in btc
-                transactionInfos.setInAddress(transaction.getVin().get(0).getPrevout().getScriptpubkey_address());
-                transactionInfos.setOutAddress(transaction.getVout().get(0).getScriptpubkey_address());
+                CryptoTransactionInfo cryptoTransactionInfo = new CryptoTransactionInfo();
+                cryptoTransactionInfo.setCryptoIso(cryptoIso);
+                cryptoTransactionInfo.setFees(transaction.getFee() * Math.pow(10, -8)); // in btc
+                cryptoTransactionInfo.setInAddress(transaction.getVin().get(0).getPrevout().getScriptpubkey_address());
+                cryptoTransactionInfo.setOutAddress(transaction.getVout().get(0).getScriptpubkey_address());
 
                 // now we calculate the number of confirmation
                 if(transaction.getStatus().getConfirmed() != null && transaction.getStatus().getConfirmed()) {
                     Long confirmations = 0L;
                     Long blocksHeight = BlockStreamService.getBlocksHeight();
-                    transactionInfos.setNConfirmations(blocksHeight - transaction.getStatus().getBlock_height() + 1);
+                    cryptoTransactionInfo.setNConfirmations(blocksHeight - transaction.getStatus().getBlock_height() + 1);
                 }
 
-                return transactionInfos;
+                return cryptoTransactionInfo;
             }
         }
 

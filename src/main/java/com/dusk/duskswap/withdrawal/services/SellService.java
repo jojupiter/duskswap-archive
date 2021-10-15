@@ -10,16 +10,20 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 public interface SellService {
 
-    ResponseEntity<SellPage> getAllSales(User user, Integer currentPage, Integer pageSize);
-    ResponseEntity<SellPage> getAllSales(Integer currentPage, Integer pageSize);
-    Sell createSale(SellDto sellDto, User user, ExchangeAccount account) throws Exception; // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
+    ResponseEntity<SellPage> getAllSell(User user, Integer currentPage, Integer pageSize);
+    ResponseEntity<SellPage> getAllSell(Integer currentPage, Integer pageSize);
+    Sell createSell(SellDto sellDto, String usdXaf, User user, ExchangeAccount account) throws Exception; // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
                                                                         // exception is used to rollback transaction
-    ResponseEntity<String> getAllSaleProfits();
-    ResponseEntity<String> getAllSaleProfitsBefore(Date date);
-    ResponseEntity<String> getAllSaleProfitsAfter(Date date);
-    ResponseEntity<String> getAllSaleProfitsBetween(Date startDate, Date endDate);
+    Sell saveSell(Sell sell);
+    Sell updateSellStatus(Sell sell, String statusString);
+    Optional<Sell> getSellByTransactionId(String transactionId);
+    ResponseEntity<String> getAllSellProfits();
+    ResponseEntity<String> getAllSellProfitsBefore(Date date);
+    ResponseEntity<String> getAllSellProfitsAfter(Date date);
+    ResponseEntity<String> getAllSellProfitsBetween(Date startDate, Date endDate);
 
 }

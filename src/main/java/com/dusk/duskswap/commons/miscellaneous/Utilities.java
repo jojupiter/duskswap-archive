@@ -27,21 +27,19 @@ public class Utilities {
         return finalString;
     }
 
-    public static Double convertUSdtToXaf(Double cryptoAmount, Double unitPriceCryptoUsdt, Double unitUsdtToEur) {
+    public static Double convertUSdtToXaf(Double cryptoAmount, Double unitPriceCryptoUsdt, Double usdXaf) {
 
         Double conversionInXaf = cryptoAmount *
                                  unitPriceCryptoUsdt * // price in usdt
-                                 unitUsdtToEur *  // price in Eur
-                                 Double.parseDouble(DefaultProperties.PRICING_EURO_DEFAULT_VALUE_IN_XAF); // price in Xaf
+                                 usdXaf; // price in Xaf
 
         return Math.floor(conversionInXaf);
     }
 
-    public static Double convertXafToCrypto(Double priceInXaf, Double unitCryptoToUsdt, Double eurToUsdt) {
+    public static Double convertXafToCrypto(Double priceInXaf, Double unitCryptoToUsdt, Double usdXaf) {
 
         Double conversionInCrypto = priceInXaf /
-                                    Double.parseDouble(DefaultProperties.PRICING_EURO_DEFAULT_VALUE_IN_XAF) / // to Euro
-                                    eurToUsdt / // to Usdt
+                                    usdXaf / 
                                     unitCryptoToUsdt; // to crypto
 
         return conversionInCrypto;

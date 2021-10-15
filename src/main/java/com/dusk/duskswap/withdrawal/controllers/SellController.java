@@ -1,8 +1,9 @@
 package com.dusk.duskswap.withdrawal.controllers;
 
-import com.dusk.duskswap.account.models.AmountCurrency;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
@@ -16,6 +17,12 @@ import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPage;
 import com.dusk.duskswap.withdrawal.models.Sell;
 import com.dusk.duskswap.withdrawal.services.SellService;
+import com.dusk.externalAPIs.apiInterfaces.interfaces.MobileMoneyOperations;
+import com.dusk.externalAPIs.apiInterfaces.models.AuthRequest;
+import com.dusk.externalAPIs.apiInterfaces.models.AuthResponse;
+import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyTransferInfo;
+import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyTransferResponse;
+import com.dusk.externalAPIs.cinetpay.constants.CinetpayParams;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -25,10 +32,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @CrossOrigin("*")
@@ -46,6 +50,10 @@ public class SellController {
     private UserService userService;
     @Autowired
     private VerificationCodeService verificationCodeService;
+    @Autowired
+    private MobileMoneyOperations mobileMoneyOperations;
+    @Autowired
+    private DefaultConfigService defaultConfigService;
     @Autowired
     private JwtUtils jwtUtils;
 
@@ -87,19 +95,55 @@ public class SellController {
         // >>>>> 4. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
-        // >>>>> 5. then we create the sale
-        Sell sell = sellService.createSale(sellDto, user.get(), account);
+        // >>>>> 5. getting the usd-xaf exchange rate
+        String usdXafRate = "";
+        DefaultConfig config = defaultConfigService.getConfigs();
+        if(config == null) {
+            usdXafRate = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+        }
+        else
+            usdXafRate = config.getUsdToXafBuy();
+
+        // >>>>> 6. then we create the sale
+        Sell sell = sellService.createSell(sellDto, usdXafRate, user.get(), account);
         if(sell == null) {
             log.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 6. Finally we debit the user's account
-        AmountCurrency amountCurrency = accountService.debitAccount(account, sell.getCurrency(), sellDto.getAmount());
-        if(amountCurrency == null) {
-            log.error("[" + new Date() + "] => THE ACCOUNT WASN'T DEBITED>>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(CodeErrors.UNABLE_TO_DEBIT_ACCOUNT, HttpStatus.UNPROCESSABLE_ENTITY);
+        // ================================== CALLING MOBILE MONEY TRANSFER METHODS =============================================================
+        AuthRequest authRequest = new AuthRequest();
+        AuthResponse authResponse = mobileMoneyOperations.authenticate(authRequest);
+        if(authResponse == null) {
+            log.error("[" + new Date() + "] => TRANSFER AUTHENTICATION FAILED >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+
+        Double transferBalance = mobileMoneyOperations.getTransferBalance(authResponse.getToken(), "fr");
+        if(transferBalance == null) {
+            log.error("[" + new Date() + "] => BALANCE NULL >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(transferBalance <= Double.parseDouble(sell.getAmountReceived())) {
+            log.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        MobileMoneyTransferInfo info = new MobileMoneyTransferInfo();
+        info.setEmail(user.get().getEmail());
+        info.setPhone(sellDto.getTel());
+        info.setAmount(sell.getAmountReceived());
+        info.setFirstName(user.get().getFirstName());
+        info.setLastName(user.get().getLastName());
+
+        MobileMoneyTransferResponse response = mobileMoneyOperations.performTransfer(authResponse.getToken(), "fr", info);
+        if(response == null) {
+            log.error("[" + new Date() + "] => TRANSFER FAILED >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // ==================================================================================================================================
+        sellService.saveSell(sell);
 
         return ResponseEntity.ok(true);
     }
@@ -131,6 +175,53 @@ public class SellController {
         return ResponseEntity.ok(true);
     }
 
+    @PostMapping(value = "/check-status", produces = "application/json")
+    public void updateSell(@RequestBody Map<String, Object> notifyBody) throws Exception {
+
+        if(!notifyBody.containsKey("client_transaction_id")) {
+            log.error("[" + new Date() + "] =>  REQUEST BODY DOESN'T CONTAIN client_transaction_id key >>>>>>>> updateSell :: SellController.java");
+            return;
+        }
+
+        Optional<Sell> sell = sellService.getSellByTransactionId(notifyBody.get("client_transaction_id").toString());
+        if(!sell.isPresent()) {
+            log.error("[" + new Date() + "] =>  CORRESPONDING SELL DOESN'T EXIST >>>>>>>> updateSell :: SellController.java");
+            return;
+        }
+
+        if(
+                sell.get().getStatus().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED) ||
+                sell.get().getStatus().equals(DefaultProperties.STATUS_TRANSACTION_INVALID)
+        ){
+            log.info("[" + new Date() + "] =>  SELL STATUS ALREADY CONFIRMED OR INVALID >>>>>>>> updateSell :: SellController.java");
+            return;
+        }
+        AuthRequest authRequest = new AuthRequest();
+        AuthResponse authResponse = mobileMoneyOperations.authenticate(authRequest);
+        if(authResponse == null) {
+            log.error("[" + new Date() + "] =>  CINETPAY AUTHENTICATION FAILED >>>>>>>> updateSell :: SellController.java");
+            return;
+        }
+
+        MobileMoneyTransferInfo transferInfo = mobileMoneyOperations.getTransferInformation(authResponse.getToken(), sell.get().getTransactionId(), "fr");
+        if(transferInfo == null) {
+            log.error("[" + new Date() + "] =>  TRANSFER INFO NULL >>>>>>>> updateSell :: SellController.java");
+            return;
+        }
+
+        if(transferInfo.getStatus().equals(CinetpayParams.STATUS_TRANSFER_TREATMENT_VAL)) {
+            sellService.updateSellStatus(sell.get(), DefaultProperties.STATUS_TRANSACTION_CONFIRMED);
+            accountService.debitAccount(sell.get().getExchangeAccount(),
+                    sell.get().getCurrency(),
+                    sell.get().getTotalAmountCrypto());
+            return;
+        }
+        if(transferInfo.getStatus().equals(CinetpayParams.STATUS_TRANSFER_TREATMENT_REJ)) {
+            sellService.updateSellStatus(sell.get(), DefaultProperties.STATUS_TRANSACTION_INVALID);
+            return;
+        }
+    }
+
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
     public ResponseEntity<?> getAllUserSales(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
@@ -138,10 +229,10 @@ public class SellController {
 
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
-            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserSales :: SellController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        return sellService.getAllSales(user.get(), currentPage, pageSize);
+        return sellService.getAllSell(user.get(), currentPage, pageSize);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -155,39 +246,39 @@ public class SellController {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
             return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        return sellService.getAllSales(user.get(), currentPage, pageSize);
+        return sellService.getAllSell(user.get(), currentPage, pageSize);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/all", produces = "application/json")
     public ResponseEntity<SellPage> getAllSales(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                 @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
-        return sellService.getAllSales(currentPage, pageSize);
+        return sellService.getAllSell(currentPage, pageSize);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all-profits", produces = "application/json")
     public ResponseEntity<String> getAllSaleProfits() {
-        return sellService.getAllSaleProfits();
+        return sellService.getAllSellProfits();
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all-profits-before", produces = "application/json")
     public ResponseEntity<String> getAllSaleProfitsBefore(@RequestParam(name = "date") @DateTimeFormat(pattern = "dd/MM/yyyy HH:ss") Date date) {
-        return sellService.getAllSaleProfitsBefore(date);
+        return sellService.getAllSellProfitsBefore(date);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all-profits-after", produces = "application/json")
     public ResponseEntity<String> getAllSaleProfitsAfter(@RequestParam(name = "date") @DateTimeFormat(pattern = "dd/MM/yyyy HH:ss") Date date) {
-        return sellService.getAllSaleProfitsAfter(date);
+        return sellService.getAllSellProfitsAfter(date);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all-profits-between", produces = "application/json")
     public ResponseEntity<String> getAllSaleProfitsBetween(@RequestParam(name = "startDate") @DateTimeFormat(pattern = "dd/MM/yyyy HH:ss") Date startDate,
                                                            @RequestParam(name = "endDate") @DateTimeFormat(pattern = "dd/MM/yyyy HH:ss") Date endDate) {
-        return sellService.getAllSaleProfitsBetween(startDate, endDate);
+        return sellService.getAllSellProfitsBetween(startDate, endDate);
     }
 
 }

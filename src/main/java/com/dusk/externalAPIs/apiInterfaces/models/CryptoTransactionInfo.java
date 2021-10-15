@@ -3,7 +3,7 @@ package com.dusk.externalAPIs.apiInterfaces.models;
 import lombok.Data;
 
 @Data
-public class TransactionInfos {
+public class CryptoTransactionInfo {
 
     private Double fees;
     private Long nConfirmations; // number of confirmations

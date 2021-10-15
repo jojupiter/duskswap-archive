@@ -1,6 +1,5 @@
 package com.dusk.externalAPIs.blockstream.services;
 
-import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
 import com.dusk.externalAPIs.blockstream.models.Transaction;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;

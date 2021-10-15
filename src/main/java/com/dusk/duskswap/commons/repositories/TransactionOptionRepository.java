@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface TransactionOptionRepository extends CrudRepository<TransactionOption, Long> {
     Optional<TransactionOption> findByName(String name);
+    Optional<TransactionOption> findByIso(String iso);
     List<TransactionOption> findByIsSupported(Boolean isSupported);
 }

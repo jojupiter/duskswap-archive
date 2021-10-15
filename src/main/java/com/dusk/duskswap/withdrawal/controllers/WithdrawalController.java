@@ -21,7 +21,6 @@ import com.dusk.duskswap.withdrawal.entityDto.WithdrawalPage;
 import com.dusk.duskswap.withdrawal.models.Withdrawal;
 import com.dusk.duskswap.withdrawal.services.WithdrawalService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.BlockExplorerOperations;
-import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

@@ -122,6 +122,11 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
+        if(apiFees == null || (apiFees != null && apiFees.isEmpty())) {
+            apiFees = "0.0";
+        }
+        Double apiFeesAmount = Double.parseDouble(apiFees) * Double.parseDouble(dto.getAmount());
+
         // >>>>> . After getting the necessary elements, we create the buy command
         Buy buy = new Buy();
         buy.setPayToken(payToken);
@@ -129,9 +134,7 @@ public class BuyServiceImpl implements BuyService {
         buy.setTransactionOption(transactionOption.get());
         buy.setToCurrency(currency.get());
         buy.setStatus(status.get());
-        Double apiFeesInFiat = Double.parseDouble(apiFees) * Double.parseDouble(dto.getAmount());
-        buy.setApiFees(Double.toString(apiFeesInFiat));
-        buy.setTotalAmount(dto.getAmount());
+        buy.setApiFees(Double.toString(apiFeesAmount));
         buy.setTransactionId(txId);
 
         return buyRepository.save(buy);
@@ -139,7 +142,7 @@ public class BuyServiceImpl implements BuyService {
 
     @Transactional
     @Override
-    public Buy confirmBuy(Buy buy) throws Exception {
+    public Buy confirmBuy(Buy buy, String usdXaf) throws Exception {
         // input checking
         if(buy == null) {
             log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
@@ -189,43 +192,29 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
-        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
-        if(currencyBinanceClassName == null)
-        {
-            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
-            //return null;
-        }
-        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
-        if(usdtRate == null) {
-            log.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
-            //return null;
-        }
+        // >>>>> 5. we convert usdXaf to number
+        Double usdToXaf = Double.parseDouble(usdXaf);
 
         // >>>>> 6. we get these conversions in variables
-        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
+
         Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
 
         // >>>>> 7. we then calculate the fees in xaf
-        if(buy.getApiFees() == null) {
-            buy.setApiFees("0.0");
-        }
+
         Double duskFeesInXaf = 0.0;
         Double duskFeesInCrypto = 0.0;
         Double initialAmountFiatToCrypto = 0.0;
 
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+        if( pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) ) {
             // here we take percentage of the initial amount
             initialAmountFiatToCrypto = Utilities.convertXafToCrypto(Double.parseDouble(buy.getTotalAmount()),
                     cryptoToUsdt,
-                    eurToUsdt
+                    usdToXaf
             );
             duskFeesInCrypto = initialAmountFiatToCrypto * Double.parseDouble(pricing.get().getBuyFees());
             duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
                     cryptoToUsdt,
-                    (1.0 / eurToUsdt)
+                    usdToXaf
             );
 
         }
@@ -234,7 +223,7 @@ public class BuyServiceImpl implements BuyService {
             duskFeesInCrypto = Double.parseDouble(pricing.get().getBuyFees());
             duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,
                     cryptoToUsdt,
-                    (1.0 / eurToUsdt)
+                    usdToXaf
             );
         }
 
@@ -245,13 +234,14 @@ public class BuyServiceImpl implements BuyService {
                         duskFeesInXaf -
                         Double.parseDouble(buy.getApiFees()),
                 cryptoToUsdt,
-                eurToUsdt
+                usdToXaf
         );
         // =====================================================================================
 
         // >>>>> 9. finally we proceed to the update
         buy.setBuyDate(new Date());
         buy.setStatus(status.get());
+        buy.setUsdtToFiat(usdXaf);
         buy.setAmountCrypto(Double.toString(amountCryptoToBeAllocated));
         buy.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
         buy.setDuskFees(Double.toString(duskFeesInXaf));

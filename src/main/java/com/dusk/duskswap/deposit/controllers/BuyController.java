@@ -2,7 +2,9 @@ package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
@@ -19,6 +21,7 @@ import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.MobileMoneyOperations;
 import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentRequest;
 import com.dusk.externalAPIs.apiInterfaces.models.MobileMoneyPaymentResponse;
+import com.dusk.externalAPIs.cinetpay.constants.CinetpayParams;
 import com.dusk.externalAPIs.cinetpay.models.VerificationResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +51,8 @@ public class BuyController {
     private UtilitiesService utilitiesService;
     @Autowired
     private OverallBalanceService overallBalanceService;
+    @Autowired
+    private DefaultConfigService defaultConfigService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -132,7 +137,7 @@ public class BuyController {
         }
 
         // ============================== checking duskswap balance ==================================
-        /*Optional<OverallBalance> balance = overallBalanceService.getBalanceFor(currency.get());
+        Optional<OverallBalance> balance = overallBalanceService.getBalanceFor(currency.get());
         if(balance == null) {
             log.error("[" + new Date() + "] => OVERALL BALANCE NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -148,10 +153,10 @@ public class BuyController {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        if(estimatedAmountOfCryptoToBeReceived >= Double.parseDouble(balance.get().getDepositBalance())) {
+        if(estimatedAmountOfCryptoToBeReceived >= Double.parseDouble(balance.get().getWithdrawalBalance())) {
             log.error("[" + new Date() + "] => UNABLE TO ESTIMATED CONVERSION AMOUNT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }*/
+        }
 
         // ========================= Performing the payment request via API ============================
         // >>>>> 4. payment request object creation based on user's inputs
@@ -185,7 +190,7 @@ public class BuyController {
             log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(response.getPaymentUrl());
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -216,9 +221,32 @@ public class BuyController {
             return;
         }
 
+        if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_CANCELED)) {
+            buyService.updateBuyStatus(buy.get(), DefaultProperties.STATUS_TRANSACTION_INVALID);
+            return;
+        }
+
+        // >>>>> 4. getting the usd-xaf exchange rate
+        String usdXafRate = "";
+        DefaultConfig config = defaultConfigService.getConfigs();
+        if(config == null) {
+            usdXafRate = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+        }
+        else
+            usdXafRate = config.getUsdToXafBuy();
+
         // >>>>> 4. if everything is good, we update the buy object
-        Buy savedBuy =  buyService.confirmBuy(buy.get());
-        log.info("[" + new Date() + "] => CONFIRMED BUY : " + savedBuy + " >>>>>>>> checkStatus :: BuyController.java");
+        if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_SUCCESS)) {
+
+            Buy savedBuy =  buyService.confirmBuy(buy.get(), usdXafRate);
+            if(savedBuy == null) {
+                return;
+            }
+
+            accountService.fundAccount(buy.get().getExchangeAccount(), buy.get().getToCurrency(), buy.get().getAmountCrypto());
+            log.info("[" + new Date() + "] => CONFIRMED BUY : " + savedBuy + " >>>>>>>> checkStatus :: BuyController.java");
+
+        }
 
         return;
     }

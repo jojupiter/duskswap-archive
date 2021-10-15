@@ -1,6 +1,6 @@
 package com.dusk.externalAPIs.cinetpay.services;
 
-import com.dusk.duskswap.commons.models.InvoicePayment;
+import com.dusk.externalAPIs.cinetpay.constants.CinetpayParams;
 import com.dusk.externalAPIs.cinetpay.models.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -25,6 +26,7 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
     private static final String TRANSFER_ACCOUNT_BALANCE_URL = "https://client.cinetpay.com/v1/transfer/check/balance";
     private static final String ADDING_TRANSFER_CONTACT_URL = "https://client.cinetpay.com/v1/transfer/contact";
     private static final String SENDING_URL = "https://client.cinetpay.com/v1/transfer/money/send/contact";
+    private static final String TRANSFER_INFO_URL = "https://client.cinetpay.com/v1/transfer/check/money";
 
     public CinetpayTransferServiceImpl() {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES); // to avoid error when we have an unknown property
@@ -123,7 +125,7 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
     }
 
     @Override
-    public TransferInfo transferMoney(String token, String lang, List<Contact> contacts) {
+    public Contact transferMoney(String token, String lang, List<Contact> contacts) {
         if(
                 token == null || (token != null && token.isEmpty()) ||
                 lang == null || (lang != null && lang.isEmpty()) ||
@@ -151,10 +153,13 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
 
             log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> transferMoney :: CinetpayTransferServiceImpl.java");
 
-            TransferInfo info = null;
+            Map<String, Object> responseJson = null;
             if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                info = mapper.readValue(responseBody, TransferInfo.class);
-                return info;
+                responseJson = mapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
+                if((int) responseJson.get("code") == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
+                    return ( (List<List<Contact>>) responseJson.get("data") ).get(0).get(0);
+                }
+                return null;
             }
         }
         catch (JsonProcessingException e) {
@@ -197,13 +202,58 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
             log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> addContacts :: CinetpayTransferServiceImpl.java");
 
             List<Contact> contactList = null;
+            Map<String, Object> responseJson = null;
             if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                contactList = mapper.readValue(responseBody, new TypeReference<List<Contact>>(){});
-                return contactList;
+                responseJson = mapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
+                if((int)responseJson.get("code") == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
+                    return ((List<List<Contact>>)responseJson.get("data")).get(0);
+                }
             }
         }
         catch (JsonProcessingException e) {
             log.error("[" + new Date() + "] => " + e.getMessage() + "   >>>>>>>> addContacts :: CinetpayTransferServiceImpl.java");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public TransferInfo getTransferInfo(String token, String clientTransactionId, String lang) {
+        if(
+                token == null || (token != null && token.isEmpty()) ||
+                clientTransactionId == null || (clientTransactionId != null && clientTransactionId.isEmpty()) ||
+                lang == null || (lang != null && lang.isEmpty())
+        ) {
+            log.error("[" + new Date() + "] INPUT NULL OR EMPTY >>>>>>>> getTransferInfo :: CinetpayTransferServiceImpl.java" +
+                    " ====== token = " + token + ", clientTxId = " + clientTransactionId + ", lang = " + lang);
+            return null;
+        }
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(TRANSFER_INFO_URL).newBuilder();
+        urlBuilder.addQueryParameter("token", token);
+        urlBuilder.addQueryParameter("lang", lang);
+        urlBuilder.addQueryParameter("client_transaction_id", clientTransactionId);
+        String url = urlBuilder.build().toString();
+
+        try {
+            Request request = new Request.Builder()
+                    .url(url)
+                    .method("GET", null).build();
+
+            Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
+
+            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> getTransferInfo :: CinetpayTransferServiceImpl.java");
+
+            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
+                return mapper.readValue(responseBody, TransferInfo.class);
+            }
+        }
+        catch (JsonProcessingException e) {
+            log.error("[" + new Date() + "] => " + e.getMessage() + "   >>>>>>>> getTransferInfo :: CinetpayTransferServiceImpl.java");
         }
         catch (IOException e) {
             e.printStackTrace();

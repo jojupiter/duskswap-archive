@@ -13,13 +13,12 @@ import com.dusk.duskswap.commons.services.InvoiceService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.entityDto.DepositHashCount;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
-import com.dusk.duskswap.deposit.models.Deposit;
 import com.dusk.duskswap.deposit.models.DepositHash;
 import com.dusk.duskswap.deposit.services.DepositService;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.services.UserService;
 import com.dusk.externalAPIs.apiInterfaces.interfaces.BlockExplorerOperations;
-import com.dusk.externalAPIs.apiInterfaces.models.TransactionInfos;
+import com.dusk.externalAPIs.apiInterfaces.models.CryptoTransactionInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -222,12 +221,12 @@ public class DepositController {
         String paymentStatus = null;
 
         // >>>>> 3. we check the transaction information
-        TransactionInfos transactionInfos = blockExplorerOperations.getTransaction(depositHash.get().getTransactionHash(), depositHash.get().getDeposit().getCurrency().getIso());
+        CryptoTransactionInfo cryptoTransactionInfo = blockExplorerOperations.getTransaction(depositHash.get().getTransactionHash(), depositHash.get().getDeposit().getCurrency().getIso());
         Boolean isNumberOfConfirmationSufficient = null;
-        if(transactionInfos != null)
-            isNumberOfConfirmationSufficient = Utilities.checkNetworkConfirmations(depositHash.get().getDeposit().getCurrency().getIso(), transactionInfos.getNConfirmations());
+        if(cryptoTransactionInfo != null)
+            isNumberOfConfirmationSufficient = Utilities.checkNetworkConfirmations(depositHash.get().getDeposit().getCurrency().getIso(), cryptoTransactionInfo.getNConfirmations());
 
-        if(transactionInfos != null && isNumberOfConfirmationSufficient != null) { // here we check directly the blockchain to know if the number of confirmation is good enough
+        if(cryptoTransactionInfo != null && isNumberOfConfirmationSufficient != null) { // here we check directly the blockchain to know if the number of confirmation is good enough
             if (isNumberOfConfirmationSufficient) {
                 paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_SETTLED;
             }
@@ -235,7 +234,7 @@ public class DepositController {
                 paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_PROCESSING;
             }
 
-            depositHash.get().setFromDepositAddress(transactionInfos.getInAddress());
+            depositHash.get().setFromDepositAddress(cryptoTransactionInfo.getInAddress());
             DepositHash updatedDepositHash = depositService.updateDepositHashStatus(depositHash.get(), paymentStatus);
             if(updatedDepositHash == null) {
                 log.error("[" + new Date() + "] => DIDN'T UPDATE DEPOSIT HASH STATUS >>>>>>>> checkDepositHashStatus :: DepositController.java");

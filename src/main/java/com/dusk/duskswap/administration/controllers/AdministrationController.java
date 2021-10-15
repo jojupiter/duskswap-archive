@@ -1,6 +1,8 @@
 package com.dusk.duskswap.administration.controllers;
 
+import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.entityDto.PricingDto;
 import com.dusk.duskswap.commons.models.Level;
@@ -25,6 +27,8 @@ public class AdministrationController {
     private PricingService pricingService;
     @Autowired
     private OverallBalanceService overallBalanceService;
+    @Autowired
+    private DefaultConfigService defaultConfigService;
 
     // ============================== Levels ========================================
     @PreAuthorize("hasRole('ADMIN')")
@@ -135,6 +139,31 @@ public class AdministrationController {
     @GetMapping("/balance/all")
     public ResponseEntity<List<OverallBalance>> getAllBalances() {
         return overallBalanceService.getAllBalances();
+    }
+
+    // ================================ Configs ==================================
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/configs/create")
+    public ResponseEntity<DefaultConfig> createConfigs(@RequestBody DefaultConfig config) {
+        if(config == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok(defaultConfigService.createConfigs(config));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/configs/update")
+    public ResponseEntity<DefaultConfig> updateConfigs(@RequestBody DefaultConfig config) {
+        if(config == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok(defaultConfigService.updateConfigs(config));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/configs")
+    public ResponseEntity<DefaultConfig> getConfigs() {
+        return ResponseEntity.ok(defaultConfigService.getConfigs());
     }
 
 }

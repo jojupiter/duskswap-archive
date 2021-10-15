@@ -12,7 +12,7 @@ public interface MobileMoneyOperations {
     // transfer
     AuthResponse authenticate(AuthRequest request);
     Double getTransferBalance(String token, String lang);
-    MobileMoneyTransferResponse performTransfer(MobileMoneyTransferInfo info);
+    MobileMoneyTransferResponse performTransfer(String token, String lang, MobileMoneyTransferInfo info);
     MobileMoneyTransferInfo getTransferInformation(String token, String transactionId, String lang);
 
 }

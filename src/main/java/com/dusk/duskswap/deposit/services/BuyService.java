@@ -20,7 +20,7 @@ public interface BuyService {
     Optional<Buy> getByTransactionId(String transactionId);
     Buy createBuy(User user, ExchangeAccount account, BuyDto dto, String payToken, String apiFees, String txId) throws Exception; // api fees in XAF
     Boolean existsByTxId(String txId);
-    Buy confirmBuy(Buy buy) throws Exception; // here we calculate fees and the amount that should be attributed
+    Buy confirmBuy(Buy buy, String usdXaf) throws Exception; // here we calculate fees and the amount that should be attributed
     Buy updateBuyStatus(Buy buy, String statusString);
     Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount);
 

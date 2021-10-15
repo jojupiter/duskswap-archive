@@ -10,5 +10,6 @@ public class AuthRequest {
     private String consumerKey;
     private String clientId;
     private String clientSecret;
+    private String lang;
 
 }

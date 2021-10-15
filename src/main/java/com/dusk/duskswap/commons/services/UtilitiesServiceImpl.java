@@ -122,6 +122,8 @@ public class UtilitiesServiceImpl implements UtilitiesService {
         // by default, we set the attribute is_supported to true
         if(currency.getIsSupported() == null)
             currency.setIsSupported(true);
+        if(currency.getType() == null || (currency.getType() != null && currency.getType().isEmpty()))
+            currency.setType(DefaultProperties.CURRENCY_TYPE_CRYPTO);
 
         Currency createdCurrency = currencyRepository.save(currency);
 

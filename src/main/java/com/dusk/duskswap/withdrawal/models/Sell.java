@@ -38,11 +38,14 @@ public class Sell extends Auditable<String> {
     @Column(name = "crypto_price_usdt")
     private String cryptoPriceInUsdt;
 
-    @Column(name = "euro_to_usdt")
-    private String eurToUsdtPrice;
+    @Column(name = "usdt_to_fiat")
+    private String usdtToFiat;
 
     @Column(name = "sell_date")
     private Date sellDate;
+
+    @Column(name = "transaction_id")
+    private String transactionId;
 
     @ManyToOne
     @JoinColumn(name = "currency_id", referencedColumnName = "id")

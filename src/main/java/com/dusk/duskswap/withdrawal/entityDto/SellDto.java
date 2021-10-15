@@ -12,6 +12,6 @@ public class SellDto {
     private String amount; // the amount the user desires to sell
     private Integer code; // verification code
     private String tel;
-    private Long transactionOptId; // OM, MOMO, ....
+    private String transactionOptIso; // OM, MOMO, ....
 
 }
