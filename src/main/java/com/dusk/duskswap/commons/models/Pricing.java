@@ -20,9 +20,8 @@ public class Pricing {
     @JoinColumn(name = "currency_id", referencedColumnName = "id")
     private Currency currency;
 
-    @Column(name = "type")
-    private String type; // percentage or fix
-
+    @Column(name = "type_buy")
+    private String typeBuy; // percentage or fix
     @Column(name = "buy_fees")
     private String buyFees;
     @Column(name = "buy_max")
@@ -35,6 +34,8 @@ public class Pricing {
     @Column(name = "deposit_max")
     private String depositMax;
 
+    @Column(name = "type_withdrawal")
+    private String typeWithdrawal; // percentage or fix
     @Column(name = "withdrawal_fees")
     private String withdrawalFees;
     @Column(name = "withdrawal_min")
@@ -42,6 +43,8 @@ public class Pricing {
     @Column(name = "withdrawal_max")
     private String withdrawalMax;
 
+    @Column(name = "type_sell")
+    private String typeSell; // percentage or fix
     @Column(name = "sell_fees")
     private String sellFees;
     @Column(name = "sell_min")
@@ -49,6 +52,8 @@ public class Pricing {
     @Column(name = "sell_max")
     private String sellMax;
 
+    @Column(name = "type_exchange")
+    private String typeExchange; // percentage or fix
     @Column(name = "exchange_fees")
     private String exchangeFees; // in %
     @Column(name = "exchange_min")
@@ -56,6 +61,8 @@ public class Pricing {
     @Column(name = "exchange_max")
     private String exchangeMax;
 
+    @Column(name = "type_transfer")
+    private String typeTransfer; // percentage or fix
     @Column(name = "transferFees")
     private String transferFees;
     @Column(name = "transferMin")

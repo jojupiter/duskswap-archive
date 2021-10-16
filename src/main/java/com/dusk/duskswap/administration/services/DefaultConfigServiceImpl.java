@@ -3,9 +3,11 @@ package com.dusk.duskswap.administration.services;
 import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.repositories.DefaultConfigRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class DefaultConfigServiceImpl implements DefaultConfigService {
 
 
@@ -30,11 +32,11 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
             return null;
         }
 
-        if(!defaultConfigList.get(0).getEurToXafBuy().equals(config.getEurToXafBuy()))
-            defaultConfigList.get(0).setEurToXafBuy(config.getEurToXafBuy());
+        if(!defaultConfigList.get(0).getUsdToXafBuy().equals(config.getUsdToXafBuy()))
+            defaultConfigList.get(0).setUsdToXafBuy(config.getUsdToXafBuy());
 
-        if(!defaultConfigList.get(0).getEurToXafSell().equals(config.getEurToXafSell()))
-            defaultConfigList.get(0).setEurToXafSell(config.getEurToXafSell());
+        if(!defaultConfigList.get(0).getUsdToXafSell().equals(config.getUsdToXafSell()))
+            defaultConfigList.get(0).setUsdToXafSell(config.getUsdToXafSell());
 
         return defaultConfigRepository.save(defaultConfigList.get(0));
     }

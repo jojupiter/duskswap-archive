@@ -92,7 +92,7 @@ public class BuyController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping(value = "/buy-request", produces = "application/json")
-    public ResponseEntity<?> buyRequest(BuyDto dto) throws Exception {
+    public ResponseEntity<?> buyRequest(@RequestBody BuyDto dto) throws Exception {
         // input checking
         if(
                 dto == null ||

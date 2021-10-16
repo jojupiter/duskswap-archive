@@ -205,7 +205,7 @@ public class BuyServiceImpl implements BuyService {
         Double duskFeesInCrypto = 0.0;
         Double initialAmountFiatToCrypto = 0.0;
 
-        if( pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) ) {
+        if( pricing.get().getTypeBuy().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) ) {
             // here we take percentage of the initial amount
             initialAmountFiatToCrypto = Utilities.convertXafToCrypto(Double.parseDouble(buy.getTotalAmount()),
                     cryptoToUsdt,
@@ -218,7 +218,7 @@ public class BuyServiceImpl implements BuyService {
             );
 
         }
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
+        if(pricing.get().getTypeBuy().equals(DefaultProperties.PRICING_TYPE_FIX)) {
             // here we just convert the buy fees of pricing in xaf
             duskFeesInCrypto = Double.parseDouble(pricing.get().getBuyFees());
             duskFeesInXaf = Utilities.convertUSdtToXaf( duskFeesInCrypto,

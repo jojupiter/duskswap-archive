@@ -55,24 +55,66 @@ public class PricingServiceImpl implements PricingService {
         }
 
         // next we check the type
-        if(dto.getType() == null || (dto.getType() != null && dto.getType().isEmpty()))
-            dto.setType(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
+        if(dto.getTypeBuy() == null || (dto.getTypeBuy() != null && dto.getTypeBuy().isEmpty()))
+            dto.setTypeBuy(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
+        if(dto.getTypeExchange() == null || (dto.getTypeExchange() != null && dto.getTypeExchange().isEmpty()))
+            dto.setTypeExchange(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
+        if(dto.getTypeTransfer() == null || (dto.getTypeTransfer() != null && dto.getTypeTransfer().isEmpty()))
+            dto.setTypeTransfer(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
+        if(dto.getTypeSell() == null || (dto.getTypeSell() != null && dto.getTypeSell().isEmpty()))
+            dto.setTypeSell(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
+        if(dto.getTypeWithdrawal() == null || (dto.getTypeWithdrawal() != null && dto.getTypeWithdrawal().isEmpty()))
+            dto.setTypeWithdrawal(DefaultProperties.PRICING_TYPE_FIX); // by default, we set pricing type to fix
 
-        dto.setType(dto.getType().toUpperCase()); // we put type into capital letters for avoiding casting
-        if(dto.getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
-            if(
-                    Double.parseDouble(dto.getBuyFees()) > 1.0 || Double.parseDouble(dto.getBuyFees()) < 0.0 ||
-                    Double.parseDouble(dto.getSellFees()) > 1.0 || Double.parseDouble(dto.getSellFees()) < 0.0 ||
-                    Double.parseDouble(dto.getExchangeFees()) > 1.0 || Double.parseDouble(dto.getExchangeFees()) < 0.0
-            ) {
-                log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] >>>>>>>> createPricing :: PricingServiceImpl.java");
-                return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-            }
+        dto.setTypeBuy(dto.getTypeBuy().toUpperCase()); // we put type into capital letters for avoiding casting
+        dto.setTypeWithdrawal(dto.getTypeWithdrawal().toUpperCase());
+        dto.setTypeSell(dto.getTypeSell().toUpperCase());
+        dto.setTypeTransfer(dto.getTypeTransfer().toUpperCase());
+        dto.setTypeExchange(dto.getTypeExchange().toUpperCase());
+
+        if(
+                dto.getTypeBuy().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) &&
+                (Double.parseDouble(dto.getBuyFees()) > 1.0 || Double.parseDouble(dto.getBuyFees()) < 0.0)
+        ) {
+            log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] - buy fees = " + dto.getBuyFees() + ">>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(
+                dto.getTypeSell().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) &&
+                (Double.parseDouble(dto.getSellFees()) > 1.0 || Double.parseDouble(dto.getSellFees()) < 0.0)
+        ) {
+            log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] - sell fees = " + dto.getSellFees() + ">>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(
+                dto.getTypeWithdrawal().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) &&
+                (Double.parseDouble(dto.getWithdrawalFees()) > 1.0 || Double.parseDouble(dto.getWithdrawalFees()) < 0.0)
+        ) {
+            log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] - withdrawal fees = " + dto.getWithdrawalFees() + ">>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(
+                dto.getTypeExchange().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) &&
+                (Double.parseDouble(dto.getExchangeFees()) > 1.0 || Double.parseDouble(dto.getExchangeFees()) < 0.0)
+        ) {
+            log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] - exchange fees = " + dto.getExchangeFees() + ">>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(
+                dto.getTypeTransfer().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE) &&
+                (Double.parseDouble(dto.getTransferFees()) > 1.0 || Double.parseDouble(dto.getTransferFees()) < 0.0)
+        ) {
+            log.info("[" + new Date() + "] => PRICING FEES PERCENTAGE OUT OF BOUND [0.0, 1.0] - transfer fees = " + dto.getTransferFees() + ">>>>>>>> createPricing :: PricingServiceImpl.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         if(
-                !dto.getType().equals(DefaultProperties.PRICING_TYPE_FIX) &&
-                !dto.getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)
+                (!dto.getTypeBuy().equals(DefaultProperties.PRICING_TYPE_FIX) && !dto.getTypeBuy().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) ||
+                (!dto.getTypeSell().equals(DefaultProperties.PRICING_TYPE_FIX) && !dto.getTypeSell().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) ||
+                (!dto.getTypeWithdrawal().equals(DefaultProperties.PRICING_TYPE_FIX) && !dto.getTypeWithdrawal().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) ||
+                (!dto.getTypeExchange().equals(DefaultProperties.PRICING_TYPE_FIX) && !dto.getTypeExchange().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) ||
+                (!dto.getTypeTransfer().equals(DefaultProperties.PRICING_TYPE_FIX) && !dto.getTypeTransfer().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE))
+
         ) { // If type is not fix or percentage, then we return an error
             log.info("[" + new Date() + "] => PRICING TYPE IS NEITHER FIX NOR PERCENTAGE >>>>>>>> createPricing :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -82,7 +124,13 @@ public class PricingServiceImpl implements PricingService {
         Pricing pricing = new Pricing();
         pricing.setLevel(level.get());
         pricing.setCurrency(currency.get());
-        pricing.setType(dto.getType().toUpperCase());
+
+        pricing.setTypeBuy(dto.getTypeBuy().toUpperCase());
+        pricing.setTypeSell(dto.getTypeSell().toUpperCase());
+        pricing.setTypeWithdrawal(dto.getTypeWithdrawal().toUpperCase());
+        pricing.setTypeExchange(dto.getTypeExchange().toUpperCase());
+        pricing.setTypeTransfer(dto.getTypeTransfer().toUpperCase());
+
         pricing.setBuyFees(dto.getBuyFees());
         pricing.setBuyMax(dto.getBuyMax());
         pricing.setBuyMin(dto.getBuyMin());
@@ -136,8 +184,16 @@ public class PricingServiceImpl implements PricingService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        if(dto.getType() != null && !dto.getType().equals(pricing.get().getType()))
-            pricing.get().setType(dto.getType());
+        if(dto.getTypeBuy() != null && !dto.getTypeBuy().equals(pricing.get().getTypeBuy()))
+            pricing.get().setTypeBuy(dto.getTypeBuy());
+        if(dto.getTypeSell() != null && !dto.getTypeSell().equals(pricing.get().getTypeSell()))
+            pricing.get().setTypeSell(dto.getTypeSell());
+        if(dto.getTypeExchange() != null && !dto.getTypeExchange().equals(pricing.get().getTypeExchange()))
+            pricing.get().setTypeExchange(dto.getTypeExchange());
+        if(dto.getTypeWithdrawal() != null && !dto.getTypeWithdrawal().equals(pricing.get().getTypeWithdrawal()))
+            pricing.get().setTypeWithdrawal(dto.getTypeWithdrawal());
+        if(dto.getTypeTransfer() != null && !dto.getTypeTransfer().equals(pricing.get().getTypeTransfer()))
+            pricing.get().setTypeTransfer(dto.getTypeTransfer());
 
         if(dto.getBuyFees() != null && !dto.getBuyFees().equals(pricing.get().getBuyFees()))
             pricing.get().setBuyFees(dto.getBuyFees());

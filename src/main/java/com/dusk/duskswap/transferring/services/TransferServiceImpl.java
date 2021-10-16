@@ -130,11 +130,11 @@ public class TransferServiceImpl implements TransferService {
         // =============================== fees calculation + creation of the transfer ======================
         // >>>>> 4. Fees calculation
         Double duskFees = 0.0;
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+        if(pricing.get().getTypeTransfer().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
             duskFees = Double.parseDouble(pricing.get().getTransferFees()) *
                        Double.parseDouble(amount);
         }
-        else if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX))
+        else if(pricing.get().getTypeTransfer().equals(DefaultProperties.PRICING_TYPE_FIX))
             duskFees = Double.parseDouble(pricing.get().getTransferFees());
 
         // >>>>> 5. Transfer creation

@@ -161,11 +161,11 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
         // ============================== fees calculation ================================
         Double duskFees = 0.0;
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+        if(pricing.get().getTypeWithdrawal().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
             duskFees = Double.parseDouble(pricing.get().getWithdrawalFees()) *
                        Double.parseDouble(wdto.getAmount());
         }
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX)) {
+        if(pricing.get().getTypeWithdrawal().equals(DefaultProperties.PRICING_TYPE_FIX)) {
             duskFees = Double.parseDouble(pricing.get().getWithdrawalFees());
         }
 

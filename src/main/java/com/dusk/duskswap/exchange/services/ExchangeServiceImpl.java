@@ -228,11 +228,11 @@ public class ExchangeServiceImpl implements ExchangeService {
 
         // >>>>> 4. we calculate dusk fees
         Double duskFees = 0.0;
-        if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
+        if(pricing.get().getTypeExchange().equals(DefaultProperties.PRICING_TYPE_PERCENTAGE)) {
             duskFees = Double.parseDouble(pricing.get().getExchangeFees()) *
                        Double.parseDouble(dto.getFromAmount());
         }
-        else if(pricing.get().getType().equals(DefaultProperties.PRICING_TYPE_FIX))
+        else if(pricing.get().getTypeExchange().equals(DefaultProperties.PRICING_TYPE_FIX))
             duskFees = Double.parseDouble(pricing.get().getExchangeFees());
 
         // >>>>> 5. we then calculate the exchanged amount (formula : (from_amount - fees) * fromToConversionRate )
