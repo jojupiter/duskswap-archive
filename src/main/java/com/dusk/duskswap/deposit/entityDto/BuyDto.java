@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class BuyDto {
     private String amount;
     private Long toCurrencyId;
-    private Long transactionOptId;
+    private String transactionOptIso;
 }

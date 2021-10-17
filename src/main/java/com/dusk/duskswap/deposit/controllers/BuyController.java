@@ -100,7 +100,7 @@ public class BuyController {
                     dto != null &&
                             (
                                 dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) || (dto.getAmount() != null && !dto.getAmount().isEmpty() && Double.parseDouble(dto.getAmount()) <= 0) ||
-                                dto.getTransactionOptId() == null ||
+                                dto.getTransactionOptIso() == null ||
                                 dto.getToCurrencyId() == null
                             )
                 )
@@ -123,13 +123,8 @@ public class BuyController {
             log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        // >>>>> 2. the payment mean the user wants to use
-        Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptId());
-        if(!transactionOption.isPresent()) {
-            log.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        // >>>>> 3. the crypto currency the user wants to buy
+
+        // >>>>> 2. the crypto currency the user wants to buy
         Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
@@ -159,7 +154,7 @@ public class BuyController {
         }
 
         // ========================= Performing the payment request via API ============================
-        // >>>>> 4. payment request object creation based on user's inputs
+        // >>>>> 3. payment request object creation based on user's inputs
         MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
         request.setAmount(dto.getAmount());
         request.setCustomerId(Long.toString(user.get().getId()));
@@ -176,7 +171,7 @@ public class BuyController {
         request.setTransactionId(txId);
         request.setMetadata("User" + user.get().getId());
 
-        // >>>>> 5. generation of the payment URL
+        // >>>>> 4. generation of the payment URL
         MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request);
         if(response == null) {
             log.error("[" + new Date() + "] => CANNOT PERFORM PAYMENT >>>>>>>> buyRequest :: BuyController.java");
@@ -184,7 +179,7 @@ public class BuyController {
         }
 
         // ========================= saving the transaction into a new buy object ============================
-        // >>>>> 6. now we create and save the buy
+        // >>>>> 5. now we create and save the buy
         Buy buy = buyService.createBuy(user.get(), account, dto, response.getPaymentToken(), response.getApiFees(), txId);
         if(buy == null) {
             log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");

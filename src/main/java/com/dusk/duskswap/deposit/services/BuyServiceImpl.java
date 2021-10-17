@@ -72,7 +72,7 @@ public class BuyServiceImpl implements BuyService {
                             (
                                 dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) || (dto.getAmount() != null && Double.parseDouble(dto.getAmount()) <= 0) ||
                                 dto.getToCurrencyId() == null ||
-                                dto.getTransactionOptId() == null
+                                dto.getTransactionOptIso() == null
                             )
                 )
         ) {
@@ -90,7 +90,7 @@ public class BuyServiceImpl implements BuyService {
         }
 
         // >>>>> 2. next, we get the transaction option
-        Optional<TransactionOption> transactionOption = transactionOptionRepository.findById(dto.getTransactionOptId());
+        Optional<TransactionOption> transactionOption = transactionOptionRepository.findByIso(dto.getTransactionOptIso());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
             throw new Exception("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
