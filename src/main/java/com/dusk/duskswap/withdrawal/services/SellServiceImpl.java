@@ -216,7 +216,7 @@ public class SellServiceImpl implements SellService {
         sell.setTel(dto.getTel());
         sell.setCurrency(fromCurrency.get());
         sell.setCryptoPriceInUsdt(usdtRate.getTicks().getClose());
-        sell.setUsdtToFiat(usdXaf);
+        sell.setUsdToFiat(usdXaf);
         sell.setTransactionOption(transactionOption.get());
         sell.setExchangeAccount(account);
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_INITIATED);

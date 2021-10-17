@@ -142,7 +142,7 @@ public class BuyServiceImpl implements BuyService {
 
     @Transactional
     @Override
-    public Buy confirmBuy(Buy buy, String usdXaf) throws Exception {
+    public Buy confirmBuy(Buy buy, String usdXaf, String tel) throws Exception {
         // input checking
         if(buy == null) {
             log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
@@ -193,7 +193,10 @@ public class BuyServiceImpl implements BuyService {
         }
 
         // >>>>> 5. we convert usdXaf to number
-        Double usdToXaf = Double.parseDouble(usdXaf);
+        Double usdToXaf = 0.0;
+        if(usdXaf == null || (usdXaf != null && usdXaf.isEmpty()))
+            usdXaf = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+        usdToXaf = Double.parseDouble(usdXaf);
 
         // >>>>> 6. we get these conversions in variables
 
@@ -241,7 +244,8 @@ public class BuyServiceImpl implements BuyService {
         // >>>>> 9. finally we proceed to the update
         buy.setBuyDate(new Date());
         buy.setStatus(status.get());
-        buy.setUsdtToFiat(usdXaf);
+        buy.setUsdToFiat(usdXaf);
+        buy.setTel(tel);
         buy.setAmountCrypto(Double.toString(amountCryptoToBeAllocated));
         buy.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
         buy.setDuskFees(Double.toString(duskFeesInXaf));

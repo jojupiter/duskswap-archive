@@ -238,7 +238,8 @@ public class BuyController {
         // >>>>> 4. if everything is good, we update the buy object
         if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_SUCCESS)) {
 
-            Buy savedBuy =  buyService.confirmBuy(buy.get(), usdXafRate);
+            String phoneNumber = verificationResponse.getData().getPhone_prefix() + verificationResponse.getData().getPhone_number();
+            Buy savedBuy =  buyService.confirmBuy(buy.get(), usdXafRate, phoneNumber);
             if(savedBuy == null) {
                 return;
             }

@@ -37,8 +37,8 @@ public class Buy extends Auditable<String> {
     @Column(name = "api_fees")
     private String apiFees; // OM, MOMO, or even banking API if we have in FIAT
 
-    @Column(name = "usdt_to_fiat")
-    private String usdtToFiat;
+    @Column(name = "usd_to_fiat")
+    private String usdToFiat;
 
     @Column(name = "pay_token")
     private String payToken;
@@ -48,6 +48,9 @@ public class Buy extends Auditable<String> {
 
     @Column(name = "buy_date")
     private Date buyDate;
+
+    @Column(name = "tel")
+    private String tel;
 
     @Column(name = "transaction_id")
     private String transactionId;
