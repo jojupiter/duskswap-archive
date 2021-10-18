@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
-@Table(name = "overall_balance")
+@Table(name = "default_config")
 @Entity
 @Data
 @AllArgsConstructor

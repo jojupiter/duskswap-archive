@@ -339,7 +339,7 @@ public class BuyServiceImpl implements BuyService {
     }
 
     @Override
-    public Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount) {
+    public Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount, String usdXaf) {
         if(
                 user == null ||
                         currency == null ||
@@ -368,27 +368,17 @@ public class BuyServiceImpl implements BuyService {
             return null;
         }
 
-        // >>>>> 5. we look at the pair EUR/USDT to have the value in euros
-        Class<?> eurUsdtBinanceClassName = binanceRateFactory.getBinanceClassFromName(DefaultProperties.CURRENCY_EUR_ISO);
-        if(currencyBinanceClassName == null)
-        {
-            log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
-            return null;
-        }
-        BinanceRate eurUsdtRate = binanceRateRepository.findLastCryptoUsdRecord(eurUsdtBinanceClassName);
-        if(usdtRate == null) {
-            log.error("[" + new Date() + "] => BINANCE RATE NULL (USDT-EUR) >>>>>>>> confirmBuy :: BuyServiceImpl.java");
-            return null;
-        }
+        Double usdToXaf = 0.0;
+        if(usdXaf == null || (usdXaf != null && usdXaf.isEmpty()))
+            usdXaf = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+        usdToXaf = Double.parseDouble(usdXaf);
 
-        // >>>>> 6. we get these conversions in variables
-        Double eurToUsdt = Double.parseDouble(eurUsdtRate.getTicks().getClose());
         Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
 
         return Utilities.convertXafToCrypto(
                 Double.parseDouble(amount),
                 cryptoToUsdt,
-                eurToUsdt
+                usdToXaf
         );
     }
 

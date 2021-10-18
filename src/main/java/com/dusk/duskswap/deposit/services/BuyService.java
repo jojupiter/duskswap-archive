@@ -22,6 +22,6 @@ public interface BuyService {
     Boolean existsByTxId(String txId);
     Buy confirmBuy(Buy buy, String usdXaf, String tel) throws Exception; // here we calculate fees and the amount that should be attributed
     Buy updateBuyStatus(Buy buy, String statusString);
-    Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount);
+    Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount, String usdXaf);
 
 }

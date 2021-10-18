@@ -137,12 +137,22 @@ public class BuyController {
             log.error("[" + new Date() + "] => OVERALL BALANCE NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+        String usdXafRate = "";
+        DefaultConfig config = defaultConfigService.getConfigs();
+        if(config == null) {
+            usdXafRate = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+        }
+        else
+            usdXafRate = config.getUsdToXafBuy();
+
         Double estimatedAmountOfCryptoToBeReceived = buyService.estimateAmountInCryptoToBeReceived(
                 user.get(),
                 account,
                 currency.get(),
-                dto.getAmount()
+                dto.getAmount(),
+                usdXafRate
         );
+
         if(estimatedAmountOfCryptoToBeReceived == null) {
             log.error("[" + new Date() + "] => UNABLE TO ESTIMATED CONVERSION AMOUNT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
