@@ -57,7 +57,7 @@ public class DepositController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return depositService.getAllUserDeposits(user.get(), currentPage, pageSize);
     }
@@ -70,7 +70,7 @@ public class DepositController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDeposits :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return depositService.getAllUserDeposits(user.get(), currentPage, pageSize);
     }
@@ -89,7 +89,7 @@ public class DepositController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDepositHashes :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         ExchangeAccount account = accountService.getAccountByUser(user.get());
@@ -110,7 +110,7 @@ public class DepositController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserDepositHashes :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         ExchangeAccount account = accountService.getAccountByUser(user.get());
@@ -131,7 +131,7 @@ public class DepositController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return depositService.createCryptoDeposit(user.get(), dto);
@@ -196,7 +196,7 @@ public class DepositController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 1. we get the depositHash associated with transactionHash
@@ -238,7 +238,7 @@ public class DepositController {
             DepositHash updatedDepositHash = depositService.updateDepositHashStatus(depositHash.get(), paymentStatus);
             if(updatedDepositHash == null) {
                 log.error("[" + new Date() + "] => DIDN'T UPDATE DEPOSIT HASH STATUS >>>>>>>> checkDepositHashStatus :: DepositController.java");
-                return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+                return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
             }
         }
 
@@ -247,7 +247,7 @@ public class DepositController {
             Payment correspondingPayment = Utilities.findPayment(invoicePayments, depositHash.get().getTransactionHash());
             if(correspondingPayment == null) {
                 log.error("[" + new Date() + "] => CAN'T FIND PAYMENT >>>>>>>> checkDepositHashStatus :: DepositController.java");
-                return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+                return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
             paymentStatus = DefaultProperties.STATUS_TRANSACTION_CRYPTO_RADICAL + correspondingPayment.getStatus();
@@ -256,7 +256,7 @@ public class DepositController {
                 DepositHash updatedDepositHash = depositService.updateDepositHashStatus(depositHash.get(), paymentStatus);
                 if(updatedDepositHash == null) {
                     log.error("[" + new Date() + "] => DIDN'T UPDATE DEPOSIT HASH STATUS >>>>>>>> checkDepositHashStatus :: DepositController.java");
-                    return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+                    return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
             }
 
@@ -270,7 +270,7 @@ public class DepositController {
             ExchangeAccount account = accountService.getAccountByUser(user.get());
             if(account == null) {
                 log.error("[" + new Date() + "] => CAN'T FIND USER'S EXCHANGE ACCOUNT >>>>>>>> checkDepositHashStatus :: DepositController.java");
-                return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+                return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
             }
             // we fund the account
             accountService.fundAccount(account, depositHash.get().getDeposit().getCurrency(), depositHash.get().getAmount());

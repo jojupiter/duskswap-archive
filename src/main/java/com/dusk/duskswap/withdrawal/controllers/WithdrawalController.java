@@ -66,27 +66,27 @@ public class WithdrawalController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
-    public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
+    public ResponseEntity<?> getAllUserWithdrawals(@RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                             @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return withdrawalService.getAllUserWithdrawals(user.get(), currentPage, pageSize);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/user-all", produces = "application/json", params = "userId")
-    public ResponseEntity<WithdrawalPage> getAllUserWithdrawals(@RequestParam(name = "userId") Long userId,
+    public ResponseEntity<?> getAllUserWithdrawals(@RequestParam(name = "userId") Long userId,
                                                                 @RequestParam(name = "currentPage", defaultValue = "0") Integer currentPage,
                                                                 @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
 
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return withdrawalService.getAllUserWithdrawals(user.get(), currentPage, pageSize);
     }
@@ -142,15 +142,19 @@ public class WithdrawalController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // here we check if his email is null or empty
         if(user.isPresent() && (user.get().getEmail() == null || (user.get().getEmail() != null && user.get().getEmail().isEmpty()))) {
             log.error("[" + new Date() + "] => USER EMAIL NULL >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.EMAIL_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.EMAIL_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>> 2. the user's exchange account
         ExchangeAccount account = accountService.getAccountByUser(user.get());
+        if(account == null) {
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT DOESN'T EXIST >>>>>>>> confirm :: WithdrawalController.java");
+            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         // >>>>> 3. first we check if verification code is correct
         if(!verificationCodeService.isCodeCorrect(user.get().getEmail(), dto.getCode(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE)) {
@@ -214,7 +218,7 @@ public class WithdrawalController {
         TransactionBlock block = invoiceService.sendCrypto(walletTransaction, withdrawal.getCurrency().getIso());
         if(block == null) {
             log.error("[" + new Date() + "] => ERROR: CAN'T MAKE SEND CRYPTO >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") TRANSACTION BLOCK =======> " + block);

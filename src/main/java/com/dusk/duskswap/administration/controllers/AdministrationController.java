@@ -161,7 +161,7 @@ public class AdministrationController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/configs")
+    @GetMapping("/configs")
     public ResponseEntity<DefaultConfig> getConfigs() {
         return ResponseEntity.ok(defaultConfigService.getConfigs());
     }

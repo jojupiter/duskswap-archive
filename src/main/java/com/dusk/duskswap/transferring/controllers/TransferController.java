@@ -65,7 +65,7 @@ public class TransferController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserTransfers :: TransferController.java");
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(CodeErrors.USER_NOT_FOUND);
         }
 
         ExchangeAccount account = accountService.getAccountByUser(user.get());
@@ -85,7 +85,7 @@ public class TransferController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserTransfers :: TransferController.java");
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(CodeErrors.USER_NOT_FOUND);
         }
 
         ExchangeAccount account = accountService.getAccountByUser(user.get());
@@ -104,19 +104,19 @@ public class TransferController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> askCode :: TransferController.java");
-            return new ResponseEntity<>(CodeErrors.JWT_TOKEN_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // here we test if his email is null or empty
         if(user.isPresent() && (user.get().getEmail() == null || (user.get().getEmail() != null && user.get().getEmail().isEmpty()))) {
             log.error("[" + new Date() + "] => USER EMAIL NULL >>>>>>>> askCode :: TransferController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.EMAIL_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // if email is not null, then we create the verification code
         VerificationCode code = verificationCodeService.createTransferCode(user.get().getEmail());
         if(code == null) {
             log.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: TransferController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // after that, we send an email with the code
@@ -149,19 +149,19 @@ public class TransferController {
         ) {
             log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> makeTransfer :: TransferController.java " +
                     "====== dto = " + dto);
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
         }
 
         // >>>>> 1. we get the current logged in user and the recipient
         Optional<User> sender = userService.getCurrentUser();
         if(!sender.isPresent()) {
             log.error("[" + new Date() + "] => SENDER NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
-            return new ResponseEntity<>(CodeErrors.JWT_TOKEN_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         Optional<User> recipient = userService.getUser(dto.getRecipientUserId());
         if(!recipient.isPresent()) {
             log.error("[" + new Date() + "] => RECIPIENT NOT PRESENT >>>>>>>> makeTransfer :: TransferController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. check the code
@@ -186,7 +186,7 @@ public class TransferController {
         Transfer transfer = transferService.createTransfer(sender.get(), senderAccount, recipientAccount, dto.getCurrencyId(), dto.getAmount());
         if(transfer == null) {
             log.error("[" + new Date() + "] => CAN'T MAKE THE TRANSFER >>>>>>>> makeTransfer :: TransferController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 5. we check if the sender and duskswap have enough balance to execute the transfer
@@ -199,7 +199,7 @@ public class TransferController {
         Optional<OverallBalance> overallBalance = overallBalanceService.getBalanceFor(transfer.getCurrency());
         if(!overallBalance.isPresent()) {
             log.error("[" + new Date() + "] => OVERALL BALANCE NOT PRESENT FOR CURRENCY :" + transfer.getCurrency().getIso() + ">>>>>>>> makeTransfer :: TransferController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         if(Double.parseDouble(overallBalance.get().getDepositBalance()) <= totalTransferAmount) {

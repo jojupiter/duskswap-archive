@@ -66,13 +66,13 @@ public class SellController {
             sellDto == null
         ) {
             log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> confirmation :: SellController.java");
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
         }
         // >>>>> 1. getting the current authenticated user
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we check the account's balance
@@ -108,7 +108,7 @@ public class SellController {
         Sell sell = sellService.createSell(sellDto, usdXafRate, user.get(), account);
         if(sell == null) {
             log.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // ================================== CALLING MOBILE MONEY TRANSFER METHODS =============================================================
@@ -116,17 +116,17 @@ public class SellController {
         AuthResponse authResponse = mobileMoneyOperations.authenticate(authRequest);
         if(authResponse == null) {
             log.error("[" + new Date() + "] => TRANSFER AUTHENTICATION FAILED >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         Double transferBalance = mobileMoneyOperations.getTransferBalance(authResponse.getToken(), "fr");
         if(transferBalance == null) {
             log.error("[" + new Date() + "] => BALANCE NULL >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         if(transferBalance <= Double.parseDouble(sell.getAmountReceived())) {
             log.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         MobileMoneyTransferInfo info = new MobileMoneyTransferInfo();
@@ -139,7 +139,7 @@ public class SellController {
         MobileMoneyTransferResponse response = mobileMoneyOperations.performTransfer(authResponse.getToken(), "fr", info);
         if(response == null) {
             log.error("[" + new Date() + "] => TRANSFER FAILED >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // ==================================================================================================================================
@@ -150,18 +150,18 @@ public class SellController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/ask-code", produces = "application/json")
-    public ResponseEntity<Boolean> askCode() {
+    public ResponseEntity<?> askCode() {
         // first we get the current authenticated user
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> askCode :: SellController.java");
-            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         VerificationCode code = verificationCodeService.createWithdrawalCode(user.get().getEmail());
         if(code == null) {
             log.error("[" + new Date() + "] => CODE NULL >>>>>>>> askCode :: SellController.java");
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         Email email = new Email();
@@ -230,7 +230,7 @@ public class SellController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserSales :: SellController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return sellService.getAllSell(user.get(), currentPage, pageSize);
     }
@@ -244,7 +244,7 @@ public class SellController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> etAllUserSales :: SellController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_PRESENT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return sellService.getAllSell(user.get(), currentPage, pageSize);
     }

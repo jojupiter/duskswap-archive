@@ -1,5 +1,7 @@
 package com.dusk.duskswap.commons.controller;
 
+import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.services.PricingService;
@@ -21,6 +23,8 @@ public class UtilitiesController {
     private UtilitiesService utilitiesService;
     @Autowired
     private PricingService pricingService;
+    @Autowired
+    private DefaultConfigService defaultConfigService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all-currencies")
@@ -78,11 +82,17 @@ public class UtilitiesController {
     }
 
 // ============================== PRICINGS ===========================================
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/pricing/currency")
     public ResponseEntity<List<Pricing>> getAllPricingByCurrency(@RequestParam(name = "currencyId") Long currencyId) {
         return pricingService.getAllPricingForCurrency(currencyId);
     }
 
+    // =================================== CONFIGS =============================================
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @GetMapping("/configs")
+    public ResponseEntity<DefaultConfig> getConfigs() {
+        return ResponseEntity.ok(defaultConfigService.getConfigs());
+    }
 
 }
