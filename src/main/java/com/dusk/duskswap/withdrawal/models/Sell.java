@@ -30,7 +30,7 @@ public class Sell extends Auditable<String> {
     private String duskFeesCrypto; // duskswap fees in CRYPTO
 
     @Column(name = "dusk_fees")
-    private String duskFees; // duskswap fees in FIAT
+    private String duskFees; // duskswap fees in FIAT (sometimes with extra decimal got when for example when amount to send = 2340.42, we add the extra 0.42 to duskFees and send effectively 2340)
 
     @Column(name = "tel")
     private String tel;

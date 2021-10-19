@@ -164,6 +164,11 @@ public class TransferController {
             return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        if(recipient.get().getId() == sender.get().getId()) {
+            log.error("[" + new Date() + "] => RECIPIENT AND SENDER ARE SAME >>>>>>>> makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
         // >>>>> 2. check the code
         if(!verificationCodeService.isCodeCorrect(sender.get().getEmail(), dto.getCode(), DefaultProperties.VERIFICATION_TRANSFER_PURPOSE)) {
             log.error("[" + new Date() + "] => CODE PROVIDED INCORRECT >>>>>>>> makeTransfer :: TransferController.java");

@@ -5,6 +5,7 @@ import com.dusk.duskswap.commons.models.Auditable;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Status;
 import com.dusk.duskswap.commons.models.TransactionOption;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -41,9 +42,11 @@ public class Buy extends Auditable<String> {
     private String usdToFiat;
 
     @Column(name = "pay_token")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String payToken;
 
     @Column(name = "notif_token")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String notifToken;
 
     @Column(name = "buy_date")

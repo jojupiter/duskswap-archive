@@ -206,6 +206,10 @@ public class SellServiceImpl implements SellService {
                 usdToXaf
         );
 
+        // adding the extra decimal amount to duskFees
+        duskFeesInFiat += amountToBeReceivedInFiat - Math.floor(amountToBeReceivedInFiat);
+        amountToBeReceivedInFiat -= (amountToBeReceivedInFiat - Math.floor(amountToBeReceivedInFiat));
+
         // >>>>> 9. finally, we create the sell object and we save it in the DB
         Sell sell = new Sell();
         sell.setSellDate(new Date());
