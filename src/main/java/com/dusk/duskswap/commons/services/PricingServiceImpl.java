@@ -151,6 +151,9 @@ public class PricingServiceImpl implements PricingService {
         pricing.setExchangeFees(dto.getExchangeFees());
         pricing.setExchangeMin(dto.getExchangeMin());
         pricing.setExchangeMax(dto.getExchangeMax());
+        pricing.setTransferFees(dto.getTransferFees());
+        pricing.setTransferMax(dto.getTransferMax());
+        pricing.setTransferMin(dto.getTransferMin());
 
         // here we check the positivity of numbers
         if(!isPricingPositive(pricing)) {
@@ -228,6 +231,13 @@ public class PricingServiceImpl implements PricingService {
         if(dto.getExchangeMin() != null && !dto.getExchangeMin().equals(pricing.get().getExchangeMin()))
             pricing.get().setExchangeMin(dto.getExchangeMin());
 
+        if(dto.getTransferFees() != null && !dto.getTransferFees().equals(pricing.get().getTransferFees()))
+            pricing.get().setTransferFees(dto.getTransferFees());
+        if(dto.getTransferMax() != null && !dto.getTransferMax().equals(pricing.get().getTransferMax()))
+            pricing.get().setTransferMax(dto.getTransferMax());
+        if(dto.getTransferMin() != null && !dto.getTransferMin().equals(pricing.get().getTransferMin()))
+            pricing.get().setTransferMin(dto.getTransferMin());
+
         return ResponseEntity.ok(pricingRepository.save(pricing.get()));
     }
 
@@ -280,7 +290,9 @@ public class PricingServiceImpl implements PricingService {
                Double.parseDouble(pricing.getWithdrawalMax()) >= 0 && Double.parseDouble(pricing.getWithdrawalMin()) >= 0 &&
                Double.parseDouble(pricing.getSellMax()) >= 0 && Double.parseDouble(pricing.getSellFees()) >= 0 &&
                Double.parseDouble(pricing.getSellMin()) >= 0 && Double.parseDouble(pricing.getExchangeFees()) >= 0 &&
-               Double.parseDouble(pricing.getExchangeMax()) >= 0 && Double.parseDouble(pricing.getExchangeMin()) >= 0;
+               Double.parseDouble(pricing.getExchangeMax()) >= 0 && Double.parseDouble(pricing.getExchangeMin()) >= 0 &&
+               Double.parseDouble(pricing.getTransferMax()) >= 0 && Double.parseDouble(pricing.getTransferMin()) >= 0 &&
+               Double.parseDouble(pricing.getTransferFees()) >= 0;
     }
 
     @Override
