@@ -44,8 +44,6 @@ public class BuyServiceImpl implements BuyService {
     @Autowired
     private PricingRepository pricingRepository;
     @Autowired
-    private TransactionOptionRepository transactionOptionRepository;
-    @Autowired
     private BinanceRateFactory binanceRateFactory;
     @Autowired
     private BinanceRateRepository binanceRateRepository;
@@ -62,42 +60,20 @@ public class BuyServiceImpl implements BuyService {
 
     @Transactional
     @Override
-    public Buy createBuy(User user, ExchangeAccount account, BuyDto dto,
-                         String payToken, String apiFees, String txId) throws Exception{
+    public Buy createBuy(User user, ExchangeAccount account, String amount, Currency toCurrency,
+                         TransactionOption transactionOption, String payToken, String apiFees, String txId) throws Exception{
         // input checking
         if(
-                dto == null ||
-                (
-                    dto != null &&
-                            (
-                                dto.getAmount() == null || (dto.getAmount() != null && dto.getAmount().isEmpty()) || (dto.getAmount() != null && Double.parseDouble(dto.getAmount()) <= 0) ||
-                                dto.getToCurrencyId() == null ||
-                                dto.getTransactionOptIso() == null
-                            )
-                )
+                amount == null || (amount != null && amount.isEmpty()) || (amount != null && Double.parseDouble(amount) <= 0) ||
+                toCurrency == null ||
+                transactionOption == null
         ) {
             log.error("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> createBuy :: BuyServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INPUT INCORRECT (null or empty) >>>>>>>> createBuy :: BuyServiceImpl.java");
             //return null;
         }
 
-        // >>>>> 1. then, we get the currency
-        Optional<Currency> currency = currencyRepository.findById(dto.getToCurrencyId());
-        if(!currency.isPresent()) {
-            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
-            //return null;
-        }
-
-        // >>>>> 2. next, we get the transaction option
-        Optional<TransactionOption> transactionOption = transactionOptionRepository.findByIso(dto.getTransactionOptIso());
-        if(!transactionOption.isPresent()) {
-            log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
-            //return null;
-        }
-
-        // >>>>> 3. Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
+        // >>>>> 1. Here we get the "transaction processing/in_confirmation" status to assign it to the new buy command
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_INITIATED);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -105,8 +81,8 @@ public class BuyServiceImpl implements BuyService {
             //return null;
         }
 
-        // >>>>> 4. Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
+        // >>>>> 2. Then we check if it's possible for the user to make a deposit by looking at the min and max authorized pricing value
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), toCurrency);
         if(!pricing.isPresent()) {
             log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
             throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -114,8 +90,8 @@ public class BuyServiceImpl implements BuyService {
         }
 
         if(
-                Double.parseDouble(dto.getAmount()) > Double.parseDouble(pricing.get().getBuyMax()) ||
-                Double.parseDouble(dto.getAmount()) < Double.parseDouble(pricing.get().getBuyMin())
+                Double.parseDouble(amount) > Double.parseDouble(pricing.get().getBuyMax()) ||
+                Double.parseDouble(amount) < Double.parseDouble(pricing.get().getBuyMin())
         ) {
             log.error("[" + new Date() + "] => CAN'T MAKE DEPOSIT (The amount is too high/low for the authorized amount) >>>>>>>> createBuy :: BuyServiceImpl.java");
             throw new Exception("[" + new Date() + "] => CAN'T MAKE DEPOSIT (The amount is too high/low for the authorized amount) >>>>>>>> createBuy :: BuyServiceImpl.java");
@@ -125,14 +101,14 @@ public class BuyServiceImpl implements BuyService {
         if(apiFees == null || (apiFees != null && apiFees.isEmpty())) {
             apiFees = "0.0";
         }
-        Double apiFeesAmount = Double.parseDouble(apiFees) * Double.parseDouble(dto.getAmount());
+        Double apiFeesAmount = Double.parseDouble(apiFees) * Double.parseDouble(amount);
 
         // >>>>> . After getting the necessary elements, we create the buy command
         Buy buy = new Buy();
         buy.setPayToken(payToken);
         buy.setExchangeAccount(account);
-        buy.setTransactionOption(transactionOption.get());
-        buy.setToCurrency(currency.get());
+        buy.setTransactionOption(transactionOption);
+        buy.setToCurrency(toCurrency);
         buy.setStatus(status.get());
         buy.setApiFees(Double.toString(apiFeesAmount));
         buy.setTransactionId(txId);

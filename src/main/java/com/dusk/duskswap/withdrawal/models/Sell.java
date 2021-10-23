@@ -47,6 +47,12 @@ public class Sell extends Auditable<String> {
     @Column(name = "transaction_id")
     private String transactionId;
 
+    @Column(name = "api_fees")
+    private String apiFees; // OM, MOMO, or even banking API if we have in FIAT
+
+    @Column(name = "api_fees_crypto")
+    private String apiFeesCrypto; // apifees in crypto
+
     @ManyToOne
     @JoinColumn(name = "currency_id", referencedColumnName = "id")
     private Currency currency;

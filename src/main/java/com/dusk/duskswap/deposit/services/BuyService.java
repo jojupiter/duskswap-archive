@@ -4,6 +4,7 @@ import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.Pricing;
+import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.deposit.entityDto.BuyDto;
 import com.dusk.duskswap.deposit.entityDto.BuyPage;
 import com.dusk.duskswap.deposit.models.Buy;
@@ -18,7 +19,8 @@ public interface BuyService {
     ResponseEntity<BuyPage> getAllBuyByUser(User user, Integer currentPage, Integer pageSize);
 
     Optional<Buy> getByTransactionId(String transactionId);
-    Buy createBuy(User user, ExchangeAccount account, BuyDto dto, String payToken, String apiFees, String txId) throws Exception; // api fees in XAF
+    Buy createBuy(User user, ExchangeAccount account, String amount, Currency toCurrency,
+                  TransactionOption transactionOption, String payToken, String apiFees, String txId) throws Exception; // api fees in XAF
     Boolean existsByTxId(String txId);
     Buy confirmBuy(Buy buy, String usdXaf, String tel) throws Exception; // here we calculate fees and the amount that should be attributed
     Buy updateBuyStatus(Buy buy, String statusString);

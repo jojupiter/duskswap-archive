@@ -1,6 +1,8 @@
 package com.dusk.duskswap.withdrawal.services;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.withdrawal.entityDto.SellDto;
 import com.dusk.duskswap.withdrawal.entityDto.SellPage;
@@ -16,7 +18,8 @@ public interface SellService {
 
     ResponseEntity<SellPage> getAllSell(User user, Integer currentPage, Integer pageSize);
     ResponseEntity<SellPage> getAllSell(Integer currentPage, Integer pageSize);
-    Sell createSell(SellDto sellDto, String usdXaf, User user, ExchangeAccount account) throws Exception; // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
+    Sell createSell(SellDto sellDto, User user, ExchangeAccount account, Currency fromCurrency,
+                    TransactionOption transactionOption, String usdXaf, String apiFees) throws Exception; // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
                                                                         // exception is used to rollback transaction
     Sell saveSell(Sell sell);
     Sell updateSellStatus(Sell sell, String statusString);

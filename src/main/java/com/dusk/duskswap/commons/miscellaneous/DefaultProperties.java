@@ -102,7 +102,7 @@ public class DefaultProperties {
     public static final int SHIB_REQUIRED_CONFIRMATIONS = 6;
 
     // ========== Mobile payment apis used =============
-    public static final String CINETPAY_API = "CINETPAY";
+    public static final String CINETPAY_API = "CINET";
     public static final String ORANGE_MONEY = "OM";
     public static final String MTN_MOBILE_MONEY = "MOMO";
 

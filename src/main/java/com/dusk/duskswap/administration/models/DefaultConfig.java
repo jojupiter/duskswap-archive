@@ -26,7 +26,7 @@ public class DefaultConfig {
 
     // mobile money apis used
     @Column(name = "om_payment_api_used")
-    private String omPaymentAPIUsed; // Orange money API used for payment (if it's cinetpay or even Orange API)
+    private String omPaymentAPIUsed; // Orange money API used for payment (if it's cinetpay or even Orange API).
 
     @Column(name = "om_transfer_api_used")
     private String omTransferAPIUsed; // Orange money API used for transfer

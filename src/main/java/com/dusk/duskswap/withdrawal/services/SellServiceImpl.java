@@ -115,30 +115,22 @@ public class SellServiceImpl implements SellService {
 
     @Override
     @Transactional
-    public Sell createSell(SellDto dto, String usdXaf, User user, ExchangeAccount account) throws Exception {
+    public Sell createSell(SellDto dto, User user, ExchangeAccount account, Currency fromCurrency,
+                           TransactionOption transactionOption, String usdXaf, String apiFees) throws Exception {
         // input checking
-        if(dto == null || user == null || account == null) {
+        if(dto == null || user == null || account == null || fromCurrency == null || transactionOption == null) {
             log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
-                    " ======= sellDto = " + dto + ", user = " + user + ", account = " + account);
+                    " ======= sellDto = " + dto + ", user = " + user + ", account = " + account + ", currency = " + fromCurrency + ", tOpt = " + transactionOption);
             throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
-                    " ======= sellDto = " + dto + ", user = " + user + ", account = " + account);
-            //return null;
+                    " ======= sellDto = " + dto + ", user = " + user + ", account = " + account + ", currency = " + fromCurrency + ", tOpt = " + transactionOption);
         }
 
         // ===================== Getting necessary elements from sellDto to create a sale =================
-        // >>>>> 1. now we get the currency we want to sell
-        Optional<Currency> fromCurrency = currencyRepository.findById(dto.getFromCurrencyId());
-        if(!fromCurrency.isPresent()) {
-            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
-        }
-        // >>>>> 2. we check according to the pricing, if the user is able to make
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency.get());
+        // >>>>> 1. we check according to the pricing, if the user is able to make
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency);
         if(!pricing.isPresent()) {
             log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
             throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
         }
         if(
                 Double.parseDouble(dto.getAmount()) > Double.parseDouble(pricing.get().getSellMax()) ||
@@ -146,16 +138,10 @@ public class SellServiceImpl implements SellService {
         ) {
             log.error("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createSale :: SellServiceImpl.java");
             throw new Exception("[" + new Date() + "] => INSERTED AMOUNT OUT OF BOUND (The amount is too high/low for the authorized amount) >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
         }
-        // >>>>> 3. get the transaction option (OM, MOMO, ...)
-        Optional<TransactionOption> transactionOption = transactionOptionRepository.findByIso(dto.getTransactionOptIso());
-        if(!transactionOption.isPresent()) {
-            log.error("[" + new Date() + "] => TRANSACTION OPTION NOT PRESENT >>>>>>>> createSale :: SellServiceImpl.java");
-            //return null;
-        }
-        // >>>>> 4. get the conversion of the initial currency in USDT (example: btc -> usdt)
-        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.get().getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
+
+        // >>>>> 2. get the conversion of the initial currency in USDT (example: btc -> usdt)
+        Class<?> currencyBinanceClassName = binanceRateFactory.getBinanceClassFromName(fromCurrency.getIso()); // here, we ask the class name of the currency because we want to assign it to the corresponding binanceRate class
         if(currencyBinanceClassName == null)
         {
             log.error("[" + new Date() + "] => CURRENCY BINANCE CLASS NAME NULL >>>>>>>> createSale :: SellServiceImpl.java");
@@ -164,20 +150,20 @@ public class SellServiceImpl implements SellService {
         }
         BinanceRate usdtRate = binanceRateRepository.findLastCryptoUsdRecord(currencyBinanceClassName);
         if(usdtRate == null) {
-            log.error("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.get().getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
+            log.error("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
+            throw new Exception("[" + new Date() + "] => BINANCE RATE NULL ("+ fromCurrency.getIso() + " - USDT) >>>>>>>> createSale :: SellServiceImpl.java");
             //return null;
         }
 
-        // >>>>> 5. we convert usdXaf to number
+        // >>>>> 3. we convert usdXaf to number
         Double usdToXaf = Double.parseDouble(usdXaf);
 
-        // >>>>> 6. we get these conversions in variables
+        // >>>>> 4. we get these conversions in variables
         Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
 
         // ================================== price calculation =========================================
 
-        // >>>>> 7. fees calculation
+        // >>>>> 5. fees calculation
         Double duskFeesInFiat = 0.0;
         Double duskFeesInCrypto = 0.0;
 
@@ -198,8 +184,8 @@ public class SellServiceImpl implements SellService {
             );
         }
 
-        // >>>>> 8. amount to be received by the user
-        // sold amount = conversion to xaf (initial amount (supplied in parameter) in crypto - dusk fees in crypto)
+        // >>>>> 6. amount to be received by the user
+        // sold amount = conversion to Fiat (initial amount (supplied in parameter) in crypto - dusk fees in crypto) - apiFees in Fiat
         Double amountToBeReceivedInFiat = Utilities.convertUSdtToXaf(
             Double.parseDouble(dto.getAmount()) - duskFeesInCrypto,
                 cryptoToUsdt,
@@ -210,18 +196,24 @@ public class SellServiceImpl implements SellService {
         duskFeesInFiat += amountToBeReceivedInFiat - Math.floor(amountToBeReceivedInFiat);
         amountToBeReceivedInFiat -= (amountToBeReceivedInFiat - Math.floor(amountToBeReceivedInFiat));
 
-        // >>>>> 9. finally, we create the sell object and we save it in the DB
+        // api fees
+        Double apiFeesAmount = Double.parseDouble(apiFees) * amountToBeReceivedInFiat;
+        Double apiFeesAmountInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(apiFees);
+
+        // >>>>> 7. finally, we create the sell object and we save it in the DB
         Sell sell = new Sell();
         sell.setSellDate(new Date());
+        sell.setApiFees(Double.toString(apiFeesAmount));
+        sell.setApiFeesCrypto(Double.toString(apiFeesAmountInCrypto));
         sell.setTotalAmountCrypto(dto.getAmount());
         sell.setAmountReceived(Double.toString(amountToBeReceivedInFiat));
         sell.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
         sell.setDuskFees(Double.toString(duskFeesInFiat));
         sell.setTel(dto.getTel());
-        sell.setCurrency(fromCurrency.get());
+        sell.setCurrency(fromCurrency);
         sell.setCryptoPriceInUsdt(usdtRate.getTicks().getClose());
         sell.setUsdToFiat(usdXaf);
-        sell.setTransactionOption(transactionOption.get());
+        sell.setTransactionOption(transactionOption);
         sell.setExchangeAccount(account);
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_INITIATED);
         if(!status.isPresent()) {

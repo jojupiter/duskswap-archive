@@ -10,6 +10,7 @@ import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.BuyDto;
 import com.dusk.duskswap.deposit.entityDto.BuyPage;
@@ -109,6 +110,11 @@ public class BuyController {
             return ResponseEntity.badRequest().body(null);
         }
 
+        // >>>>> 1. we adjust the initial amount
+        Double amount = Double.parseDouble(dto.getAmount());
+        Double adjustedAmount = Math.floor(amount) - Math.floor(amount) % 5;
+        dto.setAmount(Double.toString(adjustedAmount));
+
         // ========================== Getting the necessary elements =============================
         // >>>>> 1. the current logged in user
         Optional<User> user = userService.getCurrentUser();
@@ -131,6 +137,13 @@ public class BuyController {
         }
         if(!currency.get().getIsSupported()) {
             log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT SUPPORTED >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(CodeErrors.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 3. transaction option that the user will use to buy
+        Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptIso());
+        if(!transactionOption.isPresent()) {
+            log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -167,7 +180,7 @@ public class BuyController {
         }
 
         // ========================= Performing the payment request via API ============================
-        // >>>>> 3. payment request object creation based on user's inputs
+        // >>>>> 4. payment request object creation based on user's inputs
         MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
         request.setAmount(dto.getAmount());
         request.setCustomerId(Long.toString(user.get().getId()));
@@ -184,16 +197,39 @@ public class BuyController {
         request.setTransactionId(txId);
         request.setMetadata("User" + user.get().getId());
 
-        // >>>>> 4. generation of the payment URL
-        MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request);
+        // >>>>> 5. generation of the payment URL
+        String paymentAPIUsed = null;
+        if(transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY))
+            paymentAPIUsed = config.getOmPaymentAPIUsed();
+        if(transactionOption.get().getIso().equals(DefaultProperties.MTN_MOBILE_MONEY))
+            paymentAPIUsed = config.getMomoPaymentAPIUsed();
+        if(paymentAPIUsed == null)
+            paymentAPIUsed = DefaultProperties.CINETPAY_API;
+
+        MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request, paymentAPIUsed);
         if(response == null) {
             log.error("[" + new Date() + "] => CANNOT PERFORM PAYMENT >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // ========================= saving the transaction into a new buy object ============================
-        // >>>>> 5. now we create and save the buy
-        Buy buy = buyService.createBuy(user.get(), account, dto, response.getPaymentToken(), response.getApiFees(), txId);
+        String apiFees = "";
+        if(config == null)
+            apiFees = response.getApiFees();
+        if(
+                dto.getTransactionOptIso().equals(DefaultProperties.ORANGE_MONEY) &&
+                config.getOmPaymentAPIUsed() != null
+        )
+            apiFees = config.getOmPaymentFees();
+
+        if(
+                dto.getTransactionOptIso().equals(DefaultProperties.MTN_MOBILE_MONEY) &&
+                config.getMomoPaymentAPIUsed() != null
+        )
+            apiFees = config.getMomoPaymentFees();
+
+        // >>>>> 6. now we create and save the buy
+        Buy buy = buyService.createBuy(user.get(), account, dto.getAmount(), currency.get(), transactionOption.get(), response.getPaymentToken(), apiFees, txId);
         if(buy == null) {
             log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");
             return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);

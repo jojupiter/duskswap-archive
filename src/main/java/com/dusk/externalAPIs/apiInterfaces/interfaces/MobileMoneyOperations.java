@@ -6,7 +6,7 @@ import com.dusk.externalAPIs.cinetpay.models.VerificationResponse;
 public interface MobileMoneyOperations {
 
     // payment
-    MobileMoneyPaymentResponse performPayment(MobileMoneyPaymentRequest request);
+    MobileMoneyPaymentResponse performPayment(MobileMoneyPaymentRequest request, String paymentAPIIso);
     VerificationResponse checkPaymentStatus(String token);
 
     // transfer
