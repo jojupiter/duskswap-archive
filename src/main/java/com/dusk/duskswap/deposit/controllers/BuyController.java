@@ -213,9 +213,7 @@ public class BuyController {
         }
 
         // ========================= saving the transaction into a new buy object ============================
-        String apiFees = "";
-        if(config == null)
-            apiFees = response.getApiFees();
+        String apiFees = response.getApiFees();
         if(
                 dto.getTransactionOptIso().equals(DefaultProperties.ORANGE_MONEY) &&
                 config.getOmPaymentAPIUsed() != null
@@ -228,6 +226,8 @@ public class BuyController {
         )
             apiFees = config.getMomoPaymentFees();
 
+        log.info(">>>>>>>>>>>>>>>>> apiFees = " + apiFees);
+
         // >>>>> 6. now we create and save the buy
         Buy buy = buyService.createBuy(user.get(), account, dto.getAmount(), currency.get(), transactionOption.get(), response.getPaymentToken(), apiFees, txId);
         if(buy == null) {
@@ -237,8 +237,7 @@ public class BuyController {
         return ResponseEntity.ok(response.getPaymentUrl());
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    @PutMapping(value = "/check-status", produces = "application/json")
+    @PostMapping(value = "/check-status", produces = "application/json")
     public void checkStatus(@RequestParam(name = "cpm_trans_id") String transactionId,
                             @RequestParam(name = "cpm_site_id") String siteId) throws Exception { // check status for cinetpay
         // input checking
@@ -259,7 +258,7 @@ public class BuyController {
         }
 
         // >>>>> 3. here we check the status of the payment on cinetpay server
-        VerificationResponse verificationResponse = mobileMoneyOperations.checkPaymentStatus(buy.get().getPayToken());
+        VerificationResponse verificationResponse = mobileMoneyOperations.checkPaymentStatus(buy.get().getPayToken(), siteId);
         if(verificationResponse == null) {
             log.error("[" + new Date() + "] => VERIFICATION RESPONSE NULL >>>>>>>> checkStatus :: BuyController.java");
             return;

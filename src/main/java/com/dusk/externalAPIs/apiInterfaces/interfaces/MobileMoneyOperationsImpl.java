@@ -92,13 +92,13 @@ public class MobileMoneyOperationsImpl implements MobileMoneyOperations {
     }
 
     @Override
-    public VerificationResponse checkPaymentStatus(String token) {
+    public VerificationResponse checkPaymentStatus(String token, String siteId) {
         if (token == null || (token != null && token.isEmpty())) {
             log.error("[" + new Date() + "] => INPUT NULL (PAYMENT REQUEST) >>>>>>>> checkPaymentStatus :: MobileMoneyOperationsImpl.java");
             return null;
         }
 
-        VerificationResponse response = cinetpayPaymentService.checkPayment(CinetpayParams.API_KEY, CinetpayParams.SITE_ID, token);
+        VerificationResponse response = cinetpayPaymentService.checkPayment(CinetpayParams.API_KEY, siteId, token);
         if(response == null) {
             log.error("[" + new Date() + "] => RESPONSE NULL >>>>>>>> checkPaymentStatus :: MobileMoneyOperationsImpl.java");
             return null;

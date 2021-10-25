@@ -7,7 +7,7 @@ public interface MobileMoneyOperations {
 
     // payment
     MobileMoneyPaymentResponse performPayment(MobileMoneyPaymentRequest request, String paymentAPIIso);
-    VerificationResponse checkPaymentStatus(String token);
+    VerificationResponse checkPaymentStatus(String token, String siteId);
 
     // transfer
     AuthResponse authenticate(AuthRequest request);

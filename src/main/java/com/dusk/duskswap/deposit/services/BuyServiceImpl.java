@@ -106,6 +106,7 @@ public class BuyServiceImpl implements BuyService {
         // >>>>> . After getting the necessary elements, we create the buy command
         Buy buy = new Buy();
         buy.setPayToken(payToken);
+        buy.setTotalAmount(amount);
         buy.setExchangeAccount(account);
         buy.setTransactionOption(transactionOption);
         buy.setToCurrency(toCurrency);
