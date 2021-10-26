@@ -111,10 +111,7 @@ public class SellController {
             return new ResponseEntity<>(CodeErrors.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 6. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
-        verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
-
-        // >>>>> 7. getting the usd-xaf exchange rate
+        // >>>>> 6. getting the usd-xaf exchange rate
         String usdXafRate = "";
         DefaultConfig config = defaultConfigService.getConfigs();
         if(config == null) {
@@ -123,7 +120,7 @@ public class SellController {
         else
             usdXafRate = config.getUsdToXafBuy();
 
-        // >>>>> 8. getting the apifees
+        // >>>>> 7. getting the apifees
         String apiFees = "";
         if(config == null)
             apiFees = CinetpayParams.CINETPAY_TRANSFER_FEES_CM; // default fees
@@ -139,7 +136,7 @@ public class SellController {
         )
             apiFees = config.getMomoTransferFees();
 
-        // >>>>> 9. check if the user's balance is sufficient
+        // >>>>> 8. check if the user's balance is sufficient
         Double amountInCryptoToBeSpent = Double.parseDouble(apiFees) * Double.parseDouble(sellDto.getAmount()) +
                                          Double.parseDouble(sellDto.getAmount());
         if(!accountService.isBalanceSufficient(account, sellDto.getFromCurrencyId(), Double.toString(amountInCryptoToBeSpent))) {
@@ -147,7 +144,7 @@ public class SellController {
             return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 10. then we create the sale
+        // >>>>> 9. then we create the sale
         Sell sell = sellService.createSell(sellDto, user.get(), account, currency.get(), transactionOption.get(), usdXafRate, apiFees);
         if(sell == null) {
             log.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
@@ -186,7 +183,11 @@ public class SellController {
         }
 
         // ==================================================================================================================================
+       // >>>>> 10. saving sell object
         sellService.saveSell(sell);
+
+        // >>>>> 11. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
+        verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
         return ResponseEntity.ok(true);
     }
