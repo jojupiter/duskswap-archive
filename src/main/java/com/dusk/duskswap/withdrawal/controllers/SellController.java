@@ -102,7 +102,7 @@ public class SellController {
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(sellDto.getTransactionOptIso());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(CodeErrors.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(CodeErrors.TRANSACTION_OPTION_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 5. here we verify if the provided code is correct

@@ -12,6 +12,7 @@ public class CodeErrors {
     public static final int DEPOSIT_HASH_NOT_EXISTING = 1007;
     public static final int DEPOSIT_HASH_INVALID = 1008;
     public static final int UNKNOWN_ERROR = 1009;
-    public static final int CURRENCY_NOT_SUPPORTED = 1009;
+    public static final int CURRENCY_NOT_SUPPORTED = 1010;
+    public static final int TRANSACTION_OPTION_NOT_SUPPORTED = 1011;
 
 }

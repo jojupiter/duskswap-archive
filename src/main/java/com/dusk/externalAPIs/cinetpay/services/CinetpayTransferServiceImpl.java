@@ -46,7 +46,7 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
         }
 
         HttpUrl.Builder urlBuilder = HttpUrl.parse(AUTHENTICATION_URL).newBuilder();
-        urlBuilder.addQueryParameter("lang", apikey);
+        urlBuilder.addQueryParameter("lang", lang);
         String url = urlBuilder.build().toString();
 
         try {
