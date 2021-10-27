@@ -119,6 +119,25 @@ public class PricingServiceImpl implements PricingService {
             log.info("[" + new Date() + "] => PRICING TYPE IS NEITHER FIX NOR PERCENTAGE >>>>>>>> createPricing :: PricingServiceImpl.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+        // here we check the positivity of numbers
+        if(
+                (dto.getBuyFees() != null && !dto.getBuyFees().isEmpty() && Double.parseDouble(dto.getBuyFees()) < 0) ||
+                (dto.getBuyMin() != null && !dto.getBuyMin().isEmpty() && Double.parseDouble(dto.getBuyMin()) < 0) ||
+                (dto.getBuyMax() != null && !dto.getBuyMax().isEmpty() && Double.parseDouble(dto.getBuyMax()) < 0) ||
+                (dto.getSellFees() != null && !dto.getSellFees().isEmpty() && Double.parseDouble(dto.getSellFees()) < 0) ||
+                (dto.getSellMin() != null && !dto.getSellMin().isEmpty() && Double.parseDouble(dto.getSellMin()) < 0) ||
+                (dto.getSellMax() != null && !dto.getSellMax().isEmpty() && Double.parseDouble(dto.getSellMax()) < 0) ||
+                (dto.getTransferFees() != null && !dto.getTransferFees().isEmpty() && Double.parseDouble(dto.getTransferFees()) < 0) ||
+                (dto.getTransferMin() != null && !dto.getTransferMin().isEmpty() && Double.parseDouble(dto.getTransferMin()) < 0) ||
+                (dto.getTransferMax() != null && !dto.getTransferMax().isEmpty() && Double.parseDouble(dto.getTransferMax()) < 0) ||
+                (dto.getWithdrawalFees() != null && !dto.getWithdrawalFees().isEmpty() && Double.parseDouble(dto.getWithdrawalFees()) < 0) ||
+                (dto.getWithdrawalMax() != null && !dto.getWithdrawalMax().isEmpty() && Double.parseDouble(dto.getWithdrawalMax()) < 0) ||
+                (dto.getWithdrawalMin() != null && !dto.getWithdrawalMin().isEmpty() && Double.parseDouble(dto.getWithdrawalMin()) < 0)
+        ) {
+            log.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> createPricing :: PricingServiceImpl.java " +
+                    " ===== dto = " + dto);
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         // then we create properly the pricing
         Pricing pricing = new Pricing();
@@ -155,13 +174,6 @@ public class PricingServiceImpl implements PricingService {
         pricing.setTransferMax(dto.getTransferMax());
         pricing.setTransferMin(dto.getTransferMin());
 
-        // here we check the positivity of numbers
-        if(!isPricingPositive(pricing)) {
-            log.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> createPricing :: PricingServiceImpl.java " +
-                    " ===== pricing = " + pricing);
-            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
         return ResponseEntity.ok(pricingRepository.save(pricing));
     }
 
@@ -181,9 +193,23 @@ public class PricingServiceImpl implements PricingService {
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // here we check the positivity of numbers
-        if(!isPricingPositive(pricing.get())) {
+        if(
+                (dto.getBuyFees() != null && !dto.getBuyFees().isEmpty() && Double.parseDouble(dto.getBuyFees()) < 0) ||
+                (dto.getBuyMin() != null && !dto.getBuyMin().isEmpty() && Double.parseDouble(dto.getBuyMin()) < 0) ||
+                (dto.getBuyMax() != null && !dto.getBuyMax().isEmpty() && Double.parseDouble(dto.getBuyMax()) < 0) ||
+                (dto.getSellFees() != null && !dto.getSellFees().isEmpty() && Double.parseDouble(dto.getSellFees()) < 0) ||
+                (dto.getSellMin() != null && !dto.getSellMin().isEmpty() && Double.parseDouble(dto.getSellMin()) < 0) ||
+                (dto.getSellMax() != null && !dto.getSellMax().isEmpty() && Double.parseDouble(dto.getSellMax()) < 0) ||
+                (dto.getTransferFees() != null && !dto.getTransferFees().isEmpty() && Double.parseDouble(dto.getTransferFees()) < 0) ||
+                (dto.getTransferMin() != null && !dto.getTransferMin().isEmpty() && Double.parseDouble(dto.getTransferMin()) < 0) ||
+                (dto.getTransferMax() != null && !dto.getTransferMax().isEmpty() && Double.parseDouble(dto.getTransferMax()) < 0) ||
+                (dto.getWithdrawalFees() != null && !dto.getWithdrawalFees().isEmpty() && Double.parseDouble(dto.getWithdrawalFees()) < 0) ||
+                (dto.getWithdrawalMax() != null && !dto.getWithdrawalMax().isEmpty() && Double.parseDouble(dto.getWithdrawalMax()) < 0) ||
+                (dto.getWithdrawalMin() != null && !dto.getWithdrawalMin().isEmpty() && Double.parseDouble(dto.getWithdrawalMin()) < 0)
+
+        ) {
             log.error("[" + new Date() + "] => PRICING CONTAINS NEGATIVE VALUE >>>>>>>> updatePricing :: PricingServiceImpl.java " +
-                    " ===== pricing = " + pricing.get());
+                    " ===== pricing = " + dto);
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
@@ -280,19 +306,6 @@ public class PricingServiceImpl implements PricingService {
     @Override
     public ResponseEntity<List<Pricing>> getAllPricing() {
         return ResponseEntity.ok(pricingRepository.findAll());
-    }
-
-
-    private Boolean isPricingPositive(Pricing pricing) {
-        return Double.parseDouble(pricing.getBuyFees()) >= 0 && Double.parseDouble(pricing.getBuyMin()) >= 0 &&
-               Double.parseDouble(pricing.getBuyMax()) >= 0 && Double.parseDouble(pricing.getDepositMin()) >= 0 &&
-               Double.parseDouble(pricing.getDepositMax()) >= 0 && Double.parseDouble(pricing.getWithdrawalFees()) >= 0 &&
-               Double.parseDouble(pricing.getWithdrawalMax()) >= 0 && Double.parseDouble(pricing.getWithdrawalMin()) >= 0 &&
-               Double.parseDouble(pricing.getSellMax()) >= 0 && Double.parseDouble(pricing.getSellFees()) >= 0 &&
-               Double.parseDouble(pricing.getSellMin()) >= 0 && Double.parseDouble(pricing.getExchangeFees()) >= 0 &&
-               Double.parseDouble(pricing.getExchangeMax()) >= 0 && Double.parseDouble(pricing.getExchangeMin()) >= 0 &&
-               Double.parseDouble(pricing.getTransferMax()) >= 0 && Double.parseDouble(pricing.getTransferMin()) >= 0 &&
-               Double.parseDouble(pricing.getTransferFees()) >= 0;
     }
 
     @Override
