@@ -1,5 +1,6 @@
 package com.dusk.duskswap.administration.services;
 
+import com.dusk.duskswap.administration.entityDto.DefaultConfigDto;
 import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.models.PaymentAPI;
 import com.dusk.duskswap.administration.repositories.DefaultConfigRepository;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -30,8 +32,8 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
     }
 
     @Override
-    public DefaultConfig updateConfigs(DefaultConfig config) {
-        if(config == null)
+    public DefaultConfig updateConfigs(DefaultConfigDto configDto) {
+        if(configDto == null)
             return null;
         List<DefaultConfig> defaultConfigList = defaultConfigRepository.findAll();
         if(defaultConfigList == null || (defaultConfigList != null && defaultConfigList.isEmpty())) {
@@ -41,167 +43,139 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
         // ================ exchange rates ================
         if(
                 (
-                        config.getUsdToXafBuy() != null && !config.getUsdToXafBuy().isEmpty() &&
+                        configDto.getUsdToXafBuy() != null && !configDto.getUsdToXafBuy().isEmpty() &&
                         defaultConfigList.get(0).getUsdToXafBuy() != null &&
-                        !defaultConfigList.get(0).getUsdToXafBuy().equals(config.getUsdToXafBuy())
+                        !defaultConfigList.get(0).getUsdToXafBuy().equals(configDto.getUsdToXafBuy())
                 ) ||
                         defaultConfigList.get(0).getUsdToXafBuy() == null
         )
-            defaultConfigList.get(0).setUsdToXafBuy(config.getUsdToXafBuy());
+            defaultConfigList.get(0).setUsdToXafBuy(configDto.getUsdToXafBuy());
 
         if(
                 (
-                        config.getUsdToXafSell() != null && !config.getUsdToXafSell().isEmpty() &&
+                        configDto.getUsdToXafSell() != null && !configDto.getUsdToXafSell().isEmpty() &&
                         defaultConfigList.get(0).getUsdToXafSell() != null &&
-                        !defaultConfigList.get(0).getUsdToXafSell().equals(config.getUsdToXafSell())
+                        !defaultConfigList.get(0).getUsdToXafSell().equals(configDto.getUsdToXafSell())
                 ) ||
                         defaultConfigList.get(0).getUsdToXafSell() == null
         )
-            defaultConfigList.get(0).setUsdToXafSell(config.getUsdToXafSell());
+            defaultConfigList.get(0).setUsdToXafSell(configDto.getUsdToXafSell());
 
         // ================ payment and transfer api used ================
-        /*if(
-                (
-                        config.getOmPaymentAPIUsed() != null && !config.getOmPaymentAPIUsed().isEmpty() &&
-                        defaultConfigList.get(0).getOmPaymentAPIUsed() != null &&
-                        !defaultConfigList.get(0).getOmPaymentAPIUsed().equals(config.getOmPaymentAPIUsed())
-                ) ||
-                        defaultConfigList.get(0).getOmPaymentAPIUsed() == null
-        )
-            defaultConfigList.get(0).setOmPaymentAPIUsed(config.getOmPaymentAPIUsed());
+        Optional<PaymentAPI> omPaymentApi = null;
+        Optional<PaymentAPI> momoPaymentApi = null;
 
         if(
-                (
-                        config.getOmTransferAPIUsed() != null && !config.getOmTransferAPIUsed().isEmpty() &&
-                        defaultConfigList.get(0).getOmTransferAPIUsed() != null &&
-                        !defaultConfigList.get(0).getOmTransferAPIUsed().equals(config.getOmTransferAPIUsed())
-                ) ||
-                        defaultConfigList.get(0).getOmTransferAPIUsed() == null
-        )
-            defaultConfigList.get(0).setOmTransferAPIUsed(config.getOmTransferAPIUsed());
+                configDto.getOmPaymentApiUsedIso() != null &&
+                !configDto.getOmPaymentApiUsedIso().isEmpty() &&
+                !configDto.getOmPaymentApiUsedIso().equals(defaultConfigList.get(0).getOmAPIUsed().getApiIso())
+        ) {
+            omPaymentApi = paymentAPIRepository.findByApiIso(configDto.getOmPaymentApiUsedIso());
+            defaultConfigList.get(0).setOmAPIUsed(omPaymentApi.get());
+        }
 
         if(
-                (
-                        config.getMomoPaymentAPIUsed() != null && !config.getMomoPaymentAPIUsed().isEmpty() &&
-                        defaultConfigList.get(0).getMomoPaymentAPIUsed() != null &&
-                        !defaultConfigList.get(0).getMomoPaymentAPIUsed().equals(config.getMomoPaymentAPIUsed())
-                ) ||
-                        defaultConfigList.get(0).getMomoPaymentAPIUsed() == null
-        )
-            defaultConfigList.get(0).setMomoPaymentAPIUsed(config.getMomoPaymentAPIUsed());
-
-        if(
-                (
-                        config.getMomoTransferAPIUsed() != null && !config.getMomoTransferAPIUsed().isEmpty() &&
-                        defaultConfigList.get(0).getMomoTransferAPIUsed() != null &&
-                        !defaultConfigList.get(0).getMomoTransferAPIUsed().equals(config.getMomoTransferAPIUsed())
-                ) ||
-                        defaultConfigList.get(0).getMomoTransferAPIUsed() == null
-        )
-            defaultConfigList.get(0).setMomoTransferAPIUsed(config.getMomoTransferAPIUsed());*/
-
-        // ================ fees ================
-        /*if(
-                (
-                        config.getCinetpayPaymentFees() != null && !config.getCinetpayPaymentFees().isEmpty() &&
-                        defaultConfigList.get(0).getCinetpayPaymentFees() != null &&
-                        !defaultConfigList.get(0).getCinetpayPaymentFees().equals(config.getCinetpayPaymentFees())
-                ) ||
-                        defaultConfigList.get(0).getCinetpayPaymentFees() == null
-        )
-            defaultConfigList.get(0).setCinetpayPaymentFees(config.getCinetpayPaymentFees());
-
-        if(
-                (
-                        config.getCinetpayTransferFees() != null && !config.getCinetpayTransferFees().isEmpty() &&
-                        defaultConfigList.get(0).getCinetpayTransferFees() != null &&
-                        !defaultConfigList.get(0).getCinetpayTransferFees().equals(config.getCinetpayTransferFees())
-                ) ||
-                        defaultConfigList.get(0).getCinetpayTransferFees() == null
-        )
-            defaultConfigList.get(0).setCinetpayTransferFees(config.getCinetpayTransferFees());
-
-        if(
-                (
-                        config.getOmPaymentFees() != null && !config.getOmPaymentFees().isEmpty() &&
-                        defaultConfigList.get(0).getOmPaymentFees() != null &&
-                        !defaultConfigList.get(0).getOmPaymentFees().equals(config.getOmPaymentFees())
-                ) ||
-                        defaultConfigList.get(0).getOmPaymentFees() == null
-        )
-            defaultConfigList.get(0).setOmPaymentFees(config.getOmPaymentFees());
-
-        if(
-                (
-                        config.getOmTransferFees() != null && !config.getOmTransferFees().isEmpty() &&
-                        defaultConfigList.get(0).getOmTransferFees() != null &&
-                        !defaultConfigList.get(0).getOmTransferFees().equals(config.getOmTransferFees())
-                ) ||
-                        defaultConfigList.get(0).getOmTransferFees() == null
-        )
-            defaultConfigList.get(0).setOmTransferFees(config.getOmTransferFees());
-
-        if(
-                (
-                        config.getMomoTransferFees() != null && !config.getMomoTransferFees().isEmpty() &&
-                        defaultConfigList.get(0).getMomoTransferFees() != null &&
-                        !defaultConfigList.get(0).getMomoTransferFees().equals(config.getMomoTransferFees())
-                ) ||
-                        defaultConfigList.get(0).getMomoTransferFees() == null
-        )
-            defaultConfigList.get(0).setMomoTransferFees(config.getMomoTransferFees());
-
-        if(
-                (
-                        config.getMomoTransferFees() != null && !config.getMomoTransferFees().isEmpty() &&
-                        defaultConfigList.get(0).getMomoTransferFees() != null &&
-                        !defaultConfigList.get(0).getMomoTransferFees().equals(config.getMomoTransferFees())
-                ) ||
-                        defaultConfigList.get(0).getMomoTransferFees() == null
-        )
-            defaultConfigList.get(0).setMomoTransferFees(config.getMomoTransferFees());*/
+                configDto.getMomoPaymentApiUsedIso() != null &&
+                !configDto.getMomoPaymentApiUsedIso().isEmpty() &&
+                !configDto.getMomoPaymentApiUsedIso().equals(defaultConfigList.get(0).getMomoAPIUsed().getApiIso())
+        ) {
+            momoPaymentApi = paymentAPIRepository.findByApiIso(configDto.getMomoPaymentApiUsedIso());
+            defaultConfigList.get(0).setMomoAPIUsed(momoPaymentApi.get());
+        }
 
         return defaultConfigRepository.save(defaultConfigList.get(0));
     }
 
     @Override
-    public DefaultConfig createConfigs(DefaultConfig defaultConfig) {
-        if(defaultConfig == null)
+    public DefaultConfig createConfigs(DefaultConfigDto configDto) {
+        if(configDto == null)
             return null;
         List<DefaultConfig> defaultConfigList = defaultConfigRepository.findAll();
         if(defaultConfigList != null && !defaultConfigList.isEmpty()) {
             return null;
         }
 
-        /*if(defaultConfig.getOmPaymentAPIUsed() != null && !defaultConfig.getOmPaymentAPIUsed().isEmpty())
-            defaultConfig.setOmPaymentAPIUsed(defaultConfig.getOmPaymentAPIUsed().toUpperCase());
+        Optional<PaymentAPI> omPaymentApi = null;
+        Optional<PaymentAPI> momoPaymentApi = null;
 
-        if(defaultConfig.getOmTransferAPIUsed() != null && !defaultConfig.getOmTransferAPIUsed().isEmpty())
-            defaultConfig.setOmTransferAPIUsed(defaultConfig.getOmTransferAPIUsed().toUpperCase());
+        if(configDto.getOmPaymentApiUsedIso() != null)
+            omPaymentApi = paymentAPIRepository.findByApiIso(configDto.getOmPaymentApiUsedIso());
+        if(configDto.getMomoPaymentApiUsedIso() != null)
+            momoPaymentApi = paymentAPIRepository.findByApiIso(configDto.getMomoPaymentApiUsedIso());
 
-        if(defaultConfig.getMomoPaymentAPIUsed() != null && !defaultConfig.getMomoPaymentAPIUsed().isEmpty())
-            defaultConfig.setMomoPaymentAPIUsed(defaultConfig.getMomoPaymentAPIUsed().toUpperCase());
+        DefaultConfig config = new DefaultConfig();
+        config.setOmAPIUsed(omPaymentApi.get());
+        config.setMomoAPIUsed(momoPaymentApi.get());
+        config.setUsdToXafBuy(configDto.getUsdToXafBuy());
+        config.setUsdToXafSell(configDto.getUsdToXafSell());
 
-        if(defaultConfig.getMomoTransferAPIUsed() != null && !defaultConfig.getMomoTransferAPIUsed().isEmpty())
-            defaultConfig.setMomoTransferAPIUsed(defaultConfig.getMomoTransferAPIUsed().toUpperCase());*/
-
-        return defaultConfigRepository.save(defaultConfig);
+        return defaultConfigRepository.save(config);
     }
 
     @Override
     public PaymentAPI createPaymentAPI(PaymentAPI paymentAPI) {
-        if(paymentAPI == null)
+        if(paymentAPI == null || (paymentAPI != null && paymentAPI.getApiIso().isEmpty()))
             return null;
 
+        if(
+                paymentAPIRepository.existsByApiIso(paymentAPI.getApiIso()) ||
+                (paymentAPI.getId() != null && paymentAPIRepository.existsById(paymentAPI.getId()))
+        )
+            return null;
 
-        return null;
+        if(
+                (paymentAPI.getPaymentFees() != null && !paymentAPI.getPaymentFees().isEmpty() && Double.parseDouble(paymentAPI.getPaymentFees()) < 0) ||
+                (paymentAPI.getTransferFees() != null && !paymentAPI.getTransferFees().isEmpty() && Double.parseDouble(paymentAPI.getTransferFees()) < 0)
+        )
+            return null;
+
+        return paymentAPIRepository.save(paymentAPI);
     }
 
     @Override
     public PaymentAPI updatePaymentAPI(Long paymentAPIId, PaymentAPI newPaymentAPI) {
         if(paymentAPIId == null || newPaymentAPI == null)
             return null;
-        return null;
+
+        if(
+                (newPaymentAPI.getPaymentFees() != null && !newPaymentAPI.getPaymentFees().isEmpty() && Double.parseDouble(newPaymentAPI.getPaymentFees()) < 0) ||
+                (newPaymentAPI.getTransferFees() != null && !newPaymentAPI.getTransferFees().isEmpty() && Double.parseDouble(newPaymentAPI.getTransferFees()) < 0)
+        )
+            return null;
+
+        Optional<PaymentAPI> oldPaymentAPI = paymentAPIRepository.findById(paymentAPIId);
+        if(!oldPaymentAPI.isPresent())
+            return null;
+
+        if(
+                newPaymentAPI.getPaymentFees() != null &&
+                !newPaymentAPI.getPaymentFees().isEmpty() &&
+                !newPaymentAPI.getPaymentFees().equals(oldPaymentAPI.get().getPaymentFees())
+        )
+            oldPaymentAPI.get().setPaymentFees(newPaymentAPI.getPaymentFees());
+
+        if(
+                newPaymentAPI.getTransferFees() != null &&
+                !newPaymentAPI.getTransferFees().isEmpty() &&
+                !newPaymentAPI.getTransferFees().equals(oldPaymentAPI.get().getTransferFees())
+        )
+            oldPaymentAPI.get().setTransferFees(newPaymentAPI.getTransferFees());
+
+        if(
+                newPaymentAPI.getApiIso() != null &&
+                !newPaymentAPI.getApiIso().isEmpty() &&
+                !newPaymentAPI.getApiIso().equals(oldPaymentAPI.get().getApiIso())
+        )
+            oldPaymentAPI.get().setApiIso(newPaymentAPI.getApiIso());
+
+        if(
+                newPaymentAPI.getApiFullName() != null &&
+                !newPaymentAPI.getApiFullName().isEmpty() &&
+                !newPaymentAPI.getApiFullName().equals(oldPaymentAPI.get().getApiFullName())
+        )
+            oldPaymentAPI.get().setApiFullName(newPaymentAPI.getApiFullName());
+
+        return paymentAPIRepository.save(oldPaymentAPI.get());
     }
 
     @Override
