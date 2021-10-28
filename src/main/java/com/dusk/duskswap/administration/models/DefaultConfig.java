@@ -25,36 +25,13 @@ public class DefaultConfig {
     private String usdToXafSell; // exchange rate for selling purpose
 
     // mobile money apis used
-    @Column(name = "om_payment_api_used")
-    private String omPaymentAPIUsed; // Orange money API used for payment (if it's cinetpay or even Orange API).
+    @OneToOne
+    @JoinColumn(name = "om_api_used", referencedColumnName = "id")
+    private PaymentAPI omAPIUsed; // Orange money API used (payment and transfer)
 
-    @Column(name = "om_transfer_api_used")
-    private String omTransferAPIUsed; // Orange money API used for transfer
+    @OneToOne
+    @JoinColumn(name = "momo_api_used", referencedColumnName = "id")
+    private PaymentAPI momoAPIUsed; // Orange money API used  (payment and transfer)
 
-    @Column(name = "momo_payment_api_used")
-    private String momoPaymentAPIUsed; // Mtn Mobile money API used for payment (if it's cinetpay or even Mtn API)
-
-    @Column(name = "momo_transfer_api_used")
-    private String momoTransferAPIUsed; // Mtn Mobile money API used for transfer (if it's cinetpay or even Mtn API)
-
-    // mobile money api fees
-
-    @Column(name = "cinetpay_payment_fees")
-    private String cinetpayPaymentFees; // Cinetpay API payment fees
-
-    @Column(name = "cinetpay_transfer_fees")
-    private String cinetpayTransferFees; // Cinetpay API transfer fees
-
-    @Column(name = "om_payment_fees")
-    private String omPaymentFees; // Orange Money API payment fees
-
-    @Column(name = "om_transfer_fees")
-    private String omTransferFees; // Orange Money API transfer fees
-
-    @Column(name = "momo_payment_fees")
-    private String momoPaymentFees; // Orange Money API payment fees
-
-    @Column(name = "momo_transfer_fees")
-    private String momoTransferFees; // Orange Money API transfer fees
 
 }

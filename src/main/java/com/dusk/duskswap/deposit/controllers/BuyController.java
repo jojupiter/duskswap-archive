@@ -199,11 +199,11 @@ public class BuyController {
 
         // >>>>> 5. generation of the payment URL
         String paymentAPIUsed = null;
-        if(transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY))
+        /*if(transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY))
             paymentAPIUsed = config.getOmPaymentAPIUsed();
         if(transactionOption.get().getIso().equals(DefaultProperties.MTN_MOBILE_MONEY))
             paymentAPIUsed = config.getMomoPaymentAPIUsed();
-        if(paymentAPIUsed == null)
+        if(paymentAPIUsed == null)*/
             paymentAPIUsed = DefaultProperties.CINETPAY_API;
 
         MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request, paymentAPIUsed);
@@ -214,7 +214,7 @@ public class BuyController {
 
         // ========================= saving the transaction into a new buy object ============================
         String apiFees = response.getApiFees();
-        if(
+        /*if(
                 dto.getTransactionOptIso().equals(DefaultProperties.ORANGE_MONEY) &&
                 config.getOmPaymentAPIUsed() != null
         )
@@ -225,7 +225,7 @@ public class BuyController {
                 config.getMomoPaymentAPIUsed() != null
         )
             apiFees = config.getMomoPaymentFees();
-
+*/
         log.info(">>>>>>>>>>>>>>>>> apiFees = " + apiFees);
 
         // >>>>> 6. now we create and save the buy

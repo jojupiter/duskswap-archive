@@ -1,7 +1,9 @@
 package com.dusk.duskswap.administration.services;
 
 import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.models.PaymentAPI;
 import com.dusk.duskswap.administration.repositories.DefaultConfigRepository;
+import com.dusk.duskswap.administration.repositories.PaymentAPIRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
 
     @Autowired
     private DefaultConfigRepository defaultConfigRepository;
+    @Autowired
+    private PaymentAPIRepository paymentAPIRepository;
 
     @Override
     public DefaultConfig getConfigs() {
@@ -56,7 +60,7 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
             defaultConfigList.get(0).setUsdToXafSell(config.getUsdToXafSell());
 
         // ================ payment and transfer api used ================
-        if(
+        /*if(
                 (
                         config.getOmPaymentAPIUsed() != null && !config.getOmPaymentAPIUsed().isEmpty() &&
                         defaultConfigList.get(0).getOmPaymentAPIUsed() != null &&
@@ -94,10 +98,10 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
                 ) ||
                         defaultConfigList.get(0).getMomoTransferAPIUsed() == null
         )
-            defaultConfigList.get(0).setMomoTransferAPIUsed(config.getMomoTransferAPIUsed());
+            defaultConfigList.get(0).setMomoTransferAPIUsed(config.getMomoTransferAPIUsed());*/
 
         // ================ fees ================
-        if(
+        /*if(
                 (
                         config.getCinetpayPaymentFees() != null && !config.getCinetpayPaymentFees().isEmpty() &&
                         defaultConfigList.get(0).getCinetpayPaymentFees() != null &&
@@ -155,7 +159,7 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
                 ) ||
                         defaultConfigList.get(0).getMomoTransferFees() == null
         )
-            defaultConfigList.get(0).setMomoTransferFees(config.getMomoTransferFees());
+            defaultConfigList.get(0).setMomoTransferFees(config.getMomoTransferFees());*/
 
         return defaultConfigRepository.save(defaultConfigList.get(0));
     }
@@ -169,7 +173,7 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
             return null;
         }
 
-        if(defaultConfig.getOmPaymentAPIUsed() != null && !defaultConfig.getOmPaymentAPIUsed().isEmpty())
+        /*if(defaultConfig.getOmPaymentAPIUsed() != null && !defaultConfig.getOmPaymentAPIUsed().isEmpty())
             defaultConfig.setOmPaymentAPIUsed(defaultConfig.getOmPaymentAPIUsed().toUpperCase());
 
         if(defaultConfig.getOmTransferAPIUsed() != null && !defaultConfig.getOmTransferAPIUsed().isEmpty())
@@ -179,8 +183,29 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
             defaultConfig.setMomoPaymentAPIUsed(defaultConfig.getMomoPaymentAPIUsed().toUpperCase());
 
         if(defaultConfig.getMomoTransferAPIUsed() != null && !defaultConfig.getMomoTransferAPIUsed().isEmpty())
-            defaultConfig.setMomoTransferAPIUsed(defaultConfig.getMomoTransferAPIUsed().toUpperCase());
+            defaultConfig.setMomoTransferAPIUsed(defaultConfig.getMomoTransferAPIUsed().toUpperCase());*/
 
         return defaultConfigRepository.save(defaultConfig);
+    }
+
+    @Override
+    public PaymentAPI createPaymentAPI(PaymentAPI paymentAPI) {
+        if(paymentAPI == null)
+            return null;
+
+
+        return null;
+    }
+
+    @Override
+    public PaymentAPI updatePaymentAPI(Long paymentAPIId, PaymentAPI newPaymentAPI) {
+        if(paymentAPIId == null || newPaymentAPI == null)
+            return null;
+        return null;
+    }
+
+    @Override
+    public List<PaymentAPI> getAllPaymentAPIs() {
+        return paymentAPIRepository.findAll();
     }
 }

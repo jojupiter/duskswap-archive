@@ -122,7 +122,7 @@ public class SellController {
 
         // >>>>> 7. getting the apifees
         String apiFees = "";
-        if(config == null)
+        /*if(config == null)
             apiFees = CinetpayParams.CINETPAY_TRANSFER_FEES_CM; // default fees
         if(
                 transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY) &&
@@ -136,7 +136,8 @@ public class SellController {
         )
             apiFees = config.getMomoTransferFees();
 
-        // >>>>> 8. check if the user's balance is sufficient
+        log.info("TRANSACTION OPTION >>>> " + config.getOmTransferAPIUsed() + " API FEES => " + apiFees + " sell amount = " + sellDto.getAmount());
+        */// >>>>> 8. check if the user's balance is sufficient
         Double amountInCryptoToBeSpent = Double.parseDouble(apiFees) * Double.parseDouble(sellDto.getAmount()) +
                                          Double.parseDouble(sellDto.getAmount());
         if(!accountService.isBalanceSufficient(account, sellDto.getFromCurrencyId(), Double.toString(amountInCryptoToBeSpent))) {

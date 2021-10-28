@@ -1,11 +1,18 @@
 package com.dusk.duskswap.administration.services;
 
 import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.models.PaymentAPI;
+
+import java.util.List;
 
 public interface DefaultConfigService {
 
-    public DefaultConfig getConfigs();
-    public DefaultConfig updateConfigs(DefaultConfig config);
-    public DefaultConfig createConfigs(DefaultConfig defaultConfig);
+    DefaultConfig getConfigs();
+    DefaultConfig updateConfigs(DefaultConfig config);
+    DefaultConfig createConfigs(DefaultConfig defaultConfig);
+
+    PaymentAPI createPaymentAPI(PaymentAPI paymentAPI);
+    PaymentAPI updatePaymentAPI(Long paymentAPIId, PaymentAPI newPaymentAPI);
+    List<PaymentAPI> getAllPaymentAPIs();
 
 }
