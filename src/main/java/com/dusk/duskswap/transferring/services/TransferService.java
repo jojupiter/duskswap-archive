@@ -12,7 +12,7 @@ public interface TransferService {
 
     ResponseEntity<TransferPage> getAllTransfers(Integer currentPage, Integer pageSize);
     ResponseEntity<TransferPage> getAllUserTransfers(ExchangeAccount userAccount, Integer currentPage, Integer pageSize);
-    Transfer createTransfer(User sender, ExchangeAccount fromAccount, ExchangeAccount toAccount, Long currencyId, String amount) throws Exception;
+    Transfer createTransfer(User sender, User recipient, ExchangeAccount fromAccount, ExchangeAccount toAccount, Long currencyId, String amount) throws Exception;
     Transfer saveTransfer(Transfer transfer); // After creating a transfer, we save it
 
 }

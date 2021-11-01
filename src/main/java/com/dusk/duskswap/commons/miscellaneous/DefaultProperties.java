@@ -34,7 +34,7 @@ public class DefaultProperties {
     public static final String LEVEL_ISO_1 = "LVL_1";
 
     // ============ email addresses ===========
-    public static final String EMAIL_NO_REPLY_ADDRESS = "Duskswap<no-reply@duskpay.com>";
+    public static final String EMAIL_NO_REPLY_ADDRESS = "Duskswap<no-reply@duskswap.com>";
     public static final String EMAIL_SUPPORT_ADDRESS = "Duskswap<support@duskpay.com>";
     public static final String EMAIL_NEWSLETTERS_ADDRESS = "Duskswap<newsletters@duskpay.com>";
 

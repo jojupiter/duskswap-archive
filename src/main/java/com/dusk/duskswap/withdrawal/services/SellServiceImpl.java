@@ -224,9 +224,10 @@ public class SellServiceImpl implements SellService {
     }
 
     @Override
-    public Sell saveSell(Sell sell) {
+    public Sell saveSell(Sell sell, String apiTransactionId) {
         if(sell == null)
             return null;
+        sell.setApiTransactionId(apiTransactionId);
         return sellRepository.save(sell);
     }
 

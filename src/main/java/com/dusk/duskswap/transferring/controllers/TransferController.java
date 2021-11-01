@@ -188,7 +188,7 @@ public class TransferController {
         }
 
         // >>>>> 4. we can now create the transfer object without saving it in DB
-        Transfer transfer = transferService.createTransfer(sender.get(), senderAccount, recipientAccount, dto.getCurrencyId(), dto.getAmount());
+        Transfer transfer = transferService.createTransfer(sender.get(), recipient.get(), senderAccount, recipientAccount, dto.getCurrencyId(), dto.getAmount());
         if(transfer == null) {
             log.error("[" + new Date() + "] => CAN'T MAKE THE TRANSFER >>>>>>>> makeTransfer :: TransferController.java");
             return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);

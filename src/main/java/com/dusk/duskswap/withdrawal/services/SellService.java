@@ -21,7 +21,7 @@ public interface SellService {
     Sell createSell(SellDto sellDto, User user, ExchangeAccount account, Currency fromCurrency,
                     TransactionOption transactionOption, String usdXaf, String apiFees) throws Exception; // return sell id, // here we put exchange account because we don't want to overload this method (exchange account is already got from the controller)
                                                                         // exception is used to rollback transaction
-    Sell saveSell(Sell sell);
+    Sell saveSell(Sell sell, String apiTransactionId);
     Sell updateSellStatus(Sell sell, String statusString);
     Optional<Sell> getSellByTransactionId(String transactionId);
     ResponseEntity<String> getAllSellProfits();

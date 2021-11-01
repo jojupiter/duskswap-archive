@@ -1,5 +1,6 @@
 package com.dusk.duskswap.usersManagement.services;
 
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.Status;
@@ -24,9 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.swing.text.html.Option;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -425,7 +424,7 @@ public class UserServiceImpl implements UserService {
         return roleRepository.findByName(name);
     }
     @Override
-    public ResponseEntity<List<Role>> getAllRole() {
+    public ResponseEntity<List<Role>> getAllRoles() {
         return ResponseEntity.ok(roleRepository.findAll());
     }
     @Override
@@ -438,6 +437,38 @@ public class UserServiceImpl implements UserService {
         }
         role.setId(id);
         return ResponseEntity.ok(roleRepository.save(role));
+    }
+
+    @Override
+    public ResponseEntity<?> changeUserRole(Long userId, String roleName) {
+        if(
+                userId == null ||
+                (roleName == null || (roleName != null && roleName.isEmpty()))
+        ) {
+            log.error("[" + new Date() + "] => INPUT NULL / EMPTY >>>>>>>> changeUserRole :: UserServiceImpl.java " +
+                    "======= userId = " + userId + ", roleName = " + roleName);
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
+        }
+
+        Optional<User> user = userRepository.findById(userId);
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT FOUND >>>>>>>> changeUserRole :: UserServiceImpl.java");
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        Optional<Role> role = roleRepository.findByName(roleName);
+        if(!role.isPresent()) {
+            log.error("[" + new Date() + "] => ROLE NOT FOUND >>>>>>>> changeUserRole :: UserServiceImpl.java");
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        Set<Role> roleSet = new HashSet<>();
+        roleSet.add(role.get());
+        user.get().setRoles(roleSet);
+
+        userRepository.save(user.get());
+
+        return ResponseEntity.ok(true);
     }
 
 }

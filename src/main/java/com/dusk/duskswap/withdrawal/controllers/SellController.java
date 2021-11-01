@@ -184,7 +184,7 @@ public class SellController {
 
         // ==================================================================================================================================
        // >>>>> 10. saving sell object
-        sellService.saveSell(sell);
+        sellService.saveSell(sell, response.getTransactionId());
 
         // >>>>> 11. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);

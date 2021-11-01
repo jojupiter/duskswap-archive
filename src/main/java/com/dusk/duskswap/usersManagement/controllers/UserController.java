@@ -8,6 +8,7 @@ import com.dusk.duskswap.commons.models.VerificationCode;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
 import com.dusk.duskswap.usersManagement.entityDto.PasswordUpdateDto;
 import com.dusk.duskswap.usersManagement.models.Enterprise;
+import com.dusk.duskswap.usersManagement.models.Role;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.services.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -189,6 +190,18 @@ public class UserController {
         return userService.getAllUsers();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/roles-all", produces = "application/json")
+    public ResponseEntity<List<Role>> getAllRoles() {
+        return userService.getAllRoles();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping(value = "/update/role", produces = "application/json")
+    public ResponseEntity<?> changeUserRole(@RequestParam(name = "userId") Long userId,
+                                            @RequestParam(name = "roleName") String roleName) {
+        return userService.changeUserRole(userId, roleName);
+    }
 
     //================= ENTERPRISE MANAGEMENT =================
     @PreAuthorize("hasRole('ADMIN')")

@@ -21,6 +21,12 @@ public class Transfer extends Auditable<String> { // transfer uses the same curr
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "recipient_name")
+    private String recipientName;
+
+    @Column(name = "recipient_email")
+    private String recipientEmail;
+
     @ManyToOne
     @JoinColumn(name = "from_account", referencedColumnName = "id")
     private ExchangeAccount fromAccount;

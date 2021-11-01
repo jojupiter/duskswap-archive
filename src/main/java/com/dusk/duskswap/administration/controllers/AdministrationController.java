@@ -3,6 +3,7 @@ package com.dusk.duskswap.administration.controllers;
 import com.dusk.duskswap.administration.entityDto.DefaultConfigDto;
 import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.models.PaymentAPI;
 import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.entityDto.PricingDto;
@@ -166,6 +167,31 @@ public class AdministrationController {
     @GetMapping("/configs")
     public ResponseEntity<DefaultConfig> getConfigs() {
         return ResponseEntity.ok(defaultConfigService.getConfigs());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/configs/api/create")
+    public ResponseEntity<?> createPaymentAPI(@RequestBody PaymentAPI paymentAPI) {
+        if(paymentAPI == null)
+            return ResponseEntity.badRequest().body(null);
+
+        return ResponseEntity.ok(defaultConfigService.createPaymentAPI(paymentAPI));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/configs/api/update")
+    public ResponseEntity<?> updatePaymentAPI(@RequestParam(name = "apiId") Long apiId,
+                                              @RequestBody PaymentAPI paymentAPI) {
+        if(apiId == null || paymentAPI == null)
+            return ResponseEntity.badRequest().body(null);
+
+        return ResponseEntity.ok(defaultConfigService.updatePaymentAPI(apiId, paymentAPI));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/configs/api/all")
+    public ResponseEntity<?> getAllPaymentAPIs() {
+        return ResponseEntity.ok(defaultConfigService.getAllPaymentAPIs());
     }
 
 }

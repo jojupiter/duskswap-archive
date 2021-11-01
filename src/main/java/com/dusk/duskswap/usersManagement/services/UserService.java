@@ -40,7 +40,8 @@ public interface UserService {
 
     //======================= ROLE SERVICES =====================================
     Optional<Role> getRoleByName(String name);
-    ResponseEntity<List<Role>> getAllRole();
+    ResponseEntity<List<Role>> getAllRoles();
     ResponseEntity<Role> updateRole(Long id, Role role);
+    ResponseEntity<?> changeUserRole(Long userId, String roleName);
 
 }

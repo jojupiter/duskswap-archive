@@ -86,7 +86,7 @@ public class TransferServiceImpl implements TransferService {
 
     @Transactional
     @Override
-    public Transfer createTransfer(User sender, ExchangeAccount fromAccount, ExchangeAccount toAccount, Long currencyId, String amount) throws Exception {
+    public Transfer createTransfer(User sender, User recipient, ExchangeAccount fromAccount, ExchangeAccount toAccount, Long currencyId, String amount) throws Exception {
         // input checking
         if(
                 fromAccount == null ||
@@ -144,6 +144,8 @@ public class TransferServiceImpl implements TransferService {
         transfer.setFromAccount(fromAccount);
         transfer.setToAccount(toAccount);
         transfer.setFees(Double.toString(duskFees));
+        transfer.setRecipientName(recipient.getFirstName() + " " + recipient.getLastName());
+        transfer.setRecipientEmail(recipient.getEmail());
 
         return transfer;
 

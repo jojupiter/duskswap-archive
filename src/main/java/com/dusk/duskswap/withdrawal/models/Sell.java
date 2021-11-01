@@ -44,8 +44,8 @@ public class Sell extends Auditable<String> {
     @Column(name = "sell_date")
     private Date sellDate;
 
-    @Column(name = "client_transaction_id")
-    private String clientTransactionId;
+    @Column(name = "transaction_id")
+    private String transactionId; // created by duskswap
 
     @Column(name = "api_transaction_id")
     private String apiTransactionId;
