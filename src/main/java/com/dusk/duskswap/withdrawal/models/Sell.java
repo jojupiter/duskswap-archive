@@ -44,8 +44,11 @@ public class Sell extends Auditable<String> {
     @Column(name = "sell_date")
     private Date sellDate;
 
-    @Column(name = "transaction_id")
-    private String transactionId;
+    @Column(name = "client_transaction_id")
+    private String clientTransactionId;
+
+    @Column(name = "api_transaction_id")
+    private String apiTransactionId;
 
     @Column(name = "api_fees")
     private String apiFees; // OM, MOMO, or even banking API if we have in FIAT

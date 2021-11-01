@@ -1,11 +1,12 @@
 package com.dusk.duskswap.administration.controllers;
 
+import com.dusk.duskswap.administration.entityDto.DefaultConfigDto;
 import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.models.OverallBalance;
 import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.entityDto.PricingDto;
-import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.services.PricingService;
@@ -145,18 +146,18 @@ public class AdministrationController {
     // ================================ Configs ==================================
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/configs/create")
-    public ResponseEntity<?> createConfigs(@RequestBody DefaultConfig config) {
+    public ResponseEntity<?> createConfigs(@RequestBody DefaultConfigDto config) {
         if(config == null) {
-            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
         return ResponseEntity.ok(defaultConfigService.createConfigs(config));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/configs/update")
-    public ResponseEntity<?> updateConfigs(@RequestBody DefaultConfig config) {
+    public ResponseEntity<?> updateConfigs(@RequestBody DefaultConfigDto config) {
         if(config == null) {
-            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
         return ResponseEntity.ok(defaultConfigService.updateConfigs(config));
     }

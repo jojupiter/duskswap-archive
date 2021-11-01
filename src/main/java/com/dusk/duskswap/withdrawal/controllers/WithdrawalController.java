@@ -6,7 +6,7 @@ import com.dusk.duskswap.administration.models.OverallBalance;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
-import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.models.TransactionBlock;
 import com.dusk.duskswap.commons.models.VerificationCode;
@@ -72,7 +72,7 @@ public class WithdrawalController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return withdrawalService.getAllUserWithdrawals(user.get(), currentPage, pageSize);
     }
@@ -86,7 +86,7 @@ public class WithdrawalController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserWithdrawals :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return withdrawalService.getAllUserWithdrawals(user.get(), currentPage, pageSize);
     }
@@ -142,24 +142,24 @@ public class WithdrawalController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // here we check if his email is null or empty
         if(user.isPresent() && (user.get().getEmail() == null || (user.get().getEmail() != null && user.get().getEmail().isEmpty()))) {
             log.error("[" + new Date() + "] => USER EMAIL NULL >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.EMAIL_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.EMAIL_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>> 2. the user's exchange account
         ExchangeAccount account = accountService.getAccountByUser(user.get());
         if(account == null) {
             log.error("[" + new Date() + "] => EXCHANGE ACCOUNT DOESN'T EXIST >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. first we check if verification code is correct
         if(!verificationCodeService.isCodeCorrect(user.get().getEmail(), dto.getCode(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE)) {
             log.error("[" + new Date() + "] => VERIFICATION CODE INCORRECT >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // =============================== creation of the withdrawal + balances checking =================================
@@ -184,7 +184,7 @@ public class WithdrawalController {
                                                                               estimatedFeesGivenByAPI
         ) {
             log.error("[" + new Date() + "] => DUSKSWAP INSUFFICIENT BALANCE >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>> 7. and then check if the user's has enough amount of crypto in his account
         Double estimatedTotalUserExpense = Double.parseDouble(dto.getAmount()) +
@@ -192,7 +192,7 @@ public class WithdrawalController {
                                            Double.parseDouble(withdrawal.getDuskFeesCrypto());
         if(!accountService.isBalanceSufficient(account, dto.getCurrencyId(), Double.toString(estimatedTotalUserExpense))) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") estimated fee rate = " + estimatedFeeRate + ", estimated fees = " + estimatedFeesGivenByAPI + "" +
@@ -218,7 +218,7 @@ public class WithdrawalController {
         TransactionBlock block = invoiceService.sendCrypto(walletTransaction, withdrawal.getCurrency().getIso());
         if(block == null) {
             log.error("[" + new Date() + "] => ERROR: CAN'T MAKE SEND CRYPTO >>>>>>>> confirm :: WithdrawalController.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") TRANSACTION BLOCK =======> " + block);

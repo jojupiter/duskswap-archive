@@ -316,13 +316,23 @@ public class BuyServiceImpl implements BuyService {
     }
 
     @Override
+    public ResponseEntity<Buy> getBuy(Long buyId) {
+        if(buyId == null) {
+            log.error("[" + new Date() + "] => BUY ID NOT PRESENT >>>>>>>> getBuy :: BuyServiceImpl.java");
+            return null;
+        }
+
+        return ResponseEntity.ok(buyRepository.findById(buyId).get());
+    }
+
+    @Override
     public Double estimateAmountInCryptoToBeReceived(User user, ExchangeAccount account, Currency currency, String amount, String usdXaf) {
         if(
                 user == null ||
                         currency == null ||
                         amount == null || (amount != null && amount.isEmpty()) || (amount != null && !amount.isEmpty() && Double.parseDouble(amount) < 0)
         ) {
-
+            return null;
         }
 
         // >>>>> 3. Get the pricing

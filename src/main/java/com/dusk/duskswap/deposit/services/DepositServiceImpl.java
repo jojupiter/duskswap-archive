@@ -2,7 +2,7 @@ package com.dusk.duskswap.deposit.services;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.repositories.ExchangeAccountRepository;
-import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Misc;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
@@ -19,7 +19,6 @@ import com.dusk.duskswap.deposit.repositories.DepositHashRepository;
 import com.dusk.duskswap.deposit.repositories.DepositRepository;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.repositories.UserRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,7 +143,7 @@ public class DepositServiceImpl implements DepositService {
         ) {
             log.error("[" + new Date() + "] => INPUT INCORRECT >>>>>>>> createDeposit :: DepositServiceImpl.java" +
                     " ========= DepositDto = " + dto);
-            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
 
         // >>>>> 1. If the amount is null, empty or negative, we set it to a default value
@@ -159,7 +158,7 @@ public class DepositServiceImpl implements DepositService {
         Optional<ExchangeAccount> exchangeAccount = exchangeAccountRepository.findByUser(user);
         if(!exchangeAccount.isPresent()) {
             log.debug("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. We check the invoice Id in exchange account, count the number of deposit associated with it and decide whether or not to create another invoice
@@ -184,11 +183,11 @@ public class DepositServiceImpl implements DepositService {
         Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         if(!currency.get().getIsSupported()) {
             log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT SUPPORTED >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         log.info("INVOICE CREATION DTO AMOUNT =>>>>>>" + dto.getAmount());
@@ -206,13 +205,13 @@ public class DepositServiceImpl implements DepositService {
         ResponseEntity<Invoice> invoiceResponse = invoiceService.createInvoice(invoice);
 
         if(invoiceResponse.getStatusCode() != HttpStatus.OK)
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, invoiceResponse.getStatusCode());
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, invoiceResponse.getStatusCode());
 
         // >>>>> 5. creation of the deposit object to be saved
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_NEW);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 6. If the deposit's amount is within the authorized bounds, then we proceed to the deposit creation

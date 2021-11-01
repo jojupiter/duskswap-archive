@@ -3,7 +3,7 @@ package com.dusk.duskswap.exchange.controllers;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
-import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.exchange.entityDto.ExchangeDto;
 import com.dusk.duskswap.exchange.entityDto.ExchangePage;
 import com.dusk.duskswap.exchange.models.Exchange;
@@ -44,7 +44,7 @@ public class ExchangeController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserExchange :: ExchangeController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>>>> 2. we then apply the corresponding method
@@ -60,7 +60,7 @@ public class ExchangeController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserExchange :: ExchangeController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>>>> 2. we then apply the corresponding method
@@ -83,24 +83,24 @@ public class ExchangeController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>>> 2. we get the exchange account
         ExchangeAccount exchangeAccount = accountService.getAccountByUser(user.get());
         if(exchangeAccount == null) {
             log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.java");
-            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         if(!accountService.isBalanceSufficient(exchangeAccount, dto.getFromCurrencyId(), dto.getFromAmount())) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> makeExchange :: ExchangeController.jav");
-            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>>> 3. then we attempt to create the exchange
         Exchange createdExchange = exchangeService.makeExchange(dto, user.get(), exchangeAccount);
 
         if(createdExchange == null) {
             log.error("[" + new Date() + "] => THE EXCHANGE WAS NOT CREATED >>>>>>>> makeExchange :: ExchangeController.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>>> 4. when the exchange is created, we debit the account (from_amount) + also debit the overall amount for that currency

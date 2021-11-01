@@ -6,7 +6,7 @@ import com.dusk.duskswap.administration.models.DefaultConfig;
 import com.dusk.duskswap.administration.models.OverallBalance;
 import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
-import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.Currency;
@@ -69,7 +69,7 @@ public class BuyController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return buyService.getAllBuyByUser(user.get(), currentPage, pageSize);
@@ -84,10 +84,16 @@ public class BuyController {
         Optional<User> user = userService.getUser(userId);
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> getAllUserBuy :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         return buyService.getAllBuyByUser(user.get(), currentPage, pageSize);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/buy-id", produces = "application/json", params = "userId")
+    public  ResponseEntity<?> getBuy(@RequestParam(name = "buyId") Long buyId) {
+        return buyService.getBuy(buyId);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
@@ -120,13 +126,13 @@ public class BuyController {
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         // >>>>> 2. the exchange account of that user
         ExchangeAccount account = accountService.getAccountByUser(user.get());
         if(account == null) {
             log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. the crypto currency the user wants to buy
@@ -137,21 +143,21 @@ public class BuyController {
         }
         if(!currency.get().getIsSupported()) {
             log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT SUPPORTED >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. transaction option that the user will use to buy
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptIso());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // ============================== checking duskswap balance ==================================
         Optional<OverallBalance> balance = overallBalanceService.getBalanceFor(currency.get());
         if(balance == null) {
             log.error("[" + new Date() + "] => OVERALL BALANCE NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         String usdXafRate = "";
         DefaultConfig config = defaultConfigService.getConfigs();
@@ -171,12 +177,12 @@ public class BuyController {
 
         if(estimatedAmountOfCryptoToBeReceived == null) {
             log.error("[" + new Date() + "] => UNABLE TO ESTIMATED CONVERSION AMOUNT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         if(estimatedAmountOfCryptoToBeReceived >= Double.parseDouble(balance.get().getWithdrawalBalance())) {
             log.error("[" + new Date() + "] => UNABLE TO ESTIMATED CONVERSION AMOUNT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // ========================= Performing the payment request via API ============================
@@ -199,46 +205,112 @@ public class BuyController {
 
         // >>>>> 5. generation of the payment URL
         String paymentAPIUsed = null;
-        /*if(transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY))
-            paymentAPIUsed = config.getOmPaymentAPIUsed();
+        if(transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY))
+            paymentAPIUsed = config.getOmAPIUsed().getApiIso();
         if(transactionOption.get().getIso().equals(DefaultProperties.MTN_MOBILE_MONEY))
-            paymentAPIUsed = config.getMomoPaymentAPIUsed();
-        if(paymentAPIUsed == null)*/
+            paymentAPIUsed = config.getMomoAPIUsed().getApiIso();
+        if(paymentAPIUsed == null)
             paymentAPIUsed = DefaultProperties.CINETPAY_API;
 
         MobileMoneyPaymentResponse response = mobileMoneyOperations.performPayment(request, paymentAPIUsed);
         if(response == null) {
             log.error("[" + new Date() + "] => CANNOT PERFORM PAYMENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // ========================= saving the transaction into a new buy object ============================
         String apiFees = response.getApiFees();
-        /*if(
+        if(
                 dto.getTransactionOptIso().equals(DefaultProperties.ORANGE_MONEY) &&
-                config.getOmPaymentAPIUsed() != null
+                config.getOmAPIUsed() != null
         )
-            apiFees = config.getOmPaymentFees();
+            apiFees = config.getOmAPIUsed().getPaymentFees();
 
         if(
                 dto.getTransactionOptIso().equals(DefaultProperties.MTN_MOBILE_MONEY) &&
-                config.getMomoPaymentAPIUsed() != null
+                config.getMomoAPIUsed() != null
         )
-            apiFees = config.getMomoPaymentFees();
-*/
+            apiFees = config.getMomoAPIUsed().getPaymentFees();
+
         log.info(">>>>>>>>>>>>>>>>> apiFees = " + apiFees);
 
         // >>>>> 6. now we create and save the buy
         Buy buy = buyService.createBuy(user.get(), account, dto.getAmount(), currency.get(), transactionOption.get(), response.getPaymentToken(), apiFees, txId);
         if(buy == null) {
             log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
         return ResponseEntity.ok(response.getPaymentUrl());
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PostMapping(value = "/manual-check-status", produces = "application/json")
+    public ResponseEntity<?> manuallyCheckCinetpayStatus(@RequestParam(name = "transactionId") String transactionId) throws Exception {
+        if(transactionId == null || (transactionId != null && transactionId.isEmpty())) {
+            log.error("[" + new Date() + "] => TRANSACTION ID NULL OR EMPTY >>>>>>>> manuallyCheckCinetpayStatus :: BuyController.java");
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
+        }
+
+        // >>>>> 1. we get the corresponding buy object
+        Optional<Buy> buy = buyService.getByTransactionId(transactionId);
+        if(!buy.isPresent()) {
+            log.error("[" + new Date() + "] => CANNOT FIND CORRESPONDING BUY >>>>>>>> manuallyCheckCinetpayStatus :: BuyController.java");
+            return new ResponseEntity<>(Codes.BUY_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 2. then we check if the status is already "confirmed"
+        if(buy.get().getStatus().getName().equals(DefaultProperties.STATUS_TRANSACTION_CONFIRMED)) {
+            log.info("[" + new Date() + "] => BUY ALREADY CONFIRMED >>>>>>>> manuallyCheckCinetpayStatus :: BuyController.java");
+            return new ResponseEntity<>(Codes.STATUS_ALREADY_CONFIRMED_OR_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 3. here we check the status of the payment on cinetpay server
+        VerificationResponse verificationResponse = mobileMoneyOperations.checkPaymentStatus(buy.get().getPayToken(), CinetpayParams.SITE_ID);
+        if(verificationResponse == null) {
+            log.error("[" + new Date() + "] => VERIFICATION RESPONSE NULL >>>>>>>> manuallyCheckCinetpayStatus :: BuyController.java");
+            return new ResponseEntity<>(Codes.NETWORK_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_CANCELED)) {
+            buyService.updateBuyStatus(buy.get(), DefaultProperties.STATUS_TRANSACTION_INVALID);
+            return new ResponseEntity<>(Codes.STATUS_ALREADY_CONFIRMED_OR_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_CANCELED)) {
+            buyService.updateBuyStatus(buy.get(), DefaultProperties.STATUS_TRANSACTION_INVALID);
+            return ResponseEntity.ok(null);
+        }
+
+        // >>>>> 4. getting the usd-xaf exchange rate
+        String usdXafRate = "";
+        DefaultConfig config = defaultConfigService.getConfigs();
+        if(config == null) {
+            usdXafRate = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+        }
+        else
+            usdXafRate = config.getUsdToXafBuy();
+
+        // >>>>> 4. if everything is good, we update the buy object
+        if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_SUCCESS)) {
+
+            String phoneNumber = verificationResponse.getData().getPhone_prefix() + verificationResponse.getData().getPhone_number();
+            Buy savedBuy =  buyService.confirmBuy(buy.get(), usdXafRate, phoneNumber);
+            if(savedBuy == null) {
+                return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+
+            accountService.fundAccount(buy.get().getExchangeAccount(), buy.get().getToCurrency(), buy.get().getAmountCrypto());
+            log.info("[" + new Date() + "] => CONFIRMED BUY : " + savedBuy + " >>>>>>>> manuallyCheckCinetpayStatus :: BuyController.java");
+            return ResponseEntity.ok(Codes.CODE_SUCCESS);
+
+        }
+
+        return ResponseEntity.ok(null);
+
+    }
+
     @PostMapping(value = "/check-status", produces = "application/json")
-    public void checkStatus(@RequestParam(name = "cpm_trans_id") String transactionId,
+    public void checkCinetpayStatus(@RequestParam(name = "cpm_trans_id") String transactionId,
                             @RequestParam(name = "cpm_site_id") String siteId) throws Exception { // check status for cinetpay
         // input checking
         if(transactionId == null)

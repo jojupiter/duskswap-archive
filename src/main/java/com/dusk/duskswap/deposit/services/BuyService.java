@@ -17,6 +17,7 @@ public interface BuyService {
 
     ResponseEntity<BuyPage> getAllBuy(Integer currentPage, Integer pageSize);
     ResponseEntity<BuyPage> getAllBuyByUser(User user, Integer currentPage, Integer pageSize);
+    ResponseEntity<Buy> getBuy(Long buyId);
 
     Optional<Buy> getByTransactionId(String transactionId);
     Buy createBuy(User user, ExchangeAccount account, String amount, Currency toCurrency,

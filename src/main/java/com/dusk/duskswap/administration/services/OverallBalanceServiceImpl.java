@@ -1,7 +1,7 @@
 package com.dusk.duskswap.administration.services;
 
 import com.dusk.duskswap.administration.models.OverallBalance;
-import com.dusk.duskswap.commons.miscellaneous.CodeErrors;
+import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.administration.repositories.OverallBalanceRepository;
 import com.dusk.duskswap.commons.repositories.CurrencyRepository;
@@ -83,21 +83,21 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
         ) {
             log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> increaseAmount :: OverallBalanceServiceImpl.java" +
                     " ===== amountToIncrease = " + amountToIncrease + ", currencyId = " + currencyId + ", depositOrWithdrawal = " + depositOrWithdrawal);
-                return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
+                return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
 
         // >>>>> 1. we get the currency
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> increaseAmount :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we get balance for that particular currency
         Optional<OverallBalance> overallBalance = overallBalanceRepository.findByCurrency(currency.get());
         if(!overallBalance.isPresent()) {
             log.error("[" + new Date() + "] => BALANCE NOT PRESENT >>>>>>>> increaseAmount :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. we increase the balance for that currency depending on whether it's for deposit or withdrawal
@@ -133,14 +133,14 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> decreaseAmount :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we get balance for that particular currency
         Optional<OverallBalance> overallBalance = overallBalanceRepository.findByCurrency(currency.get());
         if(!overallBalance.isPresent()) {
             log.error("[" + new Date() + "] => BALANCE NOT PRESENT >>>>>>>> increaseAmount :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. we verify if there's enough amount to trigger the decrease
@@ -151,7 +151,7 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
                 ( Double.parseDouble(overallBalance.get().getWithdrawalBalance()) - amountToSubtract < 0 && depositOrWithdrawal == 1)
         ) {
             log.error("[" + new Date() + "] => INSUFFICIENT BALANCE >>>>>>>> increaseAmount :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 4. we increase the balance for that currency depending on whether it's for deposit or withdrawal
@@ -282,20 +282,20 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
         // input checking
         if(currencyId == null) {
             log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createBalanceFor :: OverallBalanceServiceImpl.java");
-            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
 
         // >>>>> 1. we get the currency
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createBalanceFor :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we check if a balance for that currency already exists
         if(overallBalanceRepository.existsByCurrency(currency.get())) {
             log.error("[" + new Date() + "] => BALANCE ALREADY EXISTS >>>>>>>> createBalanceFor :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. we proceed with the creation
@@ -338,21 +338,21 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
         if(currencyId == null || depositOrWithdrawal == null) {
             log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> updateBalanceFor :: OverallBalanceServiceImpl.java" +
                     " ===== currencyId = " + currencyId + ", depositOrWithdrawal = " + depositOrWithdrawal);
-            return ResponseEntity.badRequest().body(CodeErrors.INPUT_ERROR_CODE);
+            return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
 
         // >>>>> 1. we get the currency
         Optional<Currency> currency = currencyRepository.findById(currencyId);
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> updateBalanceFor :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 2. we get the balance
         Optional<OverallBalance> overallBalance = overallBalanceRepository.findByCurrency(currency.get());
         if(!overallBalance.isPresent()) {
             log.error("[" + new Date() + "] => BALANCE NOT PRESENT >>>>>>>> updateBalanceFor :: OverallBalanceServiceImpl.java");
-            return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // >>>>> 3. we proceed with the update
@@ -365,7 +365,7 @@ public class OverallBalanceServiceImpl implements OverallBalanceService {
             return ResponseEntity.ok(overallBalanceRepository.save(overallBalance.get()));
         }
 
-        return new ResponseEntity<>(CodeErrors.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
 }
