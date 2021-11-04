@@ -8,13 +8,22 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -22,6 +31,7 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
 
     private ObjectMapper mapper = new ObjectMapper();
     private OkHttpClient client;
+    private HttpClient httpClient;
     private static final String AUTHENTICATION_URL = "https://client.cinetpay.com/v1/auth/login";
     private static final String TRANSFER_ACCOUNT_BALANCE_URL = "https://client.cinetpay.com/v1/transfer/check/balance";
     private static final String ADDING_TRANSFER_CONTACT_URL = "https://client.cinetpay.com/v1/transfer/contact";
@@ -31,6 +41,7 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
     public CinetpayTransferServiceImpl() {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES); // to avoid error when we have an unknown property
         client = new OkHttpClient().newBuilder().build();
+        httpClient = HttpClient.newBuilder().build();
     }
 
     @Override
@@ -45,38 +56,40 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
             return null;
         }
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(AUTHENTICATION_URL).newBuilder();
-        urlBuilder.addQueryParameter("lang", lang);
-        String url = urlBuilder.build().toString();
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("apikey", apikey);
+        parameters.put("password", password);
+
+        String form = parameters.keySet().stream()
+                .map(key -> key + "=" + URLEncoder.encode(parameters.get(key), StandardCharsets.UTF_8))
+                .collect(Collectors.joining("&"));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(AUTHENTICATION_URL + "?lang=" + lang))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form))
+                .build();
 
         try {
-            RequestBody formBody = new FormBody.Builder()
-                    .add("apikey", apikey)
-                    .add("password", password)
-                    .build();
 
-            Request request = new Request.Builder()
-                    .url(url)
-                    .post(formBody)
-                    .addHeader("Content-Type", "application/json")
-                    .build();
-
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> getAuthToken :: CinetpayTransferServiceImpl.java");
-
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             AuthSuccess authSuccess = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                authSuccess = mapper.readValue(responseBody, AuthSuccess.class);
-                return authSuccess.getData().get("token");
+            log.info("AUTHENTICATION RESPONSE BODY >>>>>> " + response.body().toString());
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                Map<String, Object> mapResponse = mapper.readValue(response.body().toString(), new TypeReference<Map<String, Object>>(){});
+
+                if( Integer.parseInt(mapResponse.get("code").toString()) == 0 ) {
+                    authSuccess = mapper.readValue(response.body().toString(), AuthSuccess.class);
+                    return authSuccess.getData().get("token");
+                }
+
             }
 
         }
-        catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + ">>>>>>>> initializePayment :: CinetpayTransferServiceImpl.java");
-        }
         catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -95,32 +108,31 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
             return null;
         }
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(TRANSFER_ACCOUNT_BALANCE_URL).newBuilder();
-        urlBuilder.addQueryParameter("token", token);
-        urlBuilder.addQueryParameter("lang", lang);
-        String url = urlBuilder.build().toString();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(TRANSFER_ACCOUNT_BALANCE_URL + "?token=" + token + "&lang=" + lang))
+                .build();
 
-        Request request = new Request.Builder()
-                .url(url)
-                .method("GET", null).build();
         try {
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> getTransferBalances :: CinetpayTransferServiceImpl.java");
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                Map<String, Object> mapResponse = mapper.readValue(response.body().toString(), new TypeReference<Map<String, Object>>(){});
 
-            TransferBalance balance = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                balance = mapper.readValue(responseBody, TransferBalance.class);
-                return balance;
+                TransferBalance balance = null;
+                if( Integer.parseInt(mapResponse.get("code").toString()) == 0 ) {
+                    balance = mapper.readValue(response.body().toString(), TransferBalance.class);
+                    return balance;
+                }
             }
-        }
-        catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + ">>>>>>>> getTransferBalance :: CinetpayTransferServiceImpl.java");
+
         }
         catch (IOException e) {
             e.printStackTrace();
         }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         return null;
     }
 
@@ -136,34 +148,32 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
             return null;
         }
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(SENDING_URL).newBuilder();
-        urlBuilder.addQueryParameter("token", token);
-        urlBuilder.addQueryParameter("lang", lang);
-        String url = urlBuilder.build().toString();
 
         try {
-            RequestBody body = RequestBody.create(mapper.writeValueAsString(contacts).getBytes(StandardCharsets.UTF_8));
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(SENDING_URL + "?token=" + token + "&lang=" + lang))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString("data=" + mapper.writeValueAsString(contacts)))
+                    .build();
 
-            Request request = new Request.Builder()
-                    .url(url)
-                    .method("POST", body).build();
-
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> transferMoney :: CinetpayTransferServiceImpl.java");
-
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info("RESPONSE BODY >>>>>> " + response.body() + "  >>>>>>>> transferMoney :: CinetpayTransferServiceImpl.java");
             Map<String, Object> responseJson = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                responseJson = mapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
-                if((int) responseJson.get("code") == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
+
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                responseJson = mapper.readValue(response.body().toString(), new TypeReference<Map<String, Object>>() {});
+                if(Integer.parseInt(responseJson.get("code").toString()) == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
                     return ( (List<List<Contact>>) responseJson.get("data") ).get(0).get(0);
                 }
                 return null;
             }
+
         }
         catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + ">>>>>>>> transferMoney :: CinetpayTransferServiceImpl.java");
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -184,34 +194,31 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
             return null;
         }
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(ADDING_TRANSFER_CONTACT_URL).newBuilder();
-        urlBuilder.addQueryParameter("token", token);
-        urlBuilder.addQueryParameter("lang", lang);
-        String url = urlBuilder.build().toString();
-
         try {
-            RequestBody body = RequestBody.create(mapper.writeValueAsString(contacts).getBytes(StandardCharsets.UTF_8));
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(ADDING_TRANSFER_CONTACT_URL + "?token=" + token + "&lang=" + lang))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString("data:" + mapper.writeValueAsString(contacts)))
+                    .build();
 
-            Request request = new Request.Builder()
-                    .url(url)
-                    .method("POST", body).build();
-
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> addContacts :: CinetpayTransferServiceImpl.java");
-
-            List<Contact> contactList = null;
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             Map<String, Object> responseJson = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                responseJson = mapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
-                if((int)responseJson.get("code") == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
+
+            log.info("ADD CONTACTS RESPONSE BODY >>>>>>> " + response.body());
+
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                responseJson = mapper.readValue(response.body().toString(), new TypeReference<Map<String, Object>>() {});
+                if(Integer.parseInt(responseJson.get("code").toString()) == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
                     return ((List<List<Contact>>)responseJson.get("data")).get(0);
                 }
             }
+
         }
         catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + "   >>>>>>>> addContacts :: CinetpayTransferServiceImpl.java");
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -232,30 +239,20 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
             return null;
         }
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(TRANSFER_INFO_URL).newBuilder();
-        urlBuilder.addQueryParameter("token", token);
-        urlBuilder.addQueryParameter("lang", lang);
-        urlBuilder.addQueryParameter("client_transaction_id", clientTransactionId);
-        String url = urlBuilder.build().toString();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(TRANSFER_INFO_URL + "?token=" + token + "&lang=" + lang + "&client_transaction_id=" + clientTransactionId))
+                .build();
 
         try {
-            Request request = new Request.Builder()
-                    .url(url)
-                    .method("GET", null).build();
-
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> getTransferInfo :: CinetpayTransferServiceImpl.java");
-
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                return mapper.readValue(responseBody, TransferInfo.class);
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                return mapper.readValue(response.body().toString(), TransferInfo.class);
             }
         }
-        catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + "   >>>>>>>> getTransferInfo :: CinetpayTransferServiceImpl.java");
-        }
         catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
             e.printStackTrace();
         }
 

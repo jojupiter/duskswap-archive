@@ -136,6 +136,7 @@ public class SellController {
         )
             apiFees = config.getMomoAPIUsed().getTransferFees();
 
+
         // >>>>> 8. check if the user's balance is sufficient
         Double amountInCryptoToBeSpent = Double.parseDouble(apiFees) * Double.parseDouble(sellDto.getAmount()) +
                                          Double.parseDouble(sellDto.getAmount());
@@ -150,6 +151,8 @@ public class SellController {
             log.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
+
+        log.info("AMOUNT TO SEND >>>>>> " + sell.getAmountReceived() + "  >>>>>> SELLCONTROLLER");
 
         // ================================== CALLING MOBILE MONEY TRANSFER METHODS =============================================================
         AuthRequest authRequest = new AuthRequest();

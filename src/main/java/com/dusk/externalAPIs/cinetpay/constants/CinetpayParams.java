@@ -25,6 +25,6 @@ public class CinetpayParams {
     public static String PAYMENT_NOTIFICATION_URL = DefaultProperties.SERVER_BASE_URL + "/buy/check-status";
     public static String TRANSFER_NOTIFICATION_URL = DefaultProperties.SERVER_BASE_URL + "/sell/check-status";
     public static String DEFAULT_PAYMENT_DESCRIPTION = "Paiement sur Duskswap";
-    public static String TRANSFER_PASSWORD = "fGooGA@se7h901aRI";
+    public static String TRANSFER_PASSWORD = "ozetiTANiC7721v";//"fGooGA@se7h901aRI";
 
 }

@@ -1,3 +1,4 @@
+/*
 package com.dusk.externalAPIs.orangeMoney.services;
 
 import com.dusk.externalAPIs.cinetpay.models.VerificationResponse;
@@ -150,3 +151,4 @@ public class OMPaymentServiceImpl implements OMPaymentService {
     }
 
 }
+*/

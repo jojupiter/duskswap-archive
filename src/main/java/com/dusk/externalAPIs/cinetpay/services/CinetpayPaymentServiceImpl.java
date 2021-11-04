@@ -7,23 +7,34 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
+import org.springframework.boot.configurationprocessor.json.JSONException;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class CinetpayPaymentServiceImpl implements CinetpayPaymentService {
 
     private ObjectMapper mapper = new ObjectMapper();
+    private HttpClient httpClient;
     private static final String PAYMENT_INITIALIZATION_URL = "https://api-checkout.cinetpay.com/v2/payment";
     private static final String PAYMENT_STATUS_CHECKING_URL = "https://api-checkout.cinetpay.com/v2/payment/check";
 
     public CinetpayPaymentServiceImpl() {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES); // to avoid error when we have an unknown property
+        httpClient = HttpClient.newBuilder().build();
     }
 
     @Override
@@ -47,30 +58,25 @@ public class CinetpayPaymentServiceImpl implements CinetpayPaymentService {
             return null;
         }
 
-        OkHttpClient client = new OkHttpClient().newBuilder().build();
-
         try {
-            RequestBody body = RequestBody.create(mapper.writeValueAsString(init).getBytes(StandardCharsets.UTF_8));
-            Request request = new Request.Builder()
-                    .url(PAYMENT_INITIALIZATION_URL)
-                    .method("POST", body)
-                    .addHeader("Content-Type", "application/json")
-                    .build();;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(PAYMENT_INITIALIZATION_URL))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(init)))
+                    .build();
 
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> initializePayment :: CinetpayPaymentServiceImpl.java");
-
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             PaymentInitResponse initResponse = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                initResponse = mapper.readValue(responseBody, PaymentInitResponse.class);
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                initResponse = mapper.readValue(response.body().toString(), PaymentInitResponse.class);
                 return initResponse;
             }
-
         }
         catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + ">>>>>>>> initializePayment :: CinetpayPaymentServiceImpl.java");
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -91,37 +97,33 @@ public class CinetpayPaymentServiceImpl implements CinetpayPaymentService {
             return null;
         }
 
-        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("apikey", apiKey);
+        parameters.put("site_id", siteId);
+        parameters.put("token", paymentToken);
+
+        String form = parameters.keySet().stream()
+                .map(key -> key + "=" + URLEncoder.encode(parameters.get(key), StandardCharsets.UTF_8))
+                .collect(Collectors.joining("&"));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(PAYMENT_STATUS_CHECKING_URL))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form/*requestBody.toString()*/))
+                .build();
 
         try {
-            RequestBody formBody = new FormBody.Builder()
-                    .add("apikey", apiKey)
-                    .add("site_id", siteId)
-                    .add("token", paymentToken)
-                    .build();
-
-            Request request = new Request.Builder()
-                    .url(PAYMENT_STATUS_CHECKING_URL)
-                    .post(formBody)
-                    .addHeader("Content-Type", "application/json")
-                    .build();
-
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-
-            log.info("RESPONSE BODY >>>>>> " + responseBody + "  >>>>>>>> checkPayment :: CinetpayPaymentServiceImpl.java");
-
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             VerificationResponse verificationResponse = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                verificationResponse = mapper.readValue(responseBody, VerificationResponse.class);
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                verificationResponse = mapper.readValue(response.body().toString(), VerificationResponse.class);
                 return verificationResponse;
             }
-
-        }
-        catch (JsonProcessingException e) {
-            log.error("[" + new Date() + "] => " + e.getMessage() + ">>>>>>>> checkPayment :: CinetpayPaymentServiceImpl.java");
         }
         catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
             e.printStackTrace();
         }
 

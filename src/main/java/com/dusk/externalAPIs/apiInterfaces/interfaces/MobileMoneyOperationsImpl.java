@@ -92,7 +92,8 @@ public class MobileMoneyOperationsImpl implements MobileMoneyOperations {
     }
 
     @Override
-    public VerificationResponse checkPaymentStatus(String token, String siteId) {
+    public VerificationResponse
+    checkPaymentStatus(String token, String siteId) {
         if (token == null || (token != null && token.isEmpty())) {
             log.error("[" + new Date() + "] => INPUT NULL (PAYMENT REQUEST) >>>>>>>> checkPaymentStatus :: MobileMoneyOperationsImpl.java");
             return null;

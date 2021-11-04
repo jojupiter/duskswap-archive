@@ -8,7 +8,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +17,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
+import java.net.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
@@ -32,12 +31,14 @@ import java.util.Optional;
 public class InvoiceServiceImpl implements InvoiceService {
 
     private ObjectMapper mapper = new ObjectMapper();
+    private HttpClient httpClient;
 
     @Autowired
     private CurrencyRepository currencyRepository;
 
     public InvoiceServiceImpl() {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES); // to avoid error when we have an unknown property
+        httpClient = HttpClient.newBuilder().build();
     }
 
     @Override
@@ -234,23 +235,19 @@ public class InvoiceServiceImpl implements InvoiceService {
             return null;
         }
 
-        OkHttpClient client = new OkHttpClient().newBuilder().build();
-        MediaType mediaType = MediaType.parse("application/json");
         try {
-            RequestBody body = RequestBody.create(mapper.writeValueAsString(walletTransaction).getBytes(StandardCharsets.UTF_8));
-            Request request = new Request.Builder()
-                    .url(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_SEND_STORE_ID + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions")
-                    .method("POST", body)
-                    .addHeader("Authorization", "token " + AppProperties.BTCPAY_SEND_API)
-                    .addHeader("Content-Type", "application/json")
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(AppProperties.BTCPAY_SERVER_DOMAIN_URL + AppProperties.BTCPAY_SEND_STORE_ID + "/payment-methods/OnChain/" + cryptoCode + "/wallet/transactions"))
+                    .header("Authorization", "token " + AppProperties.BTCPAY_SEND_API)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(walletTransaction)))
                     .build();
 
-            Response response = client.newCall(request).execute();
-            String responseBody = response.body().string();
-            log.info("RESPONSE BODY >>>>>> " + responseBody);
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info("RESPONSE BODY >>>>>> " + response.body());
             TransactionBlock block = null;
-            if(responseBody != null || (responseBody != null && responseBody.isEmpty())) {
-                block = mapper.readValue(responseBody, TransactionBlock.class);
+            if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
+                block = mapper.readValue(response.body().toString(), TransactionBlock.class);
                 return block;
             }
 
@@ -258,7 +255,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         catch (JsonProcessingException e) {
             log.error("[" + new Date() + "] => INSUFFICIENT FUND BTCPAY >>>>>>>> sendCrypto :: InvoiceServiceImpl.java" +
                     " ===== message = " + e.getMessage());
-            return null;
+            e.printStackTrace();
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
         }
         catch (IOException e) {
             e.printStackTrace();
