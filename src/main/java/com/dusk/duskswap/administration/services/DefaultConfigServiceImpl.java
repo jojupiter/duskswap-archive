@@ -64,23 +64,22 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
         // ================ payment and transfer api used ================
         Optional<PaymentAPI> omPaymentApi = null;
         Optional<PaymentAPI> momoPaymentApi = null;
-
         if(
                 configDto.getOmPaymentApiUsedIso() != null &&
-                !configDto.getOmPaymentApiUsedIso().isEmpty() &&
-                !configDto.getOmPaymentApiUsedIso().equals(defaultConfigList.get(0).getOmAPIUsed().getApiIso())
+                !configDto.getOmPaymentApiUsedIso().isEmpty()
         ) {
             omPaymentApi = paymentAPIRepository.findByApiIso(configDto.getOmPaymentApiUsedIso());
-            defaultConfigList.get(0).setOmAPIUsed(omPaymentApi.get());
+            if(omPaymentApi.isPresent())
+                defaultConfigList.get(0).setOmAPIUsed(omPaymentApi.get());
         }
 
         if(
                 configDto.getMomoPaymentApiUsedIso() != null &&
-                !configDto.getMomoPaymentApiUsedIso().isEmpty() &&
-                !configDto.getMomoPaymentApiUsedIso().equals(defaultConfigList.get(0).getMomoAPIUsed().getApiIso())
+                !configDto.getMomoPaymentApiUsedIso().isEmpty()
         ) {
             momoPaymentApi = paymentAPIRepository.findByApiIso(configDto.getMomoPaymentApiUsedIso());
-            defaultConfigList.get(0).setMomoAPIUsed(momoPaymentApi.get());
+            if(momoPaymentApi.isPresent())
+                defaultConfigList.get(0).setMomoAPIUsed(momoPaymentApi.get());
         }
 
         return defaultConfigRepository.save(defaultConfigList.get(0));
@@ -104,8 +103,10 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
             momoPaymentApi = paymentAPIRepository.findByApiIso(configDto.getMomoPaymentApiUsedIso());
 
         DefaultConfig config = new DefaultConfig();
-        config.setOmAPIUsed(omPaymentApi.get());
-        config.setMomoAPIUsed(momoPaymentApi.get());
+        if(omPaymentApi.isPresent())
+            config.setOmAPIUsed(omPaymentApi.get());
+        if(momoPaymentApi.isPresent())
+            config.setMomoAPIUsed(momoPaymentApi.get());
         config.setUsdToXafBuy(configDto.getUsdToXafBuy());
         config.setUsdToXafSell(configDto.getUsdToXafSell());
 

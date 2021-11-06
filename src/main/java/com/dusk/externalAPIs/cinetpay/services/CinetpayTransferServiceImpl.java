@@ -150,10 +150,17 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
 
 
         try {
+            Map<String, String> parameters = new HashMap<>();
+            parameters.put("data", mapper.writeValueAsString(contacts));
+
+            String form = parameters.keySet().stream()
+                    .map(key -> key + "=" + URLEncoder.encode(parameters.get(key), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(SENDING_URL + "?token=" + token + "&lang=" + lang))
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString("data=" + mapper.writeValueAsString(contacts)))
+                    .POST(HttpRequest.BodyPublishers.ofString(form))
                     .build();
 
             HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -195,10 +202,17 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
         }
 
         try {
+            Map<String, String> parameters = new HashMap<>();
+            parameters.put("data", mapper.writeValueAsString(contacts));
+
+            String form = parameters.keySet().stream()
+                    .map(key -> key + "=" + URLEncoder.encode(parameters.get(key), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(ADDING_TRANSFER_CONTACT_URL + "?token=" + token + "&lang=" + lang))
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString("data:" + mapper.writeValueAsString(contacts)))
+                    .POST(HttpRequest.BodyPublishers.ofString(form))
                     .build();
 
             HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
