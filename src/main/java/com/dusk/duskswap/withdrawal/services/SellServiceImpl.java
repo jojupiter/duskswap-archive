@@ -158,8 +158,11 @@ public class SellServiceImpl implements SellService {
         // >>>>> 3. we convert usdXaf to number
         Double usdToXaf = Double.parseDouble(usdXaf);
 
+        log.info("DOLLAR TO XAF >>>>>>>>>>>>> " + usdXaf + "              :::::: SellService");
+
         // >>>>> 4. we get these conversions in variables
         Double cryptoToUsdt = Double.parseDouble(usdtRate.getTicks().getClose());
+        log.info("BTC TO USDT >>>>>>>>>>>>> " + cryptoToUsdt + "              :::::: SellService");
 
         // ================================== price calculation =========================================
 
@@ -184,6 +187,8 @@ public class SellServiceImpl implements SellService {
             );
         }
 
+        log.info("duskFeesInCrypto =  >>>>>>>>>>>>> " + duskFeesInCrypto + "              :::::: SellService");
+        log.info("duskFeesInFiat =  >>>>>>>>>>>>> " + duskFeesInFiat + "              :::::: SellService");
         // >>>>> 6. amount to be received by the user
         // sold amount = conversion to Fiat (initial amount (supplied in parameter) in crypto - dusk fees in crypto) - apiFees in Fiat
         Double amountToBeReceivedInFiat = Utilities.convertUSdtToXaf(
@@ -196,10 +201,13 @@ public class SellServiceImpl implements SellService {
         duskFeesInFiat += amountToBeReceivedInFiat - Math.floor(amountToBeReceivedInFiat);
         amountToBeReceivedInFiat -= (amountToBeReceivedInFiat - Math.floor(amountToBeReceivedInFiat));
 
+        log.info("NEW Dusk fees in XAF =  >>>>>>>>>>>>> " + duskFeesInFiat + "              :::::: SellService");
+        log.info("amountToBeReceivedInFiat =  >>>>>>>>>>>>> " + amountToBeReceivedInFiat + "              :::::: SellService");
         // api fees
         Double apiFeesAmount = Double.parseDouble(apiFees) * amountToBeReceivedInFiat;
         Double apiFeesAmountInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(apiFees);
 
+        log.info("apiFeesAmountInCrypto =  >>>>>>>>>>>>> " + apiFeesAmountInCrypto + "\n  apiFeesAmount = " + apiFeesAmount + "         :::::: SellService");
         // >>>>> 7. finally, we create the sell object and we save it in the DB
         Sell sell = new Sell();
         sell.setSellDate(new Date());
@@ -250,6 +258,13 @@ public class SellServiceImpl implements SellService {
 
         sell.setStatus(status.get());
         return sellRepository.save(sell);
+    }
+
+    @Override
+    public Boolean existsByTxId(String txId) {
+        if(txId == null || (txId != null && txId.isEmpty()))
+            return null;
+        return sellRepository.existsByTransactionId(txId);
     }
 
     @Override

@@ -192,7 +192,8 @@ public class MobileMoneyOperationsImpl implements MobileMoneyOperations {
 
         // =============================== EXECUTING TRANSFER ============================================
         contactList.get(0).setAmount(Double.parseDouble(info.getAmount()));
-        contactList.get(0).setNotify_url(CinetpayParams.PAYMENT_NOTIFICATION_URL);
+        contactList.get(0).setNotify_url(CinetpayParams.TRANSFER_NOTIFICATION_URL);
+        contactList.get(0).setClient_transaction_id(info.getTransactionId());
 
         Contact transfer = cinetpayTransferService.transferMoney(
                 token,

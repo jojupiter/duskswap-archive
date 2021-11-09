@@ -276,11 +276,6 @@ public class BuyController {
             return new ResponseEntity<>(Codes.STATUS_ALREADY_CONFIRMED_OR_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        if(verificationResponse.getCode().equals(CinetpayParams.STATUS_PAYMENT_CANCELED)) {
-            buyService.updateBuyStatus(buy.get(), DefaultProperties.STATUS_TRANSACTION_INVALID);
-            return ResponseEntity.ok(null);
-        }
-
         // >>>>> 4. getting the usd-xaf exchange rate
         String usdXafRate = "";
         DefaultConfig config = defaultConfigService.getConfigs();

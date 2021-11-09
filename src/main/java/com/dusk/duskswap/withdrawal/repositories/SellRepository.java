@@ -20,5 +20,6 @@ public interface SellRepository extends PagingAndSortingRepository<Sell, Long> {
     List<Sell> findBySellDateBefore(Date date);
     List<Sell> findBySellDateBetween(Date startDate, Date endDate);
     Optional<Sell> findByTransactionId(String transactionId);
+    Boolean existsByTransactionId(String transactionId);
 
 }

@@ -23,6 +23,7 @@ public interface SellService {
                                                                         // exception is used to rollback transaction
     Sell saveSell(Sell sell, String apiTransactionId);
     Sell updateSellStatus(Sell sell, String statusString);
+    Boolean existsByTxId(String txId);
     Optional<Sell> getSellByTransactionId(String transactionId);
     ResponseEntity<String> getAllSellProfits();
     ResponseEntity<String> getAllSellProfitsBefore(Date date);

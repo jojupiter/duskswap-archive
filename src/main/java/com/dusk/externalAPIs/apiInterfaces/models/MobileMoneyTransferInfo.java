@@ -13,7 +13,7 @@ public class MobileMoneyTransferInfo {
     private String amount;
     private String currencyIso;
     private String notifyUrl;
-    private String transactionId;
+    private String transactionId; // defined by duskswap
     private String paymentToken;
     private String lang;
     private String status;

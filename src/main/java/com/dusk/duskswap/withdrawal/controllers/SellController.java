@@ -9,6 +9,7 @@ import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
+import com.dusk.duskswap.commons.miscellaneous.Utilities;
 import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.TransactionOption;
 import com.dusk.duskswap.commons.models.VerificationCode;
@@ -155,6 +156,12 @@ public class SellController {
         log.info("AMOUNT TO SEND >>>>>> " + sell.getAmountReceived() + "  >>>>>> SELLCONTROLLER");
 
         // ================================== CALLING MOBILE MONEY TRANSFER METHODS =============================================================
+        String txId = "";
+        do {
+            txId = Utilities.generateUUID();
+        }
+        while (sellService.existsByTxId(txId));
+
         AuthRequest authRequest = new AuthRequest();
         AuthResponse authResponse = mobileMoneyOperations.authenticate(authRequest);
         if(authResponse == null) {
@@ -178,6 +185,7 @@ public class SellController {
         info.setAmount(sell.getAmountReceived());
         info.setFirstName(user.get().getFirstName());
         info.setLastName(user.get().getLastName());
+        info.setTransactionId(txId);
 
         MobileMoneyTransferResponse response = mobileMoneyOperations.performTransfer(authResponse.getToken(), "fr", info);
         if(response == null) {
