@@ -8,8 +8,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.springframework.boot.configurationprocessor.json.JSONException;
-import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -165,12 +163,12 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
 
             HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             log.info("RESPONSE BODY >>>>>> " + response.body() + "  >>>>>>>> transferMoney :: CinetpayTransferServiceImpl.java");
-            Map<String, Object> responseJson = null;
+            TransferResponse transferResponse = null;
 
             if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
-                responseJson = mapper.readValue(response.body().toString(), new TypeReference<Map<String, Object>>() {});
-                if(Integer.parseInt(responseJson.get("code").toString()) == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
-                    return ( (List<List<Contact>>) responseJson.get("data") ).get(0).get(0);
+                transferResponse = mapper.readValue(response.body().toString(), TransferResponse.class);
+                if(transferResponse.getCode() == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
+                    return transferResponse.getData().get(0).get(0);
                 }
                 return null;
             }
@@ -216,14 +214,14 @@ public class CinetpayTransferServiceImpl implements CinetpayTransferService {
                     .build();
 
             HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            Map<String, Object> responseJson = null;
+            TransferResponse responseJson = null;
 
             log.info("ADD CONTACTS RESPONSE BODY >>>>>>> " + response.body());
 
             if(response.body() != null || (response.body() != null && response.body().toString().isEmpty())) {
-                responseJson = mapper.readValue(response.body().toString(), new TypeReference<Map<String, Object>>() {});
-                if(Integer.parseInt(responseJson.get("code").toString()) == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
-                    return ((List<List<Contact>>)responseJson.get("data")).get(0);
+                responseJson = mapper.readValue(response.body().toString(), TransferResponse.class);
+                if(responseJson.getCode() == CinetpayParams.STATUS_TRANSFER_SUCCESS) {
+                    return responseJson.getData().get(0);
                 }
             }
 

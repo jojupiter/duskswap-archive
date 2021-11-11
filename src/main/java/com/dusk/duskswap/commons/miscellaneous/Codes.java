@@ -20,5 +20,6 @@ public class Codes {
     public static final int BUY_NOT_EXISTING = 4013;
     public static final int SELL_NOT_EXISTING = 4014;
     public static final int STATUS_ALREADY_CONFIRMED_OR_INVALID = 4014;
+    public static final int USER_TRANSFER_AMOUNT_INSUFFICIENT = 4015;
 
 }

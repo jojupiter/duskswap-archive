@@ -146,7 +146,10 @@ public class AccountServiceImpl implements AccountService {
         List<CryptoBalance> cryptoBalances = new ArrayList<>();
         amountCurrencies.forEach(
                 amountCurrency -> {
-                    if(amountCurrency.getCurrency().getType().equals(DefaultProperties.CURRENCY_TYPE_CRYPTO)) {
+                    if(
+                            amountCurrency.getCurrency().getType().equals(DefaultProperties.CURRENCY_TYPE_CRYPTO) &&
+                            amountCurrency.getCurrency().getIsSupported()
+                    ) {
                         CryptoBalance cryptoBalance = new CryptoBalance();
                         cryptoBalance.setId(amountCurrency.getCurrency().getId());
                         cryptoBalance.setAmount(amountCurrency.getAmount());
