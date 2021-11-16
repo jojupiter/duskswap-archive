@@ -200,6 +200,9 @@ public class SellController {
         // >>>>> 11. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
+        // >>>>> 12. debit the account
+        accountService.debitAccount(account, currency.get(), sell.getTotalAmountCrypto());
+
         return ResponseEntity.ok(true);
     }
 
