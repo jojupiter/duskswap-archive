@@ -124,7 +124,6 @@ public class SellServiceImpl implements SellService {
             throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createSale :: SellServiceImpl.java" +
                     " ======= sellDto = " + dto + ", user = " + user + ", account = " + account + ", currency = " + fromCurrency + ", tOpt = " + transactionOption);
         }
-
         // ===================== Getting necessary elements from sellDto to create a sale =================
         // >>>>> 1. we check according to the pricing, if the user is able to make
         Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), fromCurrency);
@@ -189,10 +188,20 @@ public class SellServiceImpl implements SellService {
 
         log.info("duskFeesInCrypto =  >>>>>>>>>>>>> " + duskFeesInCrypto + "              :::::: SellService");
         log.info("duskFeesInFiat =  >>>>>>>>>>>>> " + duskFeesInFiat + "              :::::: SellService");
+
+        // api fees
+        Double apiFeesAmountInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(apiFees);
+        Double apiFeesAmount = apiFeesAmountInCrypto *
+                cryptoToUsdt *
+                usdToXaf
+        ; // We do multiply it here because Utilities.convertUsdtToXaf takes the floor (Math.floor), but we don't want to take the floor here
+        log.info(">>>>>>>>>>>>> apiFeesAmountInCrypto = " + apiFeesAmountInCrypto + "\n  apiFeesAmount = " + apiFeesAmount + "         :::::: SellService");
+
+
         // >>>>> 6. amount to be received by the user
-        // sold amount = conversion to Fiat (initial amount (supplied in parameter) in crypto - dusk fees in crypto) - apiFees in Fiat
+        // sold amount = conversion to Fiat (initial amount (supplied in parameter) in crypto - dusk fees in crypto - api_fees_in_crypto) - apiFees in Fiat
         Double amountToBeReceivedInFiat = Utilities.convertUSdtToXaf(
-            Double.parseDouble(dto.getAmount()) - duskFeesInCrypto,
+            Double.parseDouble(dto.getAmount()) - duskFeesInCrypto - apiFeesAmountInCrypto,
                 cryptoToUsdt,
                 usdToXaf
         );
@@ -203,11 +212,7 @@ public class SellServiceImpl implements SellService {
 
         log.info("NEW Dusk fees in XAF =  >>>>>>>>>>>>> " + duskFeesInFiat + "              :::::: SellService");
         log.info("amountToBeReceivedInFiat =  >>>>>>>>>>>>> " + amountToBeReceivedInFiat + "              :::::: SellService");
-        // api fees
-        Double apiFeesAmount = Double.parseDouble(apiFees) * amountToBeReceivedInFiat;
-        Double apiFeesAmountInCrypto = Double.parseDouble(dto.getAmount()) * Double.parseDouble(apiFees);
 
-        log.info("apiFeesAmountInCrypto =  >>>>>>>>>>>>> " + apiFeesAmountInCrypto + "\n  apiFeesAmount = " + apiFeesAmount + "         :::::: SellService");
         // >>>>> 7. finally, we create the sell object and we save it in the DB
         Sell sell = new Sell();
         sell.setSellDate(new Date());

@@ -8,7 +8,7 @@ import java.util.Map;
 
 public interface OMPaymentService {
 
-    AccessToken getAccessToken(String clientId, String clientSecret, String customerKey);
+    AccessToken getAccessToken();
     PaymentResponse initPayment(PaymentRequest request, String accessToken);
     Map<String, String> checkPayment(Map<String, Object> paymentData, String accessToken);
 

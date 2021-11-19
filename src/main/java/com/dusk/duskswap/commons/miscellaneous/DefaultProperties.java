@@ -54,7 +54,7 @@ public class DefaultProperties {
     public static final String PRICING_TYPE_FIX = "FIX";
     public static final String PRICING_TYPE_PERCENTAGE = "PERCENTAGE";
     public static final String DEFAULT_USD_XAF_BUY_RATE = "570";
-    public static final String DEFAULT_USD_XAF_SELL_RATE = "530";
+    public static final String DEFAULT_USD_XAF_SELL_RATE = "570";
 
     // =========== currency =====================
     public static final String CURRENCY_EUR_ISO = "EUR";
@@ -94,7 +94,7 @@ public class DefaultProperties {
     public static final int SHIB_TRANSACTION_SIZE_MAX = 0;
 
     // ======== required network confirmations ========
-    public static final int BTC_REQUIRED_CONFIRMATIONS = 6;
+    public static final int BTC_REQUIRED_CONFIRMATIONS = 3;
     public static final int DASH_REQUIRED_CONFIRMATIONS = 6;
     public static final int ETH_REQUIRED_CONFIRMATIONS = 2;
     public static final int LTC_REQUIRED_CONFIRMATIONS = 6;

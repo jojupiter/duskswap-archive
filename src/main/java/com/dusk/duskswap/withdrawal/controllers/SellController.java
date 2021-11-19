@@ -116,10 +116,10 @@ public class SellController {
         String usdXafRate = "";
         DefaultConfig config = defaultConfigService.getConfigs();
         if(config == null) {
-            usdXafRate = DefaultProperties.DEFAULT_USD_XAF_BUY_RATE;
+            usdXafRate = DefaultProperties.DEFAULT_USD_XAF_SELL_RATE;
         }
         else
-            usdXafRate = config.getUsdToXafBuy();
+            usdXafRate = config.getUsdToXafSell();
 
         // >>>>> 7. getting the apifees
         String apiFees = "";
@@ -202,7 +202,6 @@ public class SellController {
 
         // >>>>> 12. debit the account
         accountService.debitAccount(account, currency.get(), sell.getTotalAmountCrypto());
-
         return ResponseEntity.ok(true);
     }
 

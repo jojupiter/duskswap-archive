@@ -58,6 +58,9 @@ public class Buy extends Auditable<String> {
     @Column(name = "transaction_id")
     private String transactionId;
 
+    @Column(name = "crypto_price_usdt")
+    private String cryptoPriceInUsdt;
+
     @ManyToOne
     @JoinColumn(name = "status_id", referencedColumnName = "id")
     private Status status;

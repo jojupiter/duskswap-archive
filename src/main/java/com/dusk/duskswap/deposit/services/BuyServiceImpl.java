@@ -223,6 +223,7 @@ public class BuyServiceImpl implements BuyService {
         buy.setStatus(status.get());
         buy.setUsdToFiat(usdXaf);
         buy.setTel(tel);
+        buy.setCryptoPriceInUsdt(usdtRate.getTicks().getClose());
         buy.setAmountCrypto(Double.toString(amountCryptoToBeAllocated));
         buy.setDuskFeesCrypto(Double.toString(duskFeesInCrypto));
         buy.setDuskFees(Double.toString(duskFeesInXaf));
