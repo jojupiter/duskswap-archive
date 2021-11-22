@@ -137,7 +137,7 @@ public class DepositServiceImpl implements DepositService {
 
     @Transactional
     @Override
-    public ResponseEntity<?> createCryptoDeposit(User user, DepositDto dto) throws Exception {
+    public ResponseEntity<?> createCryptoDeposit(User user, Currency currency, DepositDto dto) throws Exception {
         // input checking
         if(dto == null || (dto != null && dto.getCurrencyId() == null)
         ) {
@@ -179,25 +179,14 @@ public class DepositServiceImpl implements DepositService {
 
         }
 
-        // >>>>> 4. then, if  we create an invoice for the deposit
-        Optional<Currency> currency = currencyRepository.findById(dto.getCurrencyId());
-        if(!currency.isPresent()) {
-            log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        if(!currency.get().getIsSupported()) {
-            log.error("[" + new Date() + "] => CURRENCY ACCOUNT NOT SUPPORTED >>>>>>>> createDeposit :: DepositServiceImpl.java");
-            return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
         log.info("INVOICE CREATION DTO AMOUNT =>>>>>>" + dto.getAmount());
 
         Invoice invoice = new Invoice();
         invoice.setAmount(dto.getAmount());
-        invoice.setCurrency(currency.get().getIso());
+        invoice.setCurrency(currency.getIso());
         Checkout checkout = new Checkout();
         List<String> paymentMethods = new ArrayList<>();
-        paymentMethods.add(currency.get().getIso());
+        paymentMethods.add(currency.getIso());
         checkout.setPaymentMethods(paymentMethods);
         checkout.setSpeedPolicy(DefaultProperties.BTCPAY_INVOICE_MEDIUM_SPEED);
         invoice.setCheckout(checkout);
@@ -207,29 +196,29 @@ public class DepositServiceImpl implements DepositService {
         if(invoiceResponse.getStatusCode() != HttpStatus.OK)
             return new ResponseEntity<>(Codes.UNKNOWN_ERROR, invoiceResponse.getStatusCode());
 
-        // >>>>> 5. creation of the deposit object to be saved
+        // >>>>> 4. creation of the deposit object to be saved
         Optional<Status> status = statusRepository.findByName(DefaultProperties.STATUS_TRANSACTION_CRYPTO_NEW);
         if(!status.isPresent()) {
             log.error("[" + new Date() + "] => STATUS NOT PRESENT >>>>>>>> createDeposit :: DepositServiceImpl.java");
             return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 6. If the deposit's amount is within the authorized bounds, then we proceed to the deposit creation
+        // >>>>> 5. If the deposit's amount is within the authorized bounds, then we proceed to the deposit creation
 
         Deposit deposit = new Deposit();
         deposit.setStatus(status.get());
         deposit.setExchangeAccount(exchangeAccount.get());
-        deposit.setCurrency(currency.get());
+        deposit.setCurrency(currency);
         deposit.setInvoiceId(invoiceResponse.getBody().getId());
         deposit.setAmount(dto.getAmount());
 
         Deposit savedDeposit = depositRepository.save(deposit);
 
-        // >>>>> 7. after that, we update account invoice id
+        // >>>>> 6. after that, we update account invoice id
         exchangeAccount.get().setInvoiceId(invoiceResponse.getBody().getId());
         exchangeAccountRepository.save(exchangeAccount.get());
 
-        // >>>>> 8. finally return the source code of the invoice
+        // >>>>> 7. finally return the source code of the invoice
         String invoicePageSource = "";
         invoicePageSource = Misc.getWebPabeSource(invoiceResponse.getBody().getCheckoutLink());
 

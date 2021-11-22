@@ -3,6 +3,7 @@ package com.dusk.duskswap.withdrawal.controllers;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.models.OperationsActivated;
 import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.application.securityConfigs.JwtUtils;
 import com.dusk.duskswap.commons.mailing.models.Email;
@@ -74,21 +75,8 @@ public class SellController {
             log.error("[" + new Date() + "] => INPUT NULL OR EMPTY >>>>>>>> confirmation :: SellController.java");
             return ResponseEntity.badRequest().body(Codes.INPUT_ERROR_CODE);
         }
-        // >>>>> 1. getting the current authenticated user
-        Optional<User> user = userService.getCurrentUser();
-        if(!user.isPresent()) {
-            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        // >>>>> 2. we check the account's balance
-        ExchangeAccount account = accountService.getAccountByUser(user.get());
-        if(account == null) {
-            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT FOUND >>>>>>>> confirmation :: SellController.java");
-            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        // >>>>> 3. the crypto currency the user wants to buy
+        // ============================ checking if the operation is possible ======================
+        // >>>>> 1. the crypto currency the user wants to buy
         Optional<Currency> currency = utilitiesService.getCurrencyById(sellDto.getFromCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT PRESENT >>>>>>>> confirmation :: SellController.java");
@@ -99,20 +87,47 @@ public class SellController {
             return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 4. transaction option that the user will use to buy
+        // >>>>> 2. we check if selling is possible for this currency
+        Optional<OperationsActivated> operationsActivated = defaultConfigService.getOperationsActivatedForCurrency(currency.get());
+        if(!operationsActivated.isPresent()) {
+            log.error("[" + new Date() + "] => ACTIVATED OPERATION NULL >>>>>>>>  makeTransfer :: TransferController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(!operationsActivated.get().getIsSellActivated()) {
+            log.error("[" + new Date() + "] => SELL IS NOT ACTIVATED FOR THIS CURRENCY >>>>>>>> makeExchange :: ExchangeController.java");
+            return new ResponseEntity<>(Codes.OPERATION_BLOCKED_FOR_THAT_CURRENCY, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // ==================================== Getting necessary elements =============================
+        // >>>>> 3. getting the current authenticated user
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 4. we check the account's balance
+        ExchangeAccount account = accountService.getAccountByUser(user.get());
+        if(account == null) {
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT FOUND >>>>>>>> confirmation :: SellController.java");
+            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 5. transaction option that the user will use to buy
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(sellDto.getTransactionOptIso());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(Codes.TRANSACTION_OPTION_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 5. here we verify if the provided code is correct
+        // >>>>> 6. here we verify if the provided code is correct
         if(!verificationCodeService.isCodeCorrect(user.get().getEmail(), sellDto.getCode(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE)) {
             log.error("[" + new Date() + "] => CODE PROVIDED NOT CORRECT >>>>>>>> confirmation :: SellController.java");
             return new ResponseEntity<>(Codes.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 6. getting the usd-xaf exchange rate
+        // ========================== Check amount and create the sell object ==========================
+        // >>>>> 7. getting the usd-xaf exchange rate
         String usdXafRate = "";
         DefaultConfig config = defaultConfigService.getConfigs();
         if(config == null) {
@@ -121,7 +136,7 @@ public class SellController {
         else
             usdXafRate = config.getUsdToXafSell();
 
-        // >>>>> 7. getting the apifees
+        // >>>>> 8. getting the apifees
         String apiFees = "";
         if(config == null)
             apiFees = CinetpayParams.CINETPAY_TRANSFER_FEES_CM; // default fees
@@ -138,7 +153,7 @@ public class SellController {
             apiFees = config.getMomoAPIUsed().getTransferFees();
 
 
-        // >>>>> 8. check if the user's balance is sufficient
+        // >>>>> 9. check if the user's balance is sufficient
         Double amountInCryptoToBeSpent = Double.parseDouble(apiFees) * Double.parseDouble(sellDto.getAmount()) +
                                          Double.parseDouble(sellDto.getAmount());
         if(!accountService.isBalanceSufficient(account, sellDto.getFromCurrencyId(), Double.toString(amountInCryptoToBeSpent))) {
@@ -146,7 +161,7 @@ public class SellController {
             return new ResponseEntity<>(Codes.INSUFFICIENT_BALANCE_USER, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 9. then we create the sale
+        // >>>>> 10. then we create the sale
         Sell sell = sellService.createSell(sellDto, user.get(), account, currency.get(), transactionOption.get(), usdXafRate, apiFees);
         if(sell == null) {
             log.error("[" + new Date() + "] => THE SELL OBJECT WASN'T CREATED >>>>>>>> confirmation :: SellController.java");
@@ -194,13 +209,13 @@ public class SellController {
         }
 
         // ==================================================================================================================================
-       // >>>>> 10. saving sell object
+       // >>>>> 11. saving sell object
         sellService.saveSell(sell, response.getTransactionId());
 
-        // >>>>> 11. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
+        // >>>>> 12. next we update the verification code in order the user won't send the same request twice (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
-        // >>>>> 12. debit the account
+        // >>>>> 13. debit the account
         accountService.debitAccount(account, currency.get(), sell.getTotalAmountCrypto());
         return ResponseEntity.ok(true);
     }

@@ -1,14 +1,20 @@
 package com.dusk.duskswap.administration.services;
 
 import com.dusk.duskswap.administration.entityDto.DefaultConfigDto;
+import com.dusk.duskswap.administration.entityDto.OperationsActivatedDto;
 import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.models.OperationsActivated;
 import com.dusk.duskswap.administration.models.PaymentAPI;
 import com.dusk.duskswap.administration.repositories.DefaultConfigRepository;
+import com.dusk.duskswap.administration.repositories.OperationsActivatedRepository;
 import com.dusk.duskswap.administration.repositories.PaymentAPIRepository;
+import com.dusk.duskswap.commons.models.Currency;
+import com.dusk.duskswap.commons.repositories.CurrencyRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +27,10 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
     private DefaultConfigRepository defaultConfigRepository;
     @Autowired
     private PaymentAPIRepository paymentAPIRepository;
+    @Autowired
+    private CurrencyRepository currencyRepository;
+    @Autowired
+    private OperationsActivatedRepository operationsActivatedRepository;
 
     @Override
     public DefaultConfig getConfigs() {
@@ -182,5 +192,106 @@ public class DefaultConfigServiceImpl implements DefaultConfigService {
     @Override
     public List<PaymentAPI> getAllPaymentAPIs() {
         return paymentAPIRepository.findAll();
+    }
+
+    @Override
+    public List<OperationsActivated> initAllowedOperations() {
+        List<Currency> currencies = currencyRepository.findByIsSupported(true);
+        List<OperationsActivated> operationsActivatedList = operationsActivatedRepository.findAll();
+
+        currencies.forEach(
+                currency -> {
+                    if(!operationsActivatedRepository.existsByCurrency(currency)) {
+                        OperationsActivated operationsActivated = new OperationsActivated();
+                        operationsActivated.setCurrency(currency);
+                        operationsActivated.setIsBuyActivated(true);
+                        operationsActivated.setIsDepositActivated(true);
+                        operationsActivated.setIsExchangeActivated(true);
+                        operationsActivated.setIsTransferActivated(true);
+                        operationsActivated.setIsSellActivated(true);
+                        operationsActivated.setIsWithdrawalActivated(true);
+
+                        OperationsActivated savedOperation = operationsActivatedRepository.save(operationsActivated);
+                        operationsActivatedList.add(savedOperation);
+                    }
+                }
+        );
+
+        return operationsActivatedList;
+    }
+
+    @Override
+    public OperationsActivated updateOperations(OperationsActivatedDto operationsActivatedDto) {
+        if(operationsActivatedDto == null)
+            return null;
+
+        Optional<Currency> currency = currencyRepository.findById(operationsActivatedDto.getCurrencyId());
+        if(!currency.isPresent())
+            return null;
+
+        Optional<OperationsActivated> operationsActivated = operationsActivatedRepository.findByCurrency(currency.get());
+        if(!operationsActivated.isPresent())
+            return null;
+
+        if(
+                operationsActivatedDto.getIsBuyActivated() != null &&
+                operationsActivated.get().getIsBuyActivated() != null
+        )
+            operationsActivated.get().setIsBuyActivated(operationsActivatedDto.getIsBuyActivated());
+
+        if(
+                operationsActivatedDto.getIsDepositActivated() != null &&
+                operationsActivated.get().getIsDepositActivated() != null
+        )
+            operationsActivated.get().setIsDepositActivated(operationsActivatedDto.getIsDepositActivated());
+
+        if(
+                operationsActivatedDto.getIsExchangeActivated() != null &&
+                operationsActivated.get().getIsExchangeActivated() != null
+        )
+            operationsActivated.get().setIsExchangeActivated(operationsActivatedDto.getIsExchangeActivated());
+
+        if(
+                operationsActivatedDto.getIsTransferActivated() != null &&
+                operationsActivated.get().getIsTransferActivated() != null
+        )
+            operationsActivated.get().setIsTransferActivated(operationsActivatedDto.getIsTransferActivated());
+
+        if(
+                operationsActivatedDto.getIsSellActivated() != null &&
+                operationsActivated.get().getIsSellActivated() != null
+        )
+            operationsActivated.get().setIsSellActivated(operationsActivatedDto.getIsSellActivated());
+
+        if(
+                operationsActivatedDto.getIsWithdrawalActivated() != null &&
+                operationsActivated.get().getIsWithdrawalActivated() != null
+        )
+            operationsActivated.get().setIsWithdrawalActivated(operationsActivatedDto.getIsWithdrawalActivated());
+
+        return operationsActivatedRepository.save(operationsActivated.get());
+    }
+
+    @Override
+    public List<OperationsActivated> getAllOperations() {
+        return operationsActivatedRepository.findAll();
+    }
+
+    @Override
+    public Optional<OperationsActivated> getOperationsActivatedForCurrency(Currency currency) {
+        if(currency == null)
+            return null;
+        return operationsActivatedRepository.findByCurrency(currency);
+    }
+
+    @Override
+    public Optional<OperationsActivated> getOperationsActivatedForCurrency(Long currencyId) {
+        if(currencyId == null)
+            return Optional.empty();
+        Optional<Currency> currency = currencyRepository.findById(currencyId);
+        if(!currency.isPresent())
+            return Optional.empty();
+
+        return getOperationsActivatedForCurrency(currency.get());
     }
 }

@@ -1,7 +1,9 @@
 package com.dusk.duskswap.administration.controllers;
 
 import com.dusk.duskswap.administration.entityDto.DefaultConfigDto;
+import com.dusk.duskswap.administration.entityDto.OperationsActivatedDto;
 import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.models.OperationsActivated;
 import com.dusk.duskswap.administration.models.OverallBalance;
 import com.dusk.duskswap.administration.models.PaymentAPI;
 import com.dusk.duskswap.administration.services.DefaultConfigService;
@@ -13,11 +15,13 @@ import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.services.PricingService;
 import com.dusk.duskswap.commons.services.UtilitiesService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @CrossOrigin("*")
@@ -192,6 +196,39 @@ public class AdministrationController {
     @GetMapping("/configs/api/all")
     public ResponseEntity<?> getAllPaymentAPIs() {
         return ResponseEntity.ok(defaultConfigService.getAllPaymentAPIs());
+    }
+
+    // ============================== Activated operations =================================
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/activated-operations/all")
+    public ResponseEntity<?> getAllActivatedOperations() {
+        return ResponseEntity.ok(defaultConfigService.getAllOperations());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/activated-operations/currencyId")
+    public ResponseEntity<?> getActivatedOperationsForCurrency(@RequestParam(name = "currencyId") Long currencyId) {
+        Optional<OperationsActivated> operationsActivated = defaultConfigService.getOperationsActivatedForCurrency(currencyId);
+        if(!operationsActivated.isPresent())
+            return new ResponseEntity<>("NOT PRESENT", HttpStatus.UNPROCESSABLE_ENTITY);
+
+        return ResponseEntity.ok(operationsActivated.get());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/activated-operations/init")
+    public ResponseEntity<?> initializeActivatedOperations() {
+        return ResponseEntity.ok(defaultConfigService.initAllowedOperations());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/activated-operations/update")
+    public ResponseEntity<?> updateActivatedOperations(@RequestBody OperationsActivatedDto dto) {
+        OperationsActivated operationsActivated = defaultConfigService.updateOperations(dto);
+        if(operationsActivated == null)
+            return new ResponseEntity<>("ERROR", HttpStatus.UNPROCESSABLE_ENTITY);
+
+        return ResponseEntity.ok(operationsActivated);
     }
 
 }

@@ -1,5 +1,6 @@
 package com.dusk.duskswap.administration.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,6 +33,5 @@ public class DefaultConfig {
     @OneToOne
     @JoinColumn(name = "momo_api_used", referencedColumnName = "id")
     private PaymentAPI momoAPIUsed; // Orange money API used  (payment and transfer)
-
 
 }

@@ -2,14 +2,18 @@ package com.dusk.duskswap.deposit.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.OperationsActivated;
+import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
 import com.dusk.duskswap.commons.miscellaneous.Utilities;
+import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.InvoicePayment;
 import com.dusk.duskswap.commons.models.Payment;
 import com.dusk.duskswap.commons.models.WebhookEvent;
 import com.dusk.duskswap.commons.services.InvoiceService;
+import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.deposit.entityDto.DepositDto;
 import com.dusk.duskswap.deposit.entityDto.DepositHashCount;
 import com.dusk.duskswap.deposit.entityDto.DepositPage;
@@ -49,6 +53,10 @@ public class DepositController {
     private BlockExplorerOperations blockExplorerOperations;
     @Autowired
     private OverallBalanceService overallBalanceService;
+    @Autowired
+    private DefaultConfigService defaultConfigService;
+    @Autowired
+    private UtilitiesService utilitiesService;
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping(value = "/user-all", produces = "application/json")
@@ -128,13 +136,37 @@ public class DepositController {
     @PostMapping(value = "/create")
     @Transactional
     public ResponseEntity<?> createDeposit(@RequestBody DepositDto dto) throws Exception {
+
+        // >>>>> 1. we get the currency
+        Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getCurrencyId());
+        if(!currency.isPresent()) {
+            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
+            return new ResponseEntity<>(Codes.UNKNOWN_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(!currency.get().getIsSupported()) {
+            log.error("[" + new Date() + "] => CURRENCY NOT SUPPORTED >>>>>>>> createDeposit :: DepositController.java");
+            return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 2. we check if deposit is possible for this currency
+        Optional<OperationsActivated> operationsActivated = defaultConfigService.getOperationsActivatedForCurrency(currency.get());
+        if(!operationsActivated.isPresent()) {
+            log.error("[" + new Date() + "] => ACTIVATED OPERATION NULL >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(!operationsActivated.get().getIsDepositActivated()) {
+            log.error("[" + new Date() + "] => DEPOSIT IS NOT ACTIVATED FOR THIS CURRENCY >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(Codes.OPERATION_BLOCKED_FOR_THAT_CURRENCY, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 3. we get the current logged in user
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> createDeposit :: DepositController.java");
             return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        return depositService.createCryptoDeposit(user.get(), dto);
+        return depositService.createCryptoDeposit(user.get(), currency.get(), dto);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")

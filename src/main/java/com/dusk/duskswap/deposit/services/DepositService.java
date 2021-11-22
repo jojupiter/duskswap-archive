@@ -1,6 +1,7 @@
 package com.dusk.duskswap.deposit.services;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
+import com.dusk.duskswap.commons.models.Currency;
 import com.dusk.duskswap.commons.models.InvoicePayment;
 import com.dusk.duskswap.commons.models.Payment;
 import com.dusk.duskswap.commons.models.Status;
@@ -20,7 +21,7 @@ public interface DepositService {
     Optional<Deposit> getDepositById(Long depositId);
     Optional<Deposit> getDepositByInvoiceId(String invoiceId);
 
-    ResponseEntity<?> createCryptoDeposit(User user, DepositDto dto) throws Exception; // Exception is used to rollback transactional methods
+    ResponseEntity<?> createCryptoDeposit(User user, Currency currency, DepositDto dto) throws Exception; // Exception is used to rollback transactional methods
     Deposit updateDepositStatus(Deposit deposit, String statusString, String paidAmount)  throws Exception; // destined to be used only when the corresponding invoice is updated by BTCPAY
     ResponseEntity<Boolean> updateDestinationAddress(Long depositId, String toAddress);
 

@@ -21,5 +21,6 @@ public class Codes {
     public static final int SELL_NOT_EXISTING = 4014;
     public static final int STATUS_ALREADY_CONFIRMED_OR_INVALID = 4014;
     public static final int USER_TRANSFER_AMOUNT_INSUFFICIENT = 4015;
+    public static final int OPERATION_BLOCKED_FOR_THAT_CURRENCY = 4016;
 
 }

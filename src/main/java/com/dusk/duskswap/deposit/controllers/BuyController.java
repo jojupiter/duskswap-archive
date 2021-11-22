@@ -3,6 +3,7 @@ package com.dusk.duskswap.deposit.controllers;
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.administration.models.DefaultConfig;
+import com.dusk.duskswap.administration.models.OperationsActivated;
 import com.dusk.duskswap.administration.models.OverallBalance;
 import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
@@ -116,26 +117,8 @@ public class BuyController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        // >>>>> 1. we adjust the initial amount
-        Double amount = Double.parseDouble(dto.getAmount());
-        Double adjustedAmount = Math.floor(amount) - Math.floor(amount) % 5;
-        dto.setAmount(Double.toString(adjustedAmount));
-
-        // ========================== Getting the necessary elements =============================
-        // >>>>> 1. the current logged in user
-        Optional<User> user = userService.getCurrentUser();
-        if(!user.isPresent()) {
-            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-        // >>>>> 2. the exchange account of that user
-        ExchangeAccount account = accountService.getAccountByUser(user.get());
-        if(account == null) {
-            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
-            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
-        }
-
-        // >>>>> 2. the crypto currency the user wants to buy
+        // ============================ checking if the operation is possible ========================
+        // >>>>> 1. the crypto currency the user wants to buy
         Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getToCurrencyId());
         if(!currency.isPresent()) {
             log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
@@ -146,7 +129,37 @@ public class BuyController {
             return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 3. transaction option that the user will use to buy
+        // >>>>> 2. we check if buying is possible for this currency
+        Optional<OperationsActivated> operationsActivated = defaultConfigService.getOperationsActivatedForCurrency(currency.get());
+        if(!operationsActivated.isPresent()) {
+            log.error("[" + new Date() + "] => ACTIVATED OPERATION NULL >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(!operationsActivated.get().getIsBuyActivated()) {
+            log.error("[" + new Date() + "] => BUY IS NOT ACTIVATED FOR THIS CURRENCY >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(Codes.OPERATION_BLOCKED_FOR_THAT_CURRENCY, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 3. we adjust the initial amount
+        Double amount = Double.parseDouble(dto.getAmount());
+        Double adjustedAmount = Math.floor(amount) - Math.floor(amount) % 5;
+        dto.setAmount(Double.toString(adjustedAmount));
+
+        // ========================== Getting the necessary elements =============================
+        // >>>>> 4. the current logged in user
+        Optional<User> user = userService.getCurrentUser();
+        if(!user.isPresent()) {
+            log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        // >>>>> 5. the exchange account of that user
+        ExchangeAccount account = accountService.getAccountByUser(user.get());
+        if(account == null) {
+            log.error("[" + new Date() + "] => EXCHANGE ACCOUNT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
+            return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 6. transaction option that the user will use to buy
         Optional<TransactionOption> transactionOption = utilitiesService.getTransactionOption(dto.getTransactionOptIso());
         if(!transactionOption.isPresent()) {
             log.error("[" + new Date() + "] => TRANSACTION OPT NOT PRESENT >>>>>>>> buyRequest :: BuyController.java");
@@ -186,7 +199,7 @@ public class BuyController {
         }
 
         // ========================= Performing the payment request via API ============================
-        // >>>>> 4. payment request object creation based on user's inputs
+        // >>>>> 7. payment request object creation based on user's inputs
         MobileMoneyPaymentRequest request = new MobileMoneyPaymentRequest();
         request.setAmount(dto.getAmount());
         request.setCustomerId(Long.toString(user.get().getId()));
@@ -203,7 +216,7 @@ public class BuyController {
         request.setTransactionId(txId);
         request.setMetadata("User" + user.get().getId());
 
-        // >>>>> 5. generation of the payment URL
+        // >>>>> 8. generation of the payment URL
         String paymentAPIUsed = null;
         if(transactionOption.get().getIso().equals(DefaultProperties.ORANGE_MONEY))
             paymentAPIUsed = config.getOmAPIUsed().getApiIso();
@@ -234,7 +247,7 @@ public class BuyController {
 
         log.info(">>>>>>>>>>>>>>>>> apiFees = " + apiFees);
 
-        // >>>>> 6. now we create and save the buy
+        // >>>>> 9. now we create and save the buy
         Buy buy = buyService.createBuy(user.get(), account, dto.getAmount(), currency.get(), transactionOption.get(), response.getPaymentToken(), apiFees, txId);
         if(buy == null) {
             log.error("[" + new Date() + "] => CANNOT SAVE BUY >>>>>>>> buyRequest :: BuyController.java");

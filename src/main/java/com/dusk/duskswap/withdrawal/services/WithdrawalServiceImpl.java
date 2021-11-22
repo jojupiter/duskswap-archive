@@ -117,28 +117,24 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
     @Override
     @Transactional
-    public Withdrawal createWithdrawal(WithdrawalDto wdto, User user, ExchangeAccount exchangeAccount) throws Exception { // in this, we create the withdrawal without saving it. It will be saved later is the caller's code using the saveWithdrawal function
+    public Withdrawal createWithdrawal(WithdrawalDto wdto, Currency currency,  User user, ExchangeAccount exchangeAccount) throws Exception { // in this, we create the withdrawal without saving it. It will be saved later is the caller's code using the saveWithdrawal function
         // input checking
-        if(wdto == null ||
-                (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()) )
-                )
+        if(
+                wdto == null ||
+                (wdto != null && (wdto.getAmount() == null || (wdto.getAmount() != null && wdto.getAmount().isEmpty()))) ||
+                 currency == null ||
+                 user == null ||
+                 exchangeAccount == null
         ) {
-            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
-            throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user);
+            log.error("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user + ", currency = " + currency + ", account = " + exchangeAccount);
+            throw new Exception("[" + new Date() + "] => INPUT NULL >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java ======= wdto = " + wdto + ", user = " + user + ", currency = " + currency + ", account = " + exchangeAccount);
             //return null;
         }
 
         // ============================= getting the necessary elements =============================
 
-        // >>>>> 1. we get the currency object
-        Optional<Currency> currency = currencyRepository.findById(wdto.getCurrencyId());
-        if(!currency.isPresent()) {
-            log.error("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            throw new Exception("[" + new Date() + "] => CURRENCY NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
-            //return null;
-        }
         // >>>>> 2. we check according to the pricing, if the user is able to make
-        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency.get());
+        Optional<Pricing> pricing = pricingRepository.findByLevelAndCurrency(user.getLevel(), currency);
         if(!pricing.isPresent()) {
             log.error("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => PRICING NOT PRESENT >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
@@ -170,8 +166,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         }
 
         // once having fees we check if it will be possible to perform the withdrawal with the available amount we have
-        Double estimatedFees = Utilities.estimateNetworkFees(currency.get().getIso());
-        Double availableAmount = Double.parseDouble(overallBalanceService.getAvailableBalanceFor(currency.get(), 1));
+        Double estimatedFees = Utilities.estimateNetworkFees(currency.getIso());
+        Double availableAmount = Double.parseDouble(overallBalanceService.getAvailableBalanceFor(currency, 1));
         if(availableAmount <= estimatedFees + duskFees + Double.parseDouble(wdto.getAmount())) {
             log.error("[" + new Date() + "] => DUSK INSUFFICIENT BALANCE >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
             throw new Exception("[" + new Date() + "] => DUSK INSUFFICIENT BALANCE >>>>>>>> createWithdrawal :: WithdrawalServiceImpl.java");
@@ -181,7 +177,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdrawal.setWithdrawalDate(new Date());
         withdrawal.setAmount(wdto.getAmount());
         withdrawal.setClientAddress(wdto.getToAddress());
-        withdrawal.setCurrency(currency.get());
+        withdrawal.setCurrency(currency);
         withdrawal.setExchangeAccount(exchangeAccount);
         withdrawal.setDuskFeesCrypto(Double.toString(duskFees));
 

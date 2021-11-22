@@ -2,17 +2,17 @@ package com.dusk.duskswap.withdrawal.controllers;
 
 import com.dusk.duskswap.account.models.ExchangeAccount;
 import com.dusk.duskswap.account.services.AccountService;
+import com.dusk.duskswap.administration.models.OperationsActivated;
 import com.dusk.duskswap.administration.models.OverallBalance;
+import com.dusk.duskswap.administration.services.DefaultConfigService;
 import com.dusk.duskswap.administration.services.OverallBalanceService;
 import com.dusk.duskswap.commons.mailing.models.Email;
 import com.dusk.duskswap.commons.mailing.services.EmailService;
 import com.dusk.duskswap.commons.miscellaneous.Codes;
 import com.dusk.duskswap.commons.miscellaneous.DefaultProperties;
-import com.dusk.duskswap.commons.models.TransactionBlock;
-import com.dusk.duskswap.commons.models.VerificationCode;
-import com.dusk.duskswap.commons.models.WalletTransaction;
-import com.dusk.duskswap.commons.models.WalletTransactionDestination;
+import com.dusk.duskswap.commons.models.*;
 import com.dusk.duskswap.commons.services.InvoiceService;
+import com.dusk.duskswap.commons.services.UtilitiesService;
 import com.dusk.duskswap.commons.services.VerificationCodeService;
 import com.dusk.duskswap.usersManagement.models.User;
 import com.dusk.duskswap.usersManagement.services.UserService;
@@ -56,6 +56,10 @@ public class WithdrawalController {
     private BlockExplorerOperations blockExplorerOperations;
     @Autowired
     private OverallBalanceService overallBalanceService;
+    @Autowired
+    private DefaultConfigService defaultConfigService;
+    @Autowired
+    private UtilitiesService utilitiesService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(value = "/all", produces = "application/json")
@@ -136,9 +140,31 @@ public class WithdrawalController {
             log.error("[" + new Date() + "] => CODE NULL >>>>>>>> confirm :: WithdrawalController.java");
             return ResponseEntity.badRequest().body(null);
         }
+        // ========================== Check if operation is possible ======================
+        // >>>>> 1. the crypto currency the user wants to buy
+        Optional<Currency> currency = utilitiesService.getCurrencyById(dto.getCurrencyId());
+        if(!currency.isPresent()) {
+            log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(!currency.get().getIsSupported()) {
+            log.error("[" + new Date() + "] => CRYPTO CURRENCY NOT SUPPORTED >>>>>>>> confirm :: WithdrawalController.java");
+            return new ResponseEntity<>(Codes.CURRENCY_NOT_SUPPORTED, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        // >>>>> 2. we check if withdrawal is possible for this currency
+        Optional<OperationsActivated> operationsActivated = defaultConfigService.getOperationsActivatedForCurrency(currency.get());
+        if(!operationsActivated.isPresent()) {
+            log.error("[" + new Date() + "] => ACTIVATED OPERATION NULL >>>>>>>>  confirm :: WithdrawalController.java");
+            return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        if(!operationsActivated.get().getIsWithdrawalActivated()) {
+            log.error("[" + new Date() + "] => WITHDRAWAL IS NOT ACTIVATED FOR THIS CURRENCY >>>>>>>> confirm :: WithdrawalController.java");
+            return new ResponseEntity<>(Codes.OPERATION_BLOCKED_FOR_THAT_CURRENCY, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         // =============================== Getting necessary elements =============================
-        // >>>>> 1. current authenticated user
+        // >>>>> 3. current authenticated user
         Optional<User> user = userService.getCurrentUser();
         if(!user.isPresent()) {
             log.error("[" + new Date() + "] => USER NOT PRESENT >>>>>>>> confirm :: WithdrawalController.java");
@@ -149,36 +175,36 @@ public class WithdrawalController {
             log.error("[" + new Date() + "] => USER EMAIL NULL >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(Codes.EMAIL_NOT_EXISTING, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        // >>>>> 2. the user's exchange account
+        // >>>>> 4. the user's exchange account
         ExchangeAccount account = accountService.getAccountByUser(user.get());
         if(account == null) {
             log.error("[" + new Date() + "] => EXCHANGE ACCOUNT DOESN'T EXIST >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(Codes.EXCHANGE_ACCOUNT_NOT_EXIST, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 3. first we check if verification code is correct
+        // >>>>> 5. first we check if verification code is correct
         if(!verificationCodeService.isCodeCorrect(user.get().getEmail(), dto.getCode(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE)) {
             log.error("[" + new Date() + "] => VERIFICATION CODE INCORRECT >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(Codes.VERIFICATION_CODE_INCORRECT, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         // =============================== creation of the withdrawal + balances checking =================================
-        // >>>>> 4. then we create the withdrawal
-        Withdrawal withdrawal = withdrawalService.createWithdrawal(dto, user.get(), account);
+        // >>>>> 6. then we create the withdrawal
+        Withdrawal withdrawal = withdrawalService.createWithdrawal(dto, currency.get(), user.get(), account);
         if(withdrawal == null) {
             log.error("[" + new Date() + "] => WITHDRAWAL NULL >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(null, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        // >>>>> 5. we get the overall balance for this currency
+        // >>>>> 7. we get the overall balance for this currency
         Optional<OverallBalance> overallBalance = overallBalanceService.getBalanceFor(withdrawal.getCurrency());
 
-        // >>>>> 6. we get an estimation of fee rates and network fees that will be used in the transaction
+        // >>>>> 8. we get an estimation of fee rates and network fees that will be used in the transaction
         // (max between what the Api send to us and the default max value we set)
         Double estimatedFeeRate = blockExplorerOperations.getEstimatedFeeRate(withdrawal.getCurrency().getIso());
         Double estimatedFeesGivenByAPI = blockExplorerOperations.getEstimatedFees(withdrawal.getCurrency().getIso(), estimatedFeeRate);
 
-        // >>>>> 6. we verify next if duskswap has enough balance on its own
+        // >>>>> 9. we verify next if duskswap has enough balance on its own
         if(Double.parseDouble(overallBalance.get().getWithdrawalBalance()) <= Double.parseDouble(withdrawal.getAmount()) +
                                                                               Double.parseDouble(withdrawal.getDuskFeesCrypto()) +
                                                                               estimatedFeesGivenByAPI
@@ -186,7 +212,7 @@ public class WithdrawalController {
             log.error("[" + new Date() + "] => DUSKSWAP INSUFFICIENT BALANCE >>>>>>>> confirm :: WithdrawalController.java");
             return new ResponseEntity<>(Codes.INSUFFICIENT_BALANCE_DUSKSWAP, HttpStatus.UNPROCESSABLE_ENTITY);
         }
-        // >>>>> 7. and then check if the user's has enough amount of crypto in his account
+        // >>>>> 10. and then check if the user's has enough amount of crypto in his account
         Double estimatedTotalUserExpense = Double.parseDouble(dto.getAmount()) +
                                            estimatedFeesGivenByAPI +
                                            Double.parseDouble(withdrawal.getDuskFeesCrypto());
@@ -199,7 +225,7 @@ public class WithdrawalController {
                 ", estimated user expenses = " + estimatedTotalUserExpense);
 
         // ============================== Performing the send transaction =================================
-        // >>>>> 8. Afterwards, we send properly crypto to user
+        // >>>>> 11. Afterwards, we send properly crypto to user
         WalletTransaction walletTransaction = new WalletTransaction();
         walletTransaction.setFeeRate(estimatedFeeRate);
         walletTransaction.setNoChange(false);
@@ -224,30 +250,30 @@ public class WithdrawalController {
         log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") TRANSACTION BLOCK =======> " + block);
 
         // ============================== Saving of the withdrawal =====================================
-        // >>>>> 9. we get the actual network fees used in send transaction
+        // >>>>> 12. we get the actual network fees used in send transaction
         Double actualNetworkFees = Math.abs(
                 Math.abs(Double.parseDouble(block.getAmount())) - Math.abs(Double.parseDouble(dto.getAmount()))
         );
         Double totalAmountToDebit = Double.parseDouble(withdrawal.getAmount()) + actualNetworkFees + Double.parseDouble(withdrawal.getDuskFeesCrypto());
 
-        // >>>>> 10. after that, we save the withdrawal with all the fees
+        // >>>>> 13. after that, we save the withdrawal with all the fees
         withdrawal.setNetworkFees(Double.toString(actualNetworkFees));
         withdrawal.setTransactionHash(block.getTransactionHash());
         Withdrawal savedWithdrawal = withdrawalService.saveWithdrawal(withdrawal);
 
         log.info("[" + new Date() + "] => USER(" + user.get().getEmail()+ ") actual network fees = " + actualNetworkFees + ", total amount to debit = " + totalAmountToDebit);
         // ================================= Updating the balances =====================================
-        // >>>>> 11. we first debit the user's account
+        // >>>>> 14. we first debit the user's account
         accountService.debitAccount(withdrawal.getExchangeAccount(), withdrawal.getCurrency(), Double.toString(totalAmountToDebit));
 
-        // >>>>> 12. after that we decrease the overall withdrawal balance and add the dusk fees into the total earnings section
+        // >>>>> 15. after that we decrease the overall withdrawal balance and add the dusk fees into the total earnings section
         Double newDuskswapWithdrawalBalance = Double.parseDouble(overallBalance.get().getWithdrawalBalance()) - totalAmountToDebit;
         Double newDuskswapTotalEarnings = Double.parseDouble(overallBalance.get().getTotalEarnings()) + Double.parseDouble(withdrawal.getDuskFeesCrypto());
         overallBalance.get().setWithdrawalBalance(Double.toString(newDuskswapWithdrawalBalance));
         overallBalance.get().setTotalEarnings(Double.toString(newDuskswapTotalEarnings));
         overallBalanceService.saveBalance(overallBalance.get());
 
-        // >>>>> 13. next we update the verification code in order the user won't send the same request twice
+        // >>>>> 16. next we update the verification code in order the user won't send the same request twice
         // (this is to avoid issues like debiting multiple time an account for a single operation)
         verificationCodeService.updateCode(user.get().getEmail(), DefaultProperties.VERIFICATION_WITHDRAWAL_SELL_PURPOSE);
 
