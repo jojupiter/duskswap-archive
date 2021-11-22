@@ -22,7 +22,7 @@ public class NewsLetterController {
     private EmailService emailService;
 
     @PostMapping(value = "/add-subscriber", produces = "application/json")
-    public NewsLetterSubScriber addSubscriberToNewsLetter(String email) {
+    public NewsLetterSubScriber addSubscriberToNewsLetter(@RequestParam(name = "email") String email) {
         return newsLetterService.addSubscriberToNewsLetter(email);
     }
 
