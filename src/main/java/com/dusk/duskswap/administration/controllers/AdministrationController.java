@@ -70,6 +70,17 @@ public class AdministrationController {
         return utilitiesService.deleteLevel(levelId);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/levels/update-user")
+    public ResponseEntity<?> updateUserLevel(@RequestParam(name = "userId") Long userId,
+                                             @RequestParam(name = "levelId") Long levelId) {
+        Optional<User> user = userService.getUser(userId);
+        if(!user.isPresent()) {
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        return userService.changeLevel(user.get(), levelId);
+    }
+
     // =========================== Pricing =========================================
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/pricing/create")
@@ -240,7 +251,7 @@ public class AdministrationController {
     }
 
     //==================================== Account ==========================================
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/user-balance")
     public ResponseEntity<?> getUserCryptoBalance(@RequestParam("cryptoIso") String cryptoIso,
                                                   @RequestParam("userId") Long userId) {

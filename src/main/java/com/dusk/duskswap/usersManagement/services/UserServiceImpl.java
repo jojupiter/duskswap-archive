@@ -471,4 +471,21 @@ public class UserServiceImpl implements UserService {
         return ResponseEntity.ok(true);
     }
 
+    @Override
+    public ResponseEntity<?> changeLevel(User user, Long levelId) {
+        if(user == null || levelId == null) {
+            log.error("[" + new Date() + "] => ROLE NOT FOUND >>>>>>>> changeUserRole :: UserServiceImpl.java");
+            return ResponseEntity.badRequest().body(false);
+        }
+
+        Optional<Level> level = levelRepository.findById(levelId);
+        if(!level.isPresent()) {
+            return new ResponseEntity<>(false, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        user.setLevel(level.get());
+        userRepository.save(user);
+        return ResponseEntity.ok(true);
+    }
+
 }

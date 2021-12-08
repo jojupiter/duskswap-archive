@@ -44,4 +44,7 @@ public interface UserService {
     ResponseEntity<Role> updateRole(Long id, Role role);
     ResponseEntity<?> changeUserRole(Long userId, String roleName);
 
+    // ===================== LEVEL SERVICES ===================================
+    ResponseEntity<?> changeLevel(User user, Long levelId);
+
 }
