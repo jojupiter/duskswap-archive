@@ -263,4 +263,15 @@ public class AdministrationController {
         return accountService.getUserCryptoBalance(user.get(), cryptoIso);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/user-balance-all")
+    public ResponseEntity<?> getAllUserCryptoBalances(@RequestParam("userId") Long userId) {
+        Optional<User> user = userService.getUser(userId);
+        if(!user.isPresent()) {
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        return ResponseEntity.ok(accountService.getUserAccountBalance(user.get()));
+    }
+
 }
