@@ -1,5 +1,6 @@
 package com.dusk.duskswap.administration.controllers;
 
+import com.dusk.duskswap.account.services.AccountService;
 import com.dusk.duskswap.administration.entityDto.DefaultConfigDto;
 import com.dusk.duskswap.administration.entityDto.OperationsActivatedDto;
 import com.dusk.duskswap.administration.models.DefaultConfig;
@@ -14,12 +15,15 @@ import com.dusk.duskswap.commons.models.Level;
 import com.dusk.duskswap.commons.models.Pricing;
 import com.dusk.duskswap.commons.services.PricingService;
 import com.dusk.duskswap.commons.services.UtilitiesService;
+import com.dusk.duskswap.usersManagement.models.User;
+import com.dusk.duskswap.usersManagement.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +40,10 @@ public class AdministrationController {
     private OverallBalanceService overallBalanceService;
     @Autowired
     private DefaultConfigService defaultConfigService;
+    @Autowired
+    private AccountService accountService;
+    @Autowired
+    private UserService userService;
 
     // ============================== Levels ========================================
     @PreAuthorize("hasRole('ADMIN')")
@@ -229,6 +237,19 @@ public class AdministrationController {
             return new ResponseEntity<>("ERROR", HttpStatus.UNPROCESSABLE_ENTITY);
 
         return ResponseEntity.ok(operationsActivated);
+    }
+
+    //==================================== Account ==========================================
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @GetMapping("/user-balance")
+    public ResponseEntity<?> getUserCryptoBalance(@RequestParam("cryptoIso") String cryptoIso,
+                                                  @RequestParam("userId") Long userId) {
+        Optional<User> user = userService.getUser(userId);
+        if(!user.isPresent()) {
+            return new ResponseEntity<>(Codes.USER_NOT_FOUND, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        return accountService.getUserCryptoBalance(user.get(), cryptoIso);
     }
 
 }

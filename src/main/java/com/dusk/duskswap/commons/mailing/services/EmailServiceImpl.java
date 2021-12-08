@@ -21,7 +21,7 @@ public class EmailServiceImpl implements EmailService {
     private Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
 
     @Override
-    public void sendEmail(Email email) {
+    public void sendEmail(Email email, String templateName) {
 
         SendEmailRequest request = new SendEmailRequest().withSource(email.getFrom());
         Destination destination = new Destination().withToAddresses(email.getTo());
@@ -35,7 +35,7 @@ public class EmailServiceImpl implements EmailService {
         // setting html template
         Context context = new Context();
         context.setVariable("email", email);
-        String htmlMessage = templateEngine.process("template_mail", context);
+        String htmlMessage = templateEngine.process(templateName, context);
         Content htmlContent = new Content().withData(htmlMessage);
         body.setHtml(htmlContent);
 
@@ -52,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
         email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
         email.setMessageFooter("Pour activer votre compte vous devez confirmer votre email, pour cela veuillez copier et coller ce code  dans le champ requis du formulaire d'inscription.");
 
-        sendEmail(email);
+        sendEmail(email, "template_mail");
     }
 
     @Override
@@ -63,7 +63,7 @@ public class EmailServiceImpl implements EmailService {
         email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
         email.setMessageFooter("Pour vous connectez à votre compte , veuillez copier et collez ce code  dans le champ requis du formulaire de connexion.");
 
-        sendEmail(email);
+        sendEmail(email, "template_mail");
     }
 
     @Override
@@ -74,7 +74,7 @@ public class EmailServiceImpl implements EmailService {
         email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
         email.setMessageFooter("Pour confirmer la vente/retrait , veuillez copier et collez ce code  dans le champ requis du formulaire de connexion.");
 
-        sendEmail(email);
+        sendEmail(email, "template_mail");
     }
 
     @Override
@@ -85,7 +85,7 @@ public class EmailServiceImpl implements EmailService {
         email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
         email.setMessageFooter("Pour confirmer le transfert , veuillez copier et collez ce code  dans le champ requis du formulaire de connexion.");
 
-        sendEmail(email);
+        sendEmail(email, "template_mail");
     }
 
     @Override
@@ -96,7 +96,20 @@ public class EmailServiceImpl implements EmailService {
         email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
         email.setMessageFooter("Pour réinitialiser votre mot de passe , veuillez copier et collez ce code dans le champ requis du formulaire de réinitialisation.");
 
-        sendEmail(email);
+        sendEmail(email, "template_mail");
+    }
+
+    @Override
+    public void sendDepositEmail(Email email) {
+        email.setSubject("Dépôt effectué");
+        email.setMessageTitle("");
+        email.setMessage("Vous venez d'effectuer un dépôt de : <span style=\"color:#067a33\"> " + email.getMessage() + "</span> " +
+                "Veuillez patientez jusqu'à la confirmation du réseau.");
+        email.setMessageSubTitle("");
+        email.setFrom(DefaultProperties.EMAIL_NO_REPLY_ADDRESS);
+        email.setMessageFooter("");
+
+        sendEmail(email, "template_email_deposit");
     }
 
 }
